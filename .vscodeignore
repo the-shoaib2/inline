@@ -1,0 +1,56 @@
+# Build outputs
+out/test/**
+src/**
+test/**
+*.ts
+*.map
+tsconfig.json
+
+# Development files
+.vscode/
+.vscode-test/
+.vscode-test.mjs
+.github/
+scripts/
+docs/
+
+# Environment and config
+.env
+.env.*
+.eslintrc.json
+.eslintignore
+.prettierrc
+.prettierignore
+.nvmrc
+.editorconfig
+
+# Package management
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (keep only essential)
+SETUP.md
+CONTRIBUTING.md
+docs/
+
+# Build scripts
+release.sh
+*.sh
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+**/test/**
+**/tests/**
+
+# Misc
+*.vsix
+.DS_Store
+*.log
