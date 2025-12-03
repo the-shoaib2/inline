@@ -1,0 +1,172 @@
+{
+  "name": "inline",
+  "displayName": "Inline - Offline AI Code Completion",
+  "description": "GitHub Copilot-like AI code completion that works entirely offline with automatic model management",
+  "version": "0.1.0",
+  "publisher": "inline-ai",
+  "author": "Inline AI Team",
+  "icon": "resources/icon.png",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "copilot",
+    "completion",
+    "offline",
+    "llm",
+    "code-completion",
+    "intellisense"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "inline.modelManager",
+        "title": "Inline: Model Manager",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.toggleOffline",
+        "title": "Inline: Toggle Offline Mode",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.clearCache",
+        "title": "Inline: Clear Cache",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.downloadModel",
+        "title": "Inline: Download Model",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.settings",
+        "title": "Inline: Settings",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.showLogs",
+        "title": "Inline: Show Logs",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.showErrorLog",
+        "title": "Inline: Show Error Log",
+        "category": "Inline"
+      }
+    ],
+    "views": {
+      "inline-sidebar": [
+        {
+          "type": "webview",
+          "id": "inline.modelManagerView",
+          "name": "Model Manager"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "inline-sidebar",
+          "title": "Inline AI",
+          "icon": "$(cloud-download)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Inline",
+      "properties": {
+        "inline.autoOffline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically activate offline mode when internet is unavailable"
+        },
+        "inline.defaultModel": {
+          "type": "string",
+          "default": "deepseek-coder:6.7b",
+          "description": "Default model to use for completions"
+        },
+        "inline.maxTokens": {
+          "type": "number",
+          "default": 512,
+          "description": "Maximum tokens for completion generation"
+        },
+        "inline.temperature": {
+          "type": "number",
+          "default": 0.1,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Temperature for model generation (lower = more deterministic)"
+        },
+        "inline.cacheSize": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum number of cached completions"
+        },
+        "inline.resourceMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor system resources and adjust model usage accordingly"
+        }
+      }
+    },
+    "statusBarItems": [
+      {
+        "id": "inline.status",
+        "name": "Inline Status",
+        "alignment": "right"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run clean && tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:unit": "mocha --require ts-node/register 'test/unit/**/*.test.ts'",
+    "test:integration": "mocha --require ts-node/register 'test/integration/**/*.test.ts'",
+    "test:e2e": "node ./out/test/runTest.js",
+    "test:coverage": "nyc npm test",
+    "benchmark": "node ./out/test/benchmark.js",
+    "package": "vsce package",
+    "release": "./scripts/release.sh",
+    "clean": "rimraf out dist lib"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "18.x",
+    "@types/mocha": "^10.0.6",
+    "@types/chai": "^4.3.11",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/test-cli": "^0.0.4",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0",
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10",
+    "ts-node": "^10.9.2",
+    "nyc": "^15.1.0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "ws": "^8.14.2",
+    "tar": "^6.2.0",
+    "semver": "^7.5.4"
+  }
+}
