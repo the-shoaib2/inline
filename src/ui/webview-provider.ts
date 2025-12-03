@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import { ModelManager, ModelInfo } from '../core/model-manager';
+import { ModelManager } from '../core/model-manager';
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'inline.modelManagerView';
@@ -14,7 +13,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
+        _context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken
     ) {
         this._view = webviewView;

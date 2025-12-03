@@ -55,22 +55,23 @@ print_success "Dependencies installed"
 
 # Step 2: Clean Previous Builds
 print_header "Step 2: Cleaning Previous Builds"
-print_info "Running: npm run clean"
-npm run clean
+print_info "Running: pnpm run clean"
+pnpm run clean
 print_success "Build artifacts cleaned"
 
 # Step 3: Build Extension
 print_header "Step 3: Building Extension"
-print_info "Running: npm run build"
-npm run build
+print_info "Running build..."
+pnpm run build
 print_success "Extension built successfully"
 
 # Step 4: Run Linter
 print_header "Step 4: Running Linter"
-print_info "Running: npm run lint"
-npm run lint || {
+print_info "Running linter..."
+pnpm run lint || {
+    print_warning "Linting warnings detected"
     print_info "Attempting to fix linting issues..."
-    npm run lint:fix
+    pnpm run lint:fix
 }
 print_success "Linting complete"
 
@@ -82,7 +83,7 @@ echo ""
 read -p "Run tests? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    npm test || {
+    pnpm test || {
         print_error "Some tests failed, but continuing..."
     }
     print_success "Tests completed"
@@ -92,15 +93,15 @@ fi
 
 # Step 6: Package Extension
 print_header "Step 6: Packaging Extension"
-print_info "Running: npm run package"
+print_info "Running: pnpm run package"
 
 # Check if vsce is installed
-if ! command -v vsce &> /dev/null; then
+if ! command_exists vsce; then
     print_info "Installing vsce..."
-    npm install -g @vscode/vsce
+    pnpm install -g @vscode/vsce
 fi
 
-npm run package
+pnpm run package
 print_success "Extension packaged"
 
 # Find the .vsix file

@@ -36,43 +36,60 @@ describe('ContextEngine Unit Tests', () => {
   });
 
   describe('Prompt Generation', () => {
-    it('should generate prompt from context', () => {
+    const engine = new ContextEngine();
+
+    it('should generate prompt from context', async () => {
       const context: Partial<CodeContext> = {
         prefix: 'function test() {',
         suffix: '}',
         language: 'typescript',
         imports: ['import fs from "fs"'],
-        functions: ['function helper() {}']
+        functions: ['function helper() {}'],
+        classes: [],
+        comments: [],
+        project: 'test-project',
+        filename: 'test.ts'
       };
       
-      const prompt = generatePromptFromContext(context as CodeContext);
+      const prompt = await engine.generatePrompt(context as CodeContext);
       
       expect(prompt).to.be.a('string');
       expect(prompt.length).to.be.greaterThan(0);
       expect(prompt).to.include('typescript');
     });
 
-    it('should include language in prompt', () => {
+    it('should include language in prompt', async () => {
       const context: Partial<CodeContext> = {
         language: 'python',
         prefix: 'def test():',
-        suffix: ''
+        suffix: '',
+        imports: [],
+        functions: [],
+        classes: [],
+        comments: [],
+        project: 'test-project',
+        filename: 'test.py'
       };
       
-      const prompt = generatePromptFromContext(context as CodeContext);
+      const prompt = await engine.generatePrompt(context as CodeContext);
       
       expect(prompt).to.include('python');
     });
 
-    it('should include relevant imports', () => {
+    it('should include relevant imports', async () => {
       const context: Partial<CodeContext> = {
         language: 'typescript',
         prefix: '',
         suffix: '',
-        imports: ['import React from "react"']
+        imports: ['import React from "react"'],
+        functions: [],
+        classes: [],
+        comments: [],
+        project: 'test-project',
+        filename: 'test.tsx'
       };
       
-      const prompt = generatePromptFromContext(context as CodeContext);
+      const prompt = await engine.generatePrompt(context as CodeContext);
       
       expect(prompt).to.include('import');
     });
@@ -149,9 +166,7 @@ function extractCommentsFromCode(code: string): string[] {
   return code.match(commentRegex) || [];
 }
 
-function generatePromptFromContext(context: CodeContext): string {
-  return `Language: ${context.language}\nPrefix: ${context.prefix}\nSuffix: ${context.suffix}`;
-}
+
 
 function extractIntentFromComments(comments: string[]): string {
   return comments.join(' ').toLowerCase();

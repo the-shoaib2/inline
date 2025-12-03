@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ModelManager, ModelInfo } from '../core/model-manager';
+import { ModelManager } from '../core/model-manager';
 
 export class ModelManagerView {
     private modelManager: ModelManager;
@@ -25,7 +25,7 @@ export class ModelManagerView {
             }
         );
 
-        this.panel.webview.html = this.getWebviewContent();
+        this.panel.webview.html = this._getHtmlForWebview(this.panel.webview);
         this.panel.webview.onDidReceiveMessage(
             message => this.handleMessage(message),
             undefined,
@@ -39,7 +39,7 @@ export class ModelManagerView {
         this.updateModelsList();
     }
 
-    private getWebviewContent(): string {
+    private _getHtmlForWebview(_webview: vscode.Webview): string {
         return `
 <!DOCTYPE html>
 <html lang="en">
@@ -267,16 +267,16 @@ export class ModelManagerView {
         `;
     }
 
-    private async handleMessage(message: any): Promise<void> {
+    private async handleMessage(message: { command: string; [key: string]: unknown }): Promise<void> {
         switch (message.command) {
             case 'downloadModel':
-                await this.downloadModel(message.modelId);
+                this.downloadModel(message.modelId as string);
                 break;
             case 'removeModel':
-                await this.removeModel(message.modelId);
+                this.removeModel(message.modelId as string);
                 break;
             case 'setCurrentModel':
-                await this.setCurrentModel(message.modelId);
+                await this.setCurrentModel(message.modelId as string);
                 break;
             case 'refreshModels':
                 this.updateModelsList();

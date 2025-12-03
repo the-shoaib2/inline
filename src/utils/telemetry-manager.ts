@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as os from 'os';
+
 
 export class TelemetryManager {
     private events: TelemetryEvent[] = [];
@@ -17,14 +17,14 @@ export class TelemetryManager {
         this.enabled = config.get('enableTelemetry', false);
     }
 
-    public trackEvent(name: string, properties?: Record<string, any>): void {
+    public trackEvent(eventName: string, properties?: Record<string, unknown>): void {
         if (!this.enabled) {
             return;
         }
 
         const event: TelemetryEvent = {
-            name,
-            properties: properties || {},
+            name: eventName,
+            properties: { ...this.getCommonProperties(), ...(properties || {}) },
             timestamp: new Date(),
             sessionId: this.sessionId
         };
@@ -33,6 +33,14 @@ export class TelemetryManager {
         
         // In production, send to analytics service
         this.sendEvent(event);
+    }
+
+    private getCommonProperties(): Record<string, unknown> {
+        return {
+            platform: process.platform,
+            arch: process.arch,
+            version: vscode.version
+        };
     }
 
     public trackCompletion(language: string, duration: number, cached: boolean): void {
@@ -85,7 +93,7 @@ export class TelemetryManager {
 
 interface TelemetryEvent {
     name: string;
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     timestamp: Date;
     sessionId: string;
 }

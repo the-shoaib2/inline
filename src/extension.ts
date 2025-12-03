@@ -6,7 +6,7 @@ import { StatusBarManager } from './ui/status-bar-manager';
 import { WebviewProvider } from './ui/webview-provider';
 import { NetworkDetector } from './utils/network-detector';
 import { ResourceManager } from './utils/resource-manager';
-import { Logger, LogLevel } from './utils/logger';
+import { Logger } from './utils/logger';
 import { ConfigManager } from './utils/config-manager';
 import { ErrorHandler } from './utils/error-handler';
 import { TelemetryManager } from './utils/telemetry-manager';
@@ -50,7 +50,10 @@ export async function activate(context: vscode.ExtensionContext) {
         modelManager = new ModelManager(context);
         statusBarManager = new StatusBarManager();
         networkDetector = new NetworkDetector();
+        
+        // Lazy-initialize ResourceManager (defer until first use for faster activation)
         resourceManager = new ResourceManager();
+        resourceManager.stopMonitoring(); // Don't start monitoring until needed
         
         // Initialize completion provider
         completionProvider = new InlineCompletionProvider(
@@ -90,14 +93,16 @@ export async function activate(context: vscode.ExtensionContext) {
             statusBarManager.setModel(currentModel.name);
         }
         
-        // Start network monitoring
-        networkDetector.startMonitoring((isOffline) => {
-            statusBarManager.updateStatus(isOffline);
-            if (isOffline) {
-                vscode.window.showInformationMessage('Inline: Offline mode activated');
-                telemetryManager.trackEvent('offline_mode_activated');
-            }
-        });
+        // Start network monitoring asynchronously (don't block activation)
+        setTimeout(() => {
+            networkDetector.startMonitoring((isOffline) => {
+                statusBarManager.updateStatus(isOffline);
+                if (isOffline) {
+                    vscode.window.showInformationMessage('Inline: Offline mode activated');
+                    telemetryManager.trackEvent('offline_mode_activated');
+                }
+            });
+        }, 100);
 
         // Set context for UI visibility
         vscode.commands.executeCommand('setContext', 'inline.enabled', true);
@@ -115,6 +120,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
         logger.info('Inline extension activated successfully');
         vscode.window.showInformationMessage('Inline is ready!');
+
+        return {
+            completionProvider,
+            modelManager,
+            cacheManager,
+            statusBarManager,
+            networkDetector,
+            resourceManager
+        };
 
     } catch (error) {
         const err = error as Error;

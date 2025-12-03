@@ -50,8 +50,8 @@ fi
 
 # Step 2: Rebuild Extension
 print_header "Step 2: Rebuilding Extension"
-npm run clean
-npm run build
+pnpm run clean
+pnpm run build
 print_success "Extension rebuilt"
 
 # Step 3: Update Settings

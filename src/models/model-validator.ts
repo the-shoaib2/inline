@@ -1,32 +1,45 @@
-import * as vscode from 'vscode';
 import { ModelInfo } from '../core/model-manager';
+import * as fs from 'fs';
+import * as crypto from 'crypto';
+import * as os from 'os';
+import * as path from 'path';
 
 export class ModelValidator {
-    public static validateModelInfo(model: any): model is ModelInfo {
+    public static validateModelInfo(model: unknown): model is ModelInfo {
+        if (!model || typeof model !== 'object') {
+            return false;
+        }
+        const m = model as Record<string, unknown>;
         return (
-            typeof model === 'object' &&
-            typeof model.id === 'string' &&
-            typeof model.name === 'string' &&
-            typeof model.size === 'number' &&
-            typeof model.description === 'string' &&
-            Array.isArray(model.languages) &&
-            typeof model.requirements === 'object' &&
-            typeof model.isDownloaded === 'boolean'
+            typeof m.id === 'string' &&
+            typeof m.name === 'string' &&
+            typeof m.size === 'number' &&
+            typeof m.description === 'string' &&
+            Array.isArray(m.languages) &&
+            typeof m.requirements === 'object' &&
+            typeof m.isDownloaded === 'boolean'
         );
     }
 
     public static validateModelFile(filePath: string): boolean {
         // Check if file exists and has correct extension
-        const fs = require('fs');
         if (!fs.existsSync(filePath)) {
             return false;
         }
 
+        // Check for GGUF magic number
+        const fd = fs.openSync(filePath, 'r');
+        const buffer = Buffer.alloc(4);
+        fs.readSync(fd, buffer, 0, 4, 0);
+        fs.closeSync(fd);
+        if (buffer.toString('utf8') === 'GGUF') {
+            return true; // If it's a GGUF file, we consider it valid for now
+        }
+
         // Check file extension
         const validExtensions = ['.gguf', '.bin', '.safetensors'];
-        const hasValidExtension = validExtensions.some(ext => 
-            filePath.toLowerCase().endsWith(ext)
-        );
+        const ext = path.extname(filePath).toLowerCase().replace('.', '');
+        const hasValidExtension = validExtensions.some(validExt => validExt.replace('.', '') === ext);
 
         if (!hasValidExtension) {
             return false;
@@ -43,9 +56,6 @@ export class ModelValidator {
 
     public static async validateModelIntegrity(filePath: string): Promise<boolean> {
         try {
-            const fs = require('fs');
-            const crypto = require('crypto');
-
             // Calculate file hash
             const fileBuffer = fs.readFileSync(filePath);
             const hashSum = crypto.createHash('sha256');
@@ -66,7 +76,6 @@ export class ModelValidator {
         warnings: string[];
     } {
         const warnings: string[] = [];
-        const os = require('os');
 
         // Check RAM
         const totalRAM = os.totalmem() / (1024 * 1024 * 1024); // Convert to GB

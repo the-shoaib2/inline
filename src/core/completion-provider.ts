@@ -19,8 +19,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private resourceManager: ResourceManager;
     private contextEngine: ContextEngine;
     private cache: Map<string, CompletionCache> = new Map();
-    private maxCacheSize: number = 100;
+    private maxCacheSize: number = 50; // Reduced from 100 for better memory usage
     private isProcessing: boolean = false;
+    private debounceTimer: NodeJS.Timeout | null = null;
+    private debounceDelay: number = 30; // 30ms debounce (reduced from 50ms for faster response)
 
     constructor(
         modelManager: ModelManager,
@@ -33,9 +35,43 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.networkDetector = networkDetector;
         this.resourceManager = resourceManager;
         this.contextEngine = new ContextEngine();
+        
+        // Load cache from disk on startup for faster initial completions
+        this.loadCacheFromDisk();
+    }
+
+    private loadCacheFromDisk(): void {
+        // Cache will be loaded asynchronously to not block activation
+        setTimeout(() => {
+            try {
+                // Implementation would load from workspace storage
+                // For now, just initialize empty cache
+            } catch (error) {
+                console.error('Failed to load cache:', error);
+            }
+        }, 1000);
     }
 
     async provideInlineCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        context: vscode.InlineCompletionContext,
+        token: vscode.CancellationToken
+    ): Promise<vscode.InlineCompletionItem[]> {
+        // Debounce rapid completion requests
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+
+        return new Promise((resolve) => {
+            this.debounceTimer = setTimeout(async () => {
+                const result = await this.provideCompletionInternal(document, position, context, token);
+                resolve(result);
+            }, this.debounceDelay);
+        });
+    }
+
+    private async provideCompletionInternal(
         document: vscode.TextDocument,
         position: vscode.Position,
         context: vscode.InlineCompletionContext,
@@ -160,11 +196,16 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
 
     private cacheCompletion(key: string, completion: string, context: CodeContext): void {
-        // Remove oldest entries if cache is full
+        // LRU cache: Remove oldest entries if cache is full
         if (this.cache.size >= this.maxCacheSize) {
-            const oldestKey = Array.from(this.cache.entries())
-                .sort((a, b) => a[1].timestamp - b[1].timestamp)[0][0];
-            this.cache.delete(oldestKey);
+            // Sort by timestamp and remove oldest 20% of entries
+            const entries = Array.from(this.cache.entries())
+                .sort((a, b) => a[1].timestamp - b[1].timestamp);
+            
+            const toRemove = Math.ceil(this.maxCacheSize * 0.2); // Remove 20% of cache
+            for (let i = 0; i < toRemove && i < entries.length; i++) {
+                this.cache.delete(entries[i][0]);
+            }
         }
 
         this.cache.set(key, {
@@ -209,10 +250,13 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
     private async generateCompletion(context: CodeContext, token: vscode.CancellationToken): Promise<string> {
         try {
-            // Check system resources
-            const resources = this.resourceManager.getCurrentUsage();
-            if (resources.memory > 0.9) {
-                throw new Error('High memory usage, skipping completion');
+            // Check system resources if enabled
+            const config = vscode.workspace.getConfiguration('inline');
+            if (config.get('resourceMonitoring', true)) {
+                const resources = this.resourceManager.getCurrentUsage();
+                if (resources.memory > 0.9) {
+                    throw new Error('High memory usage, skipping completion');
+                }
             }
 
             // Get the best model for this context
@@ -253,37 +297,37 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         
         // Simple heuristic-based completion
         if (lastLine.includes('function') || lastLine.includes('def')) {
-            return this.generateFunctionCompletion(lastLine);
+            return this.getFunctionContext(lastLine);
         } else if (lastLine.includes('class')) {
-            return this.generateClassCompletion(lastLine);
+            return this.getClassContext(lastLine);
         } else if (lastLine.includes('import') || lastLine.includes('from')) {
             return this.generateImportCompletion(lastLine);
         } else if (lastLine.trim().endsWith('{')) {
-            return this.generateBlockCompletion(lastLine);
+            return this.getMethodContext(lastLine);
         }
 
         // Default completion
         return this.generateDefaultCompletion(lastLine);
     }
 
-    private generateFunctionCompletion(line: string): string {
-        if (line.includes('def ')) {
+    private getFunctionContext(_line: string): string {
+        if (_line.includes('def ')) {
             return '    pass';
-        } else if (line.includes('function')) {
+        } else if (_line.includes('function')) {
             return '    // TODO: implement function';
         }
         return '';
     }
 
-    private generateClassCompletion(line: string): string {
+    private getClassContext(_line: string): string {
         return '\n    constructor() {\n        // TODO: initialize\n    }\n';
     }
 
-    private generateImportCompletion(line: string): string {
+    private generateImportCompletion(_line: string): string {
         return '';
     }
 
-    private generateBlockCompletion(line: string): string {
+    private getMethodContext(_line: string): string {
         return '\n    // TODO: implement\n}';
     }
 

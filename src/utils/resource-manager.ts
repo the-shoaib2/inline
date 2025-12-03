@@ -37,7 +37,7 @@ export class ResourceManager {
 
         this.monitoringInterval = setInterval(() => {
             this.updateResourceUsage();
-        }, 5000); // Check every 5 seconds
+        }, 30000); // Check every 30 seconds (reduced from 5s for better performance)
     }
 
     stopMonitoring(): void {

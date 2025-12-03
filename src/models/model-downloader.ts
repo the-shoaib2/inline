@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ModelInfo } from '../core/model-manager';
@@ -44,9 +42,14 @@ export class ModelDownloader {
         const task = this.downloadQueue.shift()!;
 
         try {
-            const filePath = await this.downloadFile(task);
+            const fileName = `${task.model.id}.gguf`;
+            const filePath = path.join(this.modelsDir, fileName);
+            // Assuming model.url exists for actual download
+            // For now, we'll use a placeholder URL and simulate the download
+            const dummyUrl = `http://example.com/models/${fileName}`; 
+            await this.downloadFile(dummyUrl, filePath, task.progressCallback);
             task.resolve(filePath);
-        } catch (error) {
+        } catch (error: unknown) { // Fix explicit-any
             task.reject(error);
         } finally {
             this.isDownloading = false;
@@ -54,17 +57,13 @@ export class ModelDownloader {
         }
     }
 
-    private async downloadFile(task: DownloadTask): Promise<string> {
-        const { model, progressCallback } = task;
-        const fileName = `${model.id}.gguf`;
-        const filePath = path.join(this.modelsDir, fileName);
-
+    private async downloadFile(url: string, destPath: string, progressCallback?: (progress: number) => void): Promise<void> {
         // Simulate download for now (replace with actual download URL)
         return new Promise((resolve, reject) => {
             // In production, this would download from Hugging Face or Ollama
             // For now, we'll create a placeholder file
             
-            const totalSize = model.size;
+            const totalSize = 1024 * 1024 * 100; // 100MB dummy size
             let downloaded = 0;
 
             const interval = setInterval(() => {
@@ -79,8 +78,12 @@ export class ModelDownloader {
                     clearInterval(interval);
                     
                     // Create placeholder file
-                    fs.writeFileSync(filePath, `Model: ${model.name}\nSize: ${model.size}`);
-                    resolve(filePath);
+                    try {
+                        fs.writeFileSync(destPath, `Model downloaded from ${url}\nSize: ${totalSize}`);
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
                 }
             }, 100);
         });
@@ -99,5 +102,5 @@ interface DownloadTask {
     model: ModelInfo;
     progressCallback?: (progress: number) => void;
     resolve: (filePath: string) => void;
-    reject: (error: any) => void;
+    reject: (error: unknown) => void;
 }

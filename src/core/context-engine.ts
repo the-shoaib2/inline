@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
+
 import * as path from 'path';
 
 export interface CodeContext {
@@ -150,7 +150,7 @@ export class ContextEngine {
         return comments;
     }
 
-    private async getRecentEdits(uri: vscode.Uri): Promise<string[]> {
+    private async getRecentEdits(_uri: vscode.Uri): Promise<string[]> {
         // TODO: Implement recent edits tracking
         return [];
     }

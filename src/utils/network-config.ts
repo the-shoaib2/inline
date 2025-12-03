@@ -5,61 +5,73 @@ import * as https from 'https';
  * Network Configuration Utility
  * Configures network settings for optimal performance and timeout handling
  */
+interface ExtendedAgent extends http.Agent {
+    timeout?: number;
+    autoSelectFamily?: boolean;
+    autoSelectFamilyAttemptTimeout?: number;
+}
+
+interface ExtendedHttpsAgent extends https.Agent {
+    timeout?: number;
+    autoSelectFamily?: boolean;
+    autoSelectFamilyAttemptTimeout?: number;
+}
+
 export class NetworkConfig {
-    private static readonly DEFAULT_TIMEOUT = 1000; // 1 second
-    private static readonly AUTO_SELECT_FAMILY_TIMEOUT = 1000; // 1 second
+    private static readonly DEFAULT_TIMEOUT = 30000;
+    private static readonly AUTO_SELECT_FAMILY_TIMEOUT = 3000;
 
     /**
      * Configure global network settings
      */
-    static configure(): void {
+    public static configure(): void {
         this.configureHTTP();
         this.configureHTTPS();
     }
 
     /**
-     * Configure HTTP agent
+     * Configure HTTP global agent
      */
     private static configureHTTP(): void {
         if (http.globalAgent) {
-            (http.globalAgent as any).timeout = this.DEFAULT_TIMEOUT;
-            (http.globalAgent as any).autoSelectFamily = true;
-            (http.globalAgent as any).autoSelectFamilyAttemptTimeout = this.AUTO_SELECT_FAMILY_TIMEOUT;
+            const agent = http.globalAgent as ExtendedAgent;
+            agent.timeout = this.DEFAULT_TIMEOUT;
+            agent.autoSelectFamily = true;
+            agent.autoSelectFamilyAttemptTimeout = this.AUTO_SELECT_FAMILY_TIMEOUT;
         }
     }
 
     /**
-     * Configure HTTPS agent
+     * Configure HTTPS global agent
      */
     private static configureHTTPS(): void {
         if (https.globalAgent) {
-            (https.globalAgent as any).timeout = this.DEFAULT_TIMEOUT;
-            (https.globalAgent as any).autoSelectFamily = true;
-            (https.globalAgent as any).autoSelectFamilyAttemptTimeout = this.AUTO_SELECT_FAMILY_TIMEOUT;
+            const agent = https.globalAgent as ExtendedHttpsAgent;
+            agent.timeout = this.DEFAULT_TIMEOUT;
+            agent.autoSelectFamily = true;
+            agent.autoSelectFamilyAttemptTimeout = this.AUTO_SELECT_FAMILY_TIMEOUT;
         }
     }
 
     /**
-     * Create custom HTTP agent with timeout
+     * Get configured HTTP agent
      */
-    static createHTTPAgent(timeout?: number): http.Agent {
+    public static getHttpAgent(): http.Agent {
         return new http.Agent({
-            timeout: timeout || this.DEFAULT_TIMEOUT,
             keepAlive: true,
             keepAliveMsecs: 1000,
             maxSockets: 10
-        } as any);
+        });
     }
 
     /**
-     * Create custom HTTPS agent with timeout
+     * Get configured HTTPS agent
      */
-    static createHTTPSAgent(timeout?: number): https.Agent {
+    public static getHttpsAgent(): https.Agent {
         return new https.Agent({
-            timeout: timeout || this.DEFAULT_TIMEOUT,
             keepAlive: true,
             keepAliveMsecs: 1000,
             maxSockets: 10
-        } as any);
+        });
     }
 }

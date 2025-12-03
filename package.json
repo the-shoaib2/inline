@@ -27,7 +27,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
       {
@@ -123,43 +123,49 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run build",
-    "build": "npm run clean && tsc -p ./",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "pnpm run build",
+    "build": "pnpm run clean && tsc -p ./",
+    "compile": "tsc -p ./ --incremental",
+    "compile:watch": "tsc -p ./ --watch --incremental",
+    "pretest": "pnpm run compile",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
-    "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "test:unit": "mocha --require ts-node/register 'test/unit/**/*.test.ts'",
+    "test": "pnpm run test:unit && pnpm run test:e2e",
+    "test:unit": "mocha --require ts-node/register --require test/unit/setup.ts 'test/unit/**/*.test.ts'",
     "test:integration": "mocha --require ts-node/register 'test/integration/**/*.test.ts'",
     "test:e2e": "node ./out/test/runTest.js",
-    "test:coverage": "nyc npm test",
-    "benchmark": "node ./out/test/benchmark.js",
+    "test:coverage": "nyc pnpm test",
+    "benchmark": "node ./test/benchmark.js",
+    "benchmark:full": "pnpm run compile && node ./out/test/benchmark/performance.benchmark.js",
     "package": "vsce package",
     "release": "./scripts/release.sh",
     "clean": "rimraf out dist lib"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
-    "@types/node": "18.x",
-    "@types/mocha": "^10.0.6",
     "@types/chai": "^4.3.11",
-    "@vscode/test-electron": "^2.3.8",
-    "@vscode/test-cli": "^0.0.4",
+    "@types/mocha": "^10.0.6",
+    "@types/module-alias": "^2.0.4",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.54.0",
-    "typescript": "^5.3.0",
-    "mocha": "^10.2.0",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.7.1",
     "chai": "^4.3.10",
+    "eslint": "^8.54.0",
+    "glob": "^13.0.0",
+    "mocha": "^10.2.0",
+    "module-alias": "^2.2.3",
+    "nyc": "^15.1.0",
+    "rimraf": "^6.1.2",
     "ts-node": "^10.9.2",
-    "nyc": "^15.1.0"
+    "typescript": "^5.3.0"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",
-    "ws": "^8.14.2",
+    "semver": "^7.5.4",
     "tar": "^6.2.0",
-    "semver": "^7.5.4"
+    "ws": "^8.14.2"
   }
 }

@@ -24,7 +24,7 @@ export class CacheManager {
         if (fs.existsSync(indexPath)) {
             try {
                 const data = fs.readFileSync(indexPath, 'utf-8');
-                const entries = JSON.parse(data);
+                const entries: [string, CacheEntry][] = JSON.parse(data);
                 this.cacheIndex = new Map(entries);
             } catch (error) {
                 console.error('Failed to load cache index:', error);
@@ -42,7 +42,7 @@ export class CacheManager {
         }
     }
 
-    public set(key: string, value: any): void {
+    public set(key: string, value: unknown): void {
         const hash = this.hashKey(key);
         const filePath = path.join(this.cacheDir, `${hash}.json`);
         
@@ -62,7 +62,7 @@ export class CacheManager {
         }
     }
 
-    public get(key: string): any | null {
+    public get(key: string): unknown | null {
         const entry = this.cacheIndex.get(key);
         if (!entry) {
             return null;

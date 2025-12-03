@@ -12,35 +12,36 @@ export class Logger {
         this.logLevel = level;
     }
 
-    public debug(message: string, ...args: any[]): void {
+    public debug(message: string, ...args: unknown[]): void {
         if (this.logLevel <= LogLevel.Debug) {
-            this.log('DEBUG', message, args);
+            this.log(LogLevel.Debug, message, args);
         }
     }
 
-    public info(message: string, ...args: any[]): void {
+    public info(message: string, ...args: unknown[]): void {
         if (this.logLevel <= LogLevel.Info) {
-            this.log('INFO', message, args);
+            this.log(LogLevel.Info, message, args);
         }
     }
 
-    public warn(message: string, ...args: any[]): void {
+    public warn(message: string, ...args: unknown[]): void {
         if (this.logLevel <= LogLevel.Warn) {
-            this.log('WARN', message, args);
+            this.log(LogLevel.Warn, message, args);
         }
     }
 
-    public error(message: string, error?: Error, ...args: any[]): void {
+    public error(message: string, error?: Error, ...args: unknown[]): void {
         if (this.logLevel <= LogLevel.Error) {
             const errorMsg = error ? `${message}: ${error.message}\n${error.stack}` : message;
-            this.log('ERROR', errorMsg, args);
+            this.log(LogLevel.Error, errorMsg, args);
         }
     }
 
-    private log(level: string, message: string, args: any[]): void {
+    private log(level: LogLevel, message: string, args: unknown[]): void {
         const timestamp = new Date().toISOString();
         const formattedArgs = args.length > 0 ? ` ${JSON.stringify(args)}` : '';
-        const logMessage = `[${timestamp}] [${level}] ${message}${formattedArgs}`;
+        const levelString = LogLevel[level].toUpperCase(); // Convert LogLevel enum value to string
+        const logMessage = `[${timestamp}] [${levelString}] ${message}${formattedArgs}`;
         
         this.outputChannel.appendLine(logMessage);
         

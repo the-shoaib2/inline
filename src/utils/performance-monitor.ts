@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 
 export class PerformanceMonitor {
     private metrics: Map<string, PerformanceMetric> = new Map();

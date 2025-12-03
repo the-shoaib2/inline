@@ -39,6 +39,8 @@ export async function createTestDocument(
     content,
     language
   });
+  await vscode.window.showTextDocument(document);
+  await vscode.workspace.getConfiguration('editor').update('inlineSuggest.enabled', true, vscode.ConfigurationTarget.Global);
   return document;
 }
 

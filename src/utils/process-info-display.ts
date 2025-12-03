@@ -1,6 +1,46 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
 
+interface ProcessInfo {
+    process: {
+        pid: number;
+        platform: string;
+        arch: string;
+        version: string;
+        uptime: number;
+        memory: {
+            rss: number;
+            heapTotal: number;
+            heapUsed: number;
+            external: number;
+            arrayBuffers: number;
+        };
+        cpu: {
+            user: number;
+            system: number;
+        };
+    };
+    system: {
+        platform: string;
+        release: string;
+        arch: string;
+        hostname: string;
+        uptime: number;
+        memory: {
+            total: number;
+            free: number;
+            used: number;
+        };
+        cpu: {
+            count: number;
+            model: string;
+            speed: number;
+            loadAverage: number[];
+        };
+        network: NodeJS.Dict<os.NetworkInterfaceInfo[]>;
+    };
+}
+
 /**
  * Process Information Display
  * Shows detailed system and process information
@@ -26,10 +66,11 @@ export class ProcessInfoDisplay {
     /**
      * Get all process and system information
      */
-    static getProcessInfo(): any {
-        const processMemory = process.memoryUsage();
+    static getProcessInfo(): ProcessInfo {
+        const usage = process.memoryUsage() as NodeJS.MemoryUsage;
         const cpus = os.cpus();
         const loadAvg = os.loadavg();
+        const cpuUsage = process.cpuUsage() as NodeJS.CpuUsage;
         
         return {
             // Process Information
@@ -40,15 +81,15 @@ export class ProcessInfoDisplay {
                 arch: process.arch,
                 uptime: process.uptime(),
                 memory: {
-                    rss: processMemory.rss,
-                    heapTotal: processMemory.heapTotal,
-                    heapUsed: processMemory.heapUsed,
-                    external: processMemory.external,
-                    arrayBuffers: (processMemory as any).arrayBuffers || 0
+                    rss: usage.rss,
+                    heapTotal: usage.heapTotal,
+                    heapUsed: usage.heapUsed,
+                    external: usage.external,
+                    arrayBuffers: (usage as unknown as Record<string, number>).arrayBuffers || 0
                 },
                 cpu: {
-                    user: process.cpuUsage().user,
-                    system: process.cpuUsage().system
+                    user: cpuUsage.user,
+                    system: cpuUsage.system
                 }
             },
             
@@ -107,7 +148,7 @@ export class ProcessInfoDisplay {
     /**
      * Get webview HTML content
      */
-    private static getWebviewContent(info: any): string {
+    private static getWebviewContent(info: ProcessInfo): string {
         const memUsagePercent = ((info.system.memory.used / info.system.memory.total) * 100).toFixed(1);
         const heapUsagePercent = ((info.process.memory.heapUsed / info.process.memory.heapTotal) * 100).toFixed(1);
         
