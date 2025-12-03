@@ -74,8 +74,8 @@ check_prerequisites() {
         missing_deps+=("node")
     fi
     
-    if ! command_exists npm; then
-        missing_deps+=("npm")
+    if ! command_exists pnpm; then
+        missing_deps+=("pnpm")
     fi
     
     if ! command_exists git; then
@@ -251,12 +251,12 @@ run_tests() {
     print_header "Running Tests"
     
     print_info "Running linter..."
-    npm run lint || {
+    pnpm run lint || {
         print_warning "Linting warnings detected"
     }
     
     print_info "Running unit tests..."
-    npm run test:unit || {
+    pnpm run test:unit || {
         print_error "Unit tests failed"
         exit 1
     }
@@ -269,13 +269,13 @@ build_extension() {
     print_header "Building Extension"
     
     print_info "Cleaning previous build..."
-    npm run clean || true
+    pnpm run clean || true
     
     print_info "Installing dependencies..."
-    npm install
+    pnpm install
     
     print_info "Compiling TypeScript..."
-    npm run build
+    pnpm run build
     
     print_success "Build completed"
 }
@@ -287,7 +287,7 @@ package_extension() {
     # Check if vsce is installed
     if ! command_exists vsce; then
         print_info "Installing vsce..."
-        npm install -g @vscode/vsce
+        pnpm install -g @vscode/vsce
     fi
     
     print_info "Creating VSIX package..."

@@ -138,8 +138,11 @@
     "benchmark": "node ./test/benchmark.js",
     "benchmark:full": "pnpm run compile && node ./out/test/benchmark/performance.benchmark.js",
     "package": "vsce package",
+    "publish:patch": "./scripts/publish.sh patch --auto",
+    "publish:minor": "./scripts/publish.sh minor --auto",
+    "publish:major": "./scripts/publish.sh major --auto",
     "release": "./scripts/release.sh",
-    "clean": "rimraf out dist lib"
+    "clean": "rimraf out dist lib *.vsix"
   },
   "devDependencies": {
     "@types/chai": "^4.3.11",
