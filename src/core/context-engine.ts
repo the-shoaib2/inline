@@ -203,7 +203,7 @@ export class ContextEngine {
 
         // Add code context
         prompt += `Code context:\n${context.prefix}\n\n`;
-        prompt += `Complete the code after the cursor:\n`;
+        prompt += 'Complete the code after the cursor:\n';
 
         return prompt;
     }

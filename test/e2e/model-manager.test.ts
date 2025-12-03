@@ -10,7 +10,7 @@ suite('Model Manager E2E Tests', () => {
 
   test('Model Manager should initialize', async () => {
     // Extension should activate successfully with model manager
-    const ext = vscode.extensions.getExtension('inline-ai.inline');
+    const ext = vscode.extensions.getExtension('inline.inline');
     assert.ok(ext?.isActive, 'Extension with Model Manager should be active');
   });
 

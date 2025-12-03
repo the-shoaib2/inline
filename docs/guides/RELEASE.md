@@ -199,7 +199,7 @@ After creating a release, publish to the marketplace:
 ### 2. Login to vsce
 
 ```bash
-vsce login inline-ai
+vsce login inline
 # Enter your PAT when prompted
 ```
 

@@ -28,6 +28,8 @@ export class NetworkDetector {
             clearInterval(this.monitoringInterval);
             this.monitoringInterval = null;
         }
+        // Clear callback to prevent updates after stopping
+        this.statusCallback = undefined;
     }
 
     async checkNetworkStatus(): Promise<boolean> {
@@ -43,10 +45,15 @@ export class NetworkDetector {
             
             return false;
         } catch (error) {
+            // Check if monitoring was stopped during request
+            if (!this.statusCallback) {
+                return true;
+            }
+
             const wasOnline = !this.isOfflineMode;
             this.isOfflineMode = true;
             
-            if (wasOnline && this.statusCallback) {
+            if (wasOnline) {
                 this.statusCallback(true);
             }
             

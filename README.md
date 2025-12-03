@@ -15,10 +15,18 @@ Inline is a VS Code extension that delivers GitHub Copilot-like AI code completi
 
 ## Quick Start
 
+**Automated Setup:**
+```bash
+./scripts/setup.sh
+```
+
+**Manual Setup:**
 1. Install the extension from VS Code Marketplace
 2. Open the Model Manager with `Ctrl+Shift+P` → "Inline: Model Manager"
 3. Download your preferred model (recommended: DeepSeek-Coder-6.7B)
 4. Start coding! Inline will automatically provide completions
+
+For detailed setup instructions, see [SETUP.md](SETUP.md)
 
 ## Supported Models
 

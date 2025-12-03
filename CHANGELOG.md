@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Release Date | Type | Status | Download |
 |---------|--------------|------|--------|----------|
-| 0.1.0   | 2024-12-04   | Initial | Stable | [Download](https://github.com/inline-ai/inline/releases/tag/v0.1.0) |
+| 0.1.0   | 2024-12-04   | Initial | Stable | [Download](https://github.com/inline/inline/releases/tag/v0.1.0) |
 
 ---
 
@@ -86,5 +86,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/inline-ai/inline/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/inline-ai/inline/releases/tag/v0.1.0
+[Unreleased]: https://github.com/inline/inline/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/inline/inline/releases/tag/v0.1.0

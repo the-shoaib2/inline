@@ -3,7 +3,7 @@
   "displayName": "Inline - Offline AI Code Completion",
   "description": "GitHub Copilot-like AI code completion that works entirely offline with automatic model management",
   "version": "0.1.0",
-  "publisher": "inline-ai",
+  "publisher": "inline",
   "author": "Inline AI Team",
   "icon": "resources/icon.png",
   "license": "Apache-2.0",
@@ -120,14 +120,7 @@
           "description": "Monitor system resources and adjust model usage accordingly"
         }
       }
-    },
-    "statusBarItems": [
-      {
-        "id": "inline.status",
-        "name": "Inline Status",
-        "alignment": "right"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run build",

@@ -10,6 +10,8 @@ import { Logger, LogLevel } from './utils/logger';
 import { ConfigManager } from './utils/config-manager';
 import { ErrorHandler } from './utils/error-handler';
 import { TelemetryManager } from './utils/telemetry-manager';
+import { NetworkConfig } from './utils/network-config';
+import { ProcessInfoDisplay } from './utils/process-info-display';
 
 let completionProvider: InlineCompletionProvider;
 let modelManager: ModelManager;
@@ -25,7 +27,10 @@ let telemetryManager: TelemetryManager;
 
 export async function activate(context: vscode.ExtensionContext) {
     try {
-        // Initialize logger first
+        // Configure network settings first
+        NetworkConfig.configure();
+        
+        // Initialize logger
         logger = new Logger('Inline');
         logger.info('Activating Inline extension...');
 
@@ -109,7 +114,7 @@ export async function activate(context: vscode.ExtensionContext) {
         });
 
         logger.info('Inline extension activated successfully');
-        vscode.window.showInformationMessage('Inline AI is ready!');
+        vscode.window.showInformationMessage('Inline is ready!');
 
     } catch (error) {
         const err = error as Error;
@@ -153,7 +158,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         }),
 
         vscode.commands.registerCommand('inline.settings', () => {
-            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:inline-ai.inline');
+            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:inline.inline');
             telemetryManager.trackEvent('settings_opened');
         }),
 
@@ -163,32 +168,67 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
         vscode.commands.registerCommand('inline.showErrorLog', () => {
             errorHandler.showErrorLog();
+        }),
+
+        vscode.commands.registerCommand('inline.showProcessInfo', async () => {
+            await ProcessInfoDisplay.showProcessInfo();
+            telemetryManager.trackEvent('process_info_opened');
         })
     ];
 
     context.subscriptions.push(...commands);
 }
 
-export function deactivate() {
+export async function deactivate(): Promise<void> {
     try {
         logger?.info('Deactivating Inline extension...');
         
+        // Stop monitoring first
         if (networkDetector) {
-            networkDetector.stopMonitoring();
+            try {
+                networkDetector.stopMonitoring();
+            } catch (error) {
+                console.warn('Error stopping network detector:', error);
+            }
         }
+        
+        // Cleanup model manager
         if (modelManager) {
-            modelManager.cleanup();
+            try {
+                await modelManager.cleanup();
+            } catch (error) {
+                console.warn('Error cleaning up model manager:', error);
+            }
         }
+        
+        // Dispose UI components
         if (statusBarManager) {
-            statusBarManager.dispose();
+            try {
+                statusBarManager.dispose();
+            } catch (error) {
+                console.warn('Error disposing status bar:', error);
+            }
         }
+        
+        // Dispose logger last
         if (logger) {
-            logger.dispose();
+            try {
+                logger.dispose();
+            } catch (error) {
+                console.warn('Error disposing logger:', error);
+            }
         }
 
-        telemetryManager?.trackEvent('extension_deactivated');
+        // Track deactivation (with error handling)
+        try {
+            telemetryManager?.trackEvent('extension_deactivated');
+        } catch (error) {
+            // Ignore telemetry errors during deactivation
+        }
+        
         logger?.info('Inline extension deactivated');
     } catch (error) {
         console.error('Error during deactivation:', error);
+        // Don't throw - allow deactivation to complete
     }
 }
