@@ -29,7 +29,7 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
         // Configure network settings first
         NetworkConfig.configure();
-        
+
         // Initialize logger
         logger = new Logger('Inline');
         logger.info('Activating Inline extension...');
@@ -50,11 +50,11 @@ export async function activate(context: vscode.ExtensionContext) {
         modelManager = new ModelManager(context);
         statusBarManager = new StatusBarManager();
         networkDetector = new NetworkDetector();
-        
+
         // Lazy-initialize ResourceManager (defer until first use for faster activation)
         resourceManager = new ResourceManager();
         resourceManager.stopMonitoring(); // Don't start monitoring until needed
-        
+
         // Initialize completion provider
         completionProvider = new InlineCompletionProvider(
             modelManager,
@@ -65,7 +65,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Initialize webview provider
         webviewProvider = new WebviewProvider(context.extensionUri, modelManager);
-        
+
         // Register webview provider
         context.subscriptions.push(
             vscode.window.registerWebviewViewProvider(
@@ -86,27 +86,34 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Initialize status bar
         statusBarManager.initialize();
-        
+
         // Update status bar with current model
         const currentModel = modelManager.getCurrentModel();
         if (currentModel) {
             statusBarManager.setModel(currentModel.name);
         }
-        
+
         // Start network monitoring asynchronously (don't block activation)
-        setTimeout(() => {
-            networkDetector.startMonitoring((isOffline) => {
-                statusBarManager.updateStatus(isOffline);
-                if (isOffline) {
-                    vscode.window.showInformationMessage('Inline: Offline mode activated');
-                    telemetryManager.trackEvent('offline_mode_activated');
-                }
-            });
-        }, 100);
+        // Only start if not configured for offline-only mode
+        if (!configManager.autoOffline) {
+            setTimeout(() => {
+                networkDetector.startMonitoring((isOffline) => {
+                    statusBarManager.updateStatus(isOffline);
+                    if (isOffline) {
+                        vscode.window.showInformationMessage('Inline: Offline mode activated');
+                        telemetryManager.trackEvent('offline_mode_activated');
+                    }
+                });
+            }, 100);
+        } else {
+            // Start in offline mode immediately
+            statusBarManager.updateStatus(true);
+            logger.info('Starting in offline mode');
+        }
 
         // Set context for UI visibility
         vscode.commands.executeCommand('setContext', 'inline.enabled', true);
-        
+
         // Update cache size periodically
         const cacheInterval = setInterval(() => {
             const cacheSize = completionProvider.getCacheSize();
@@ -149,8 +156,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('inline.toggleOffline', () => {
             networkDetector.toggleOfflineMode();
             statusBarManager.updateStatus(networkDetector.isOffline());
-            telemetryManager.trackEvent('offline_toggled', { 
-                offline: networkDetector.isOffline() 
+            telemetryManager.trackEvent('offline_toggled', {
+                offline: networkDetector.isOffline()
             });
         }),
 
@@ -196,7 +203,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 export async function deactivate(): Promise<void> {
     try {
         logger?.info('Deactivating Inline extension...');
-        
+
         // Stop monitoring first
         if (networkDetector) {
             try {
@@ -205,7 +212,7 @@ export async function deactivate(): Promise<void> {
                 console.warn('Error stopping network detector:', error);
             }
         }
-        
+
         // Cleanup model manager
         if (modelManager) {
             try {
@@ -214,7 +221,7 @@ export async function deactivate(): Promise<void> {
                 console.warn('Error cleaning up model manager:', error);
             }
         }
-        
+
         // Dispose UI components
         if (statusBarManager) {
             try {
@@ -223,7 +230,7 @@ export async function deactivate(): Promise<void> {
                 console.warn('Error disposing status bar:', error);
             }
         }
-        
+
         // Dispose logger last
         if (logger) {
             try {
@@ -239,7 +246,7 @@ export async function deactivate(): Promise<void> {
         } catch (error) {
             // Ignore telemetry errors during deactivation
         }
-        
+
         logger?.info('Inline extension deactivated');
     } catch (error) {
         console.error('Error during deactivation:', error);

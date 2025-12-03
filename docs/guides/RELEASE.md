@@ -171,18 +171,18 @@ npm run package
 
 ```bash
 git add .
-git commit -m "chore: release v0.2.0"
-git tag -a v0.2.0 -m "Release v0.2.0"
+git commit -m "chore: release v0.1.0"
+git tag -a v0.1.0 -m "Release v0.1.0"
 git push origin main
-git push origin v0.2.0
+git push origin v0.1.0
 ```
 
 ### 6. Create GitHub Release
 
 ```bash
-gh release create v0.2.0 \
-  inline-0.2.0.vsix \
-  --title "v0.2.0" \
+gh release create v0.1.0 \
+  inline-0.1.0.vsix \
+  --title "v0.1.0" \
   --notes "Release notes here"
 ```
 
@@ -210,7 +210,7 @@ vsce login inline
 vsce publish
 
 # Or publish specific version
-vsce publish 0.2.0
+vsce publish 0.1.0
 ```
 
 ## Troubleshooting
@@ -313,16 +313,16 @@ If you need to rollback a release:
 
 ```bash
 # Delete local tag
-git tag -d v0.2.0
+git tag -d v0.1.0
 
 # Delete remote tag
-git push origin :refs/tags/v0.2.0
+git push origin :refs/tags/v0.1.0
 
 # Revert commit
 git revert HEAD
 
 # Delete GitHub release
-gh release delete v0.2.0
+gh release delete v0.1.0
 ```
 
 ## Support

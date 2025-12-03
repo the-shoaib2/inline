@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inline Model Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background: var(--vscode-editor-background);
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .header h1 {
+            color: var(--vscode-foreground);
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: var(--vscode-button-secondaryBackground);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .status-dot.offline {
+            background: #FF9800;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .tab {
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            color: var(--vscode-foreground);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--vscode-toolbar-hoverBackground);
+        }
+
+        .tab.active {
+            border-bottom-color: var(--vscode-button-background);
+            color: var(--vscode-button-background);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .model-card {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+
+        .model-card:hover {
+            border-color: var(--vscode-button-background);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .model-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+
+        .model-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .model-status.downloaded {
+            background: #E8F5E8;
+            color: #2E7D32;
+        }
+
+        .model-status.available {
+            background: #FFF3E0;
+            color: #F57C00;
+        }
+
+        .model-description {
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .model-specs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .spec-tag {
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .model-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+
+        .btn-primary:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        .btn-secondary {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+
+        .btn-secondary:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .btn-danger {
+            background: #D32F2F;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #B71C1C;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--vscode-progress-bar-background);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--vscode-progress-bar-foreground);
+            transition: width 0.3s;
+        }
+
+        .settings-section {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .settings-section h3 {
+            margin-bottom: 16px;
+            color: var(--vscode-foreground);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 0;
+        }
+
+        .setting-label {
+            flex: 1;
+            color: var(--vscode-foreground);
+        }
+
+        .setting-control {
+            min-width: 200px;
+        }
+
+        .setting-control input,
+        .setting-control select {
+            width: 100%;
+            padding: 6px 8px;
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .import-section {
+            border: 2px dashed var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+
+        .import-section:hover {
+            border-color: var(--vscode-button-background);
+        }
+
+        .import-section.drag-over {
+            border-color: var(--vscode-button-background);
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        .rules-editor {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: var(--vscode-list-inactiveSelectionBackground);
+            border-radius: 4px;
+        }
+
+        .rule-item input {
+            flex: 1;
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: var(--vscode-input-foreground);
+        }
+
+        .notification {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            padding: 12px 16px;
+            border-radius: 4px;
+            background: var(--vscode-notifications-background);
+            color: var(--vscode-notifications-foreground);
+            border: 1px solid var(--vscode-notifications-border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .notification.success {
+            background: #E8F5E8;
+            color: #2E7D32;
+            border-color: #4CAF50;
+        }
+
+        .notification.error {
+            background: #FFEBEE;
+            color: #C62828;
+            border-color: #F44336;
+        }
+
+        .notification.warning {
+            background: #FFF8E1;
+            color: #F57F17;
+            border-color: #FFC107;
+        }
+
+        @media (max-width: 768px) {
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .model-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--vscode-button-background);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 16px;
+            color: var(--vscode-foreground);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Inline Model Manager</h1>
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Offline</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="models">Models</button>
+            <button class="tab" data-tab="settings">Settings</button>
+            <button class="tab" data-tab="rules">Coding Rules</button>
+            <button class="tab" data-tab="import">Import</button>
+        </div>
+
+        <div class="tab-content active" id="models-tab">
+            <div class="model-grid" id="modelGrid">
+                <!-- Models will be populated here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="settings-tab">
+            <div class="settings-section">
+                <h3>General Settings</h3>
+                <div class="setting-item">
+                    <label class="setting-label">Auto Offline Mode</label>
+                    <div class="setting-control">
+                        <input type="checkbox" id="autoOffline">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Default Model</label>
+                    <div class="setting-control">
+                        <select id="defaultModel">
+                            <option value="deepseek-coder-6.7b">DeepSeek Coder 6.7B</option>
+                            <option value="starcoder2-3b">StarCoder2 3B</option>
+                            <option value="codellama-7b">Code Llama 7B</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Max Tokens</label>
+                    <div class="setting-control">
+                        <input type="number" id="maxTokens" min="1" max="2048" value="512">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Temperature</label>
+                    <div class="setting-control">
+                        <input type="number" id="temperature" min="0" max="1" step="0.1" value="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Performance Settings</h3>
+                <div class="setting-item">
+                    <label class="setting-label">Cache Size</label>
+                    <div class="setting-control">
+                        <input type="number" id="cacheSize" min="10" max="1000" value="100">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Context Window</label>
+                    <div class="setting-control">
+                        <input type="number" id="contextWindow" min="1024" max="8192" step="1024" value="4096">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Suggestion Delay (ms)</label>
+                    <div class="setting-control">
+                        <input type="number" id="suggestionDelay" min="100" max="2000" step="100" value="500">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Resource Monitoring</label>
+                    <div class="setting-control">
+                        <input type="checkbox" id="resourceMonitoring">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Model Storage</h3>
+                <div class="setting-item">
+                    <label class="setting-label">Custom Model Path</label>
+                    <div class="setting-control">
+                        <input type="text" id="modelPath" placeholder="Leave empty for default">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Auto Download Models</label>
+                    <div class="setting-control">
+                        <input type="checkbox" id="autoDownload">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="rules-tab">
+            <div class="rules-editor">
+                <h3>Custom Coding Rules</h3>
+                <div id="rulesList">
+                    <!-- Rules will be populated here -->
+                </div>
+                <button class="btn btn-primary" id="addRuleBtn">
+                    <span>+</span> Add Rule
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="import-tab">
+            <div class="import-section" id="importSection">
+                <h3>Import Model</h3>
+                <p>Drag and drop a .gguf or .tar.gz file here, or click to browse</p>
+                <button class="btn btn-secondary" id="browseBtn">Browse Files</button>
+                <input type="file" id="fileInput" accept=".gguf,.tar.gz,.tgz" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        // State management
+        let state = {
+            models: [],
+            settings: {},
+            rules: [],
+            isOffline: true,
+            downloading: new Set()
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTabs();
+            loadData();
+            setupEventListeners();
+        });
+
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    switchTab(tabName);
+                });
+            });
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function loadData() {
+            vscode.postMessage({ command: 'getData' });
+        }
+
+        function setupEventListeners() {
+            // File import
+            const importSection = document.getElementById('importSection');
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+
+            importSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                importSection.classList.add('drag-over');
+            });
+
+            importSection.addEventListener('dragleave', () => {
+                importSection.classList.remove('drag-over');
+            });
+
+            importSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                importSection.classList.remove('drag-over');
+                handleFileImport(e.dataTransfer.files[0]);
+            });
+
+            browseBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                handleFileImport(e.target.files[0]);
+            });
+
+            // Settings
+            document.getElementById('autoOffline').addEventListener('change', updateSetting);
+            document.getElementById('defaultModel').addEventListener('change', updateSetting);
+            document.getElementById('maxTokens').addEventListener('change', updateSetting);
+            document.getElementById('temperature').addEventListener('change', updateSetting);
+            document.getElementById('cacheSize').addEventListener('change', updateSetting);
+            document.getElementById('contextWindow').addEventListener('change', updateSetting);
+            document.getElementById('suggestionDelay').addEventListener('change', updateSetting);
+            document.getElementById('resourceMonitoring').addEventListener('change', updateSetting);
+            document.getElementById('modelPath').addEventListener('change', updateSetting);
+            document.getElementById('autoDownload').addEventListener('change', updateSetting);
+
+            // Rules
+            document.getElementById('addRuleBtn').addEventListener('click', addRule);
+        }
+
+        function updateSetting(e) {
+            const setting = e.target.id;
+            const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+
+            vscode.postMessage({
+                command: 'updateSetting',
+                setting,
+                value
+            });
+        }
+
+        function handleFileImport(file) {
+            if (!file) return;
+
+            const validExtensions = ['.gguf', '.tar.gz', '.tgz'];
+            const isValidFile = validExtensions.some(ext => file.name.endsWith(ext));
+
+            if (!isValidFile) {
+                showNotification('Please select a valid model file (.gguf, .tar.gz, .tgz)', 'error');
+                return;
+            }
+
+            vscode.postMessage({
+                command: 'importModel',
+                filePath: file.path
+            });
+        }
+
+        function renderModels() {
+            const modelGrid = document.getElementById('modelGrid');
+
+            if (state.models.length === 0) {
+                modelGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No models available</h3>
+                        <p>Download or import models to get started with offline code completion.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            modelGrid.innerHTML = state.models.map(model => `
+                <div class="model-card">
+                    <div class="model-header">
+                        <h3 class="model-name">${model.name}</h3>
+                        <span class="model-status ${model.isDownloaded ? 'downloaded' : 'available'}">
+                            ${model.isDownloaded ? 'Downloaded' : 'Available'}
+                        </span>
+                    </div>
+                    <p class="model-description">${model.description}</p>
+                    <div class="model-specs">
+                        <span class="spec-tag">${formatFileSize(model.size)}</span>
+                        <span class="spec-tag">${model.languages.join(', ')}</span>
+                        <span class="spec-tag">VRAM: ${model.requirements.vram}GB</span>
+                        <span class="spec-tag">RAM: ${model.requirements.ram}GB</span>
+                    </div>
+                    ${state.downloading.has(model.id) ? `
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${state.downloadProgress || 0}%"></div>
+                        </div>
+                    ` : ''}
+                    <div class="model-actions">
+                        ${model.isDownloaded ? `
+                            <button class="btn btn-primary" onclick="selectModel('${model.id}')">
+                                Use Model
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteModel('${model.id}')">
+                                Delete
+                            </button>
+                        ` : `
+                            <button class="btn btn-primary" onclick="downloadModel('${model.id}')" ${state.downloading.has(model.id) ? 'disabled' : ''}>
+                                ${state.downloading.has(model.id) ? '<span class="loading"></span> Downloading...' : 'Download'}
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderSettings() {
+            // Populate settings from state
+            Object.keys(state.settings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = state.settings[key];
+                    } else {
+                        element.value = state.settings[key];
+                    }
+                }
+            });
+        }
+
+        function renderRules() {
+            const rulesList = document.getElementById('rulesList');
+
+            if (state.rules.length === 0) {
+                rulesList.innerHTML = '<p style="color: var(--vscode-descriptionForeground);">No custom rules defined. Add rules to customize code suggestions.</p>';
+                return;
+            }
+
+            rulesList.innerHTML = state.rules.map((rule, index) => `
+                <div class="rule-item">
+                    <input type="text" placeholder="Rule name" value="${rule.name}" onchange="updateRule(${index}, 'name', this.value)">
+                    <input type="text" placeholder="Pattern" value="${rule.pattern}" onchange="updateRule(${index}, 'pattern', this.value)">
+                    <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="updateRule(${index}, 'enabled', this.checked)">
+                    <button class="btn btn-danger" onclick="removeRule(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function downloadModel(modelId) {
+            vscode.postMessage({ command: 'downloadModel', modelId });
+        }
+
+        function selectModel(modelId) {
+            vscode.postMessage({ command: 'selectModel', modelId });
+        }
+
+        function deleteModel(modelId) {
+            vscode.postMessage({ command: 'deleteModel', modelId });
+        }
+
+        function addRule() {
+            vscode.postMessage({ command: 'addRule' });
+        }
+
+        function updateRule(index, field, value) {
+            vscode.postMessage({
+                command: 'updateRule',
+                index,
+                field,
+                value
+            });
+        }
+
+        function removeRule(index) {
+            vscode.postMessage({ command: 'removeRule', index });
+        }
+
+        function formatFileSize(bytes) {
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Handle messages from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+
+            switch (message.command) {
+                case 'updateData':
+                    state = { ...state, ...message.data };
+                    renderModels();
+                    renderSettings();
+                    renderRules();
+                    updateStatus();
+                    break;
+                case 'downloadProgress':
+                    state.downloading.add(message.modelId);
+                    state.downloadProgress = message.progress;
+                    renderModels();
+                    break;
+                case 'downloadComplete':
+                    state.downloading.delete(message.modelId);
+                    delete state.downloadProgress;
+                    renderModels();
+                    showNotification('Model downloaded successfully!', 'success');
+                    break;
+                case 'notification':
+                    showNotification(message.message, message.type);
+                    break;
+            }
+        });
+
+        function updateStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (state.isOffline) {
+                statusDot.classList.add('offline');
+                statusText.textContent = 'Offline';
+            } else {
+                statusDot.classList.remove('offline');
+                statusText.textContent = 'Online';
+            }
+        }
+    </script>
+</body>
+</html>

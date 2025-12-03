@@ -10,60 +10,70 @@ jobs:
   test:
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [18.x, 20.x]
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
+        cache: 'pnpm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
     - name: Install dependencies
-      run: npm ci
-    
+      run: pnpm install
+
     - name: Compile
-      run: npm run compile
-    
+      run: pnpm run compile
+
     - name: Run linter
-      run: npm run lint
-    
+      run: pnpm run lint
+
     - name: Run unit tests
-      run: npm run test:unit
-    
+      run: pnpm run test:unit
+
     - name: Run E2E tests
-      run: xvfb-run -a npm run test:e2e
+      run: xvfb-run -a pnpm run test:e2e
       if: runner.os == 'Linux'
-    
+
     - name: Run E2E tests
-      run: npm run test:e2e
+      run: pnpm run test:e2e
       if: runner.os != 'Linux'
 
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18.x
-        cache: 'npm'
-    
+        cache: 'pnpm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
     - name: Install dependencies
-      run: npm ci
-    
+      run: pnpm install
+
     - name: Run tests with coverage
-      run: npm run test:coverage
-    
+      run: pnpm run test:coverage
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -75,24 +85,29 @@ jobs:
     name: Build Extension
     runs-on: ubuntu-latest
     needs: test
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18.x
-        cache: 'npm'
-    
+        cache: 'pnpm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
     - name: Install dependencies
-      run: npm ci
-    
+      run: pnpm install
+
     - name: Package extension
       run: |
-        npm install -g @vscode/vsce
+        pnpm add -g @vscode/vsce
         vsce package
-    
+
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:

@@ -1,6 +1,6 @@
 # Contributing to Inline
 
-Thank you for your interest in contributing to Inline! This guide will help you get started.
+Thank you for your interest in contributing to Inline! This guide will help you get started with contributing to our offline code completion extension.
 
 ## Development Setup
 

@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Inline Extension - Quick Setup Script
-# 
+#
 # This script automates the complete setup process:
 # - Install dependencies
 # - Build extension
@@ -49,8 +49,8 @@ echo -e "${NC}"
 
 # Step 1: Install Dependencies
 print_header "Step 1: Installing Dependencies"
-print_info "Running: npm install"
-npm install
+print_info "Running: pnpm install"
+pnpm install
 print_success "Dependencies installed"
 
 # Step 2: Clean Previous Builds
@@ -83,7 +83,7 @@ echo ""
 read -p "Run tests? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    pnpm test || {
+    pnpm run test || {
         print_error "Some tests failed, but continuing..."
     }
     print_success "Tests completed"

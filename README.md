@@ -1,11 +1,11 @@
-# Inline - Offline AI Code Completion
+# Inline - Offline Code Completion
 
-Inline is a VS Code extension that delivers GitHub Copilot-like AI code completion entirely offline. It automatically manages local LLM models and optimizes suggestions for your programming languages, ensuring privacy and performance without internet dependency.
+Inline is a VS Code extension that delivers intelligent code completion entirely offline. It provides context-aware suggestions and manages local models for optimal performance, ensuring privacy without internet dependency.
 
 ## Features
 
 - **Offline-First**: Works completely without internet connection
-- **Automatic Model Management**: Download and manage LLM models through a simple UI
+- **Automatic Model Management**: Download and manage local models through a simple UI
 - **Language-Specific Optimization**: Optimized models for different programming languages
 - **Smart Context Building**: Understands your codebase and learns from patterns
 - **Resource Monitoring**: Monitors CPU/memory usage and adjusts accordingly
@@ -15,16 +15,28 @@ Inline is a VS Code extension that delivers GitHub Copilot-like AI code completi
 
 ## Quick Start
 
+**Prerequisites:**
+- Node.js 18+ 
+- pnpm (install with `npm install -g pnpm`)
+
 **Automated Setup:**
 ```bash
 ./scripts/setup.sh
 ```
 
 **Manual Setup:**
-1. Install the extension from VS Code Marketplace
-2. Open the Model Manager with `Ctrl+Shift+P` → "Inline: Model Manager"
-3. Download your preferred model (recommended: DeepSeek-Coder-6.7B)
-4. Start coding! Inline will automatically provide completions
+1. Clone and install dependencies:
+   ```bash
+   git clone <repository>
+   cd inline
+   pnpm install
+   pnpm run build
+   ```
+
+2. Install the extension from VS Code Marketplace
+3. Open the Model Manager with `Ctrl+Shift+P` → "Inline: Model Manager"
+4. Download your preferred model (recommended: DeepSeek-Coder-6.7B)
+5. Start coding! Inline will automatically provide completions
 
 For detailed setup instructions, see [SETUP.md](SETUP.md)
 
@@ -63,28 +75,28 @@ For detailed setup instructions, see [SETUP.md](SETUP.md)
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Compile in watch mode
-npm run watch
+pnpm run compile:watch
 
 # Run tests
-npm test
+pnpm test
 ```
 
 ### Testing
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run specific test suites
-npm run test:unit          # Unit tests
-npm run test:integration   # Integration tests
-npm run test:e2e           # End-to-end tests
+pnpm run test:unit          # Unit tests
+pnpm run test:integration   # Integration tests
+pnpm run test:e2e           # End-to-end tests
 
 # Run with coverage
-npm run test:coverage
+pnpm run test:coverage
 ```
 
 See [docs/guides/testing.md](docs/guides/testing.md) for detailed testing guide.
@@ -93,23 +105,26 @@ See [docs/guides/testing.md](docs/guides/testing.md) for detailed testing guide.
 
 ```bash
 # Build extension
-npm run build
+pnpm run build
 
 # Package extension
-npm run package
+pnpm run package
+
+# Clean build artifacts
+pnpm run clean
 ```
 
 ### Releasing
 
 ```bash
 # Automated release (patch version)
-./release.sh patch "Bug fixes and improvements"
+./scripts/release.sh patch "Bug fixes and improvements"
 
 # Minor version release
-./release.sh minor "New features added"
+./scripts/release.sh minor "New features added"
 
 # Major version release
-./release.sh major "Breaking changes"
+./scripts/release.sh major "Breaking changes"
 ```
 
 The release script automatically:

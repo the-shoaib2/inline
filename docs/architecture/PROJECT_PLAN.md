@@ -1,15 +1,15 @@
-# Project "Inline" - Offline AI Code Completion Extension
+# Project "Inline" - Offline Code Completion Extension
 
 ## 🎯 Vision
 
-Create a VS Code extension that provides GitHub Copilot-like intelligent code completion that works completely offline, with automatic model management and language-specific optimization.
+Create a VS Code extension that provides intelligent code completion that works completely offline, with automatic model management and language-specific optimization.
 
 ## 🚀 Core Concept
 
-**"Inline"** is an offline-first AI code completion extension that:
+**"Inline"** is an offline-first code completion extension that:
 - Automatically activates when offline
-- Seamlessly switches between default VS Code suggestions and AI suggestions
-- Downloads and manages LLM models through a simple UI
+- Seamlessly switches between default VS Code suggestions and intelligent suggestions
+- Downloads and manages local models through a simple UI
 - Optimizes models based on user's programming languages
 - Learns from project patterns and comments
 
@@ -41,7 +41,7 @@ Create a VS Code extension that provides GitHub Copilot-like intelligent code co
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   VS Code API   │◄──►│  Inline Core     │◄──►│  LLM Engine     │
+│   VS Code API   │◄──►│  Inline Core     │◄──►│   Model Engine     │
 │                 │    │                  │    │                 │
 │ • Completion    │    │ • Model Manager  │    │ • Ollama/Llama  │
 │ • Inline Items  │    │ • Context Builder│    │ • Quantized     │

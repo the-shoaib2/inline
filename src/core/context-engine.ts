@@ -33,7 +33,7 @@ export class ContextEngine {
     async buildContext(document: vscode.TextDocument, position: vscode.Position): Promise<CodeContext> {
         const text = document.getText();
         const offset = document.offsetAt(position);
-        
+
         const prefix = text.substring(Math.max(0, offset - this.maxContextLength), offset);
         const suffix = text.substring(offset, Math.min(text.length, offset + this.maxContextLength));
 
@@ -61,7 +61,7 @@ export class ContextEngine {
     private extractImports(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const imports: string[] = [];
-        
+
         const patterns = {
             python: /^import\s+.*|^from\s+.*\s+import\s+.*/gm,
             javascript: /^import\s+.*|^const\s+.*=\s*require\(.*/gm,
@@ -84,7 +84,7 @@ export class ContextEngine {
     private extractFunctions(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const functions: string[] = [];
-        
+
         const patterns = {
             python: /^def\s+\w+\s*\([^)]*\):/gm,
             javascript: /^function\s+\w+\s*\([^)]*\)\s*{|^\w+\s*:\s*function\s*\([^)]*\)\s*{|^\w+\s*=\s*\([^)]*\)\s*=>/gm,
@@ -107,7 +107,7 @@ export class ContextEngine {
     private extractClasses(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const classes: string[] = [];
-        
+
         const patterns = {
             python: /^class\s+\w+/gm,
             javascript: /^class\s+\w+/gm,
@@ -130,7 +130,7 @@ export class ContextEngine {
     private extractComments(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const comments: string[] = [];
-        
+
         const patterns = {
             python: /#.*$/gm,
             javascript: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
@@ -157,9 +157,9 @@ export class ContextEngine {
 
     async generatePrompt(context: CodeContext): Promise<string> {
         const patterns = this.projectPatterns.get(context.project);
-        
-        let prompt = `You are an AI coding assistant providing code completions for ${context.language}.\n\n`;
-        
+
+        let prompt = `You are a coding assistant providing code completions for ${context.language}.\n\n`;
+
         // Add project context
         if (patterns) {
             prompt += `Project: ${context.project}\n`;
@@ -190,8 +190,8 @@ export class ContextEngine {
         }
 
         // Add comments for context
-        const relevantComments = context.comments.filter(comment => 
-            comment.toLowerCase().includes('todo') || 
+        const relevantComments = context.comments.filter(comment =>
+            comment.toLowerCase().includes('todo') ||
             comment.toLowerCase().includes('fix') ||
             comment.toLowerCase().includes('implement') ||
             comment.toLowerCase().includes('create')
@@ -247,7 +247,7 @@ export class ContextEngine {
 
     private analyzeFileForPatterns(document: vscode.TextDocument, patterns: ProjectPatterns): void {
         const text = document.getText();
-        
+
         // Extract common imports
         const importMatches = text.match(/^import\s+.*$/gm);
         if (importMatches) {
@@ -260,13 +260,13 @@ export class ContextEngine {
     analyzeComments(comments: string[]): { intent: string; requirements: string[] } {
         const intent = this.extractIntent(comments);
         const requirements = this.extractRequirements(comments);
-        
+
         return { intent, requirements };
     }
 
     private extractIntent(comments: string[]): string {
         const commentText = comments.join(' ').toLowerCase();
-        
+
         if (commentText.includes('create') || commentText.includes('implement')) {
             return 'create';
         } else if (commentText.includes('fix') || commentText.includes('bug')) {
@@ -276,13 +276,13 @@ export class ContextEngine {
         } else if (commentText.includes('test')) {
             return 'test';
         }
-        
+
         return 'complete';
     }
 
     private extractRequirements(comments: string[]): string[] {
         const requirements: string[] = [];
-        
+
         comments.forEach(comment => {
             // Look for specific requirements in comments
             const patterns = [

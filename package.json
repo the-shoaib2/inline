@@ -1,10 +1,10 @@
 {
   "name": "inline",
-  "displayName": "Inline - Offline AI Code Completion",
-  "description": "GitHub Copilot-like AI code completion that works entirely offline with automatic model management",
+  "displayName": "Inline - Offline code suggestions",
+  "description": "GitHub Copilot-like code suggestions that works entirely offline with automatic model management",
   "version": "0.1.0",
   "publisher": "inline",
-  "author": "Inline AI Team",
+  "author": "Inline Team",
   "icon": "resources/icon.png",
   "license": "Apache-2.0",
   "engines": {
@@ -16,8 +16,6 @@
     "Snippets"
   ],
   "keywords": [
-    "ai",
-    "copilot",
     "completion",
     "offline",
     "llm",
@@ -25,7 +23,7 @@
     "intellisense"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onLanguage:*"
   ],
   "main": "./out/src/extension.js",
   "contributes": {
@@ -79,7 +77,7 @@
       "activitybar": [
         {
           "id": "inline-sidebar",
-          "title": "Inline AI",
+          "title": "Inline",
           "icon": "$(cloud-download)"
         }
       ]
@@ -118,6 +116,52 @@
           "type": "boolean",
           "default": true,
           "description": "Monitor system resources and adjust model usage accordingly"
+        },
+        "inline.codingRules": {
+          "type": "array",
+          "default": [],
+          "description": "Custom coding rules and style preferences",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "pattern": {"type": "string"},
+              "description": {"type": "string"},
+              "enabled": {"type": "boolean", "default": true}
+            }
+          }
+        },
+        "inline.modelPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path for storing downloaded models"
+        },
+        "inline.autoDownload": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically download recommended models when offline"
+        },
+        "inline.contextWindow": {
+          "type": "number",
+          "default": 4096,
+          "description": "Context window size for code analysis"
+        },
+        "inline.suggestionDelay": {
+          "type": "number",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 2000,
+          "description": "Delay in milliseconds before showing suggestions"
+        },
+        "inline.enableFormatting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Format code suggestions according to user preferences"
+        },
+        "inline.excludePatterns": {
+          "type": "array",
+          "default": ["node_modules", ".git", "dist", "build"],
+          "description": "File patterns to exclude from context analysis"
         }
       }
     }
