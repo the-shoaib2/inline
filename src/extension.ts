@@ -93,6 +93,23 @@ export async function activate(context: vscode.ExtensionContext) {
             statusBarManager.setModel(currentModel.name);
         }
 
+        // Model Warmup
+        if (configManager.get('modelWarmup') !== false) {
+            setTimeout(async () => {
+                const model = modelManager.getCurrentModel();
+                if (model && model.path) {
+                    try {
+                        logger.info(`Warming up model: ${model.name}`);
+                        const engine = modelManager.getInferenceEngine();
+                        await engine.loadModel(model.path);
+                        logger.info('Model warmup complete');
+                    } catch (error) {
+                        logger.error(`Model warmup failed: ${error}`);
+                    }
+                }
+            }, 2000); // Delay warmup to not block startup
+        }
+
         // Start network monitoring asynchronously (don't block activation)
         // Only start if not configured for offline-only mode
         if (!configManager.autoOffline) {

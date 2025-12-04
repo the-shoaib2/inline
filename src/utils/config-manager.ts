@@ -5,7 +5,7 @@ export class ConfigManager {
 
     constructor() {
         this.config = vscode.workspace.getConfiguration('inline');
-        
+
         // Watch for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('inline')) {
@@ -36,6 +36,13 @@ export class ConfigManager {
 
     public get resourceMonitoring(): boolean {
         return this.config.get('resourceMonitoring', true);
+    }
+
+    public get<T>(key: string, defaultValue?: T): T | undefined {
+        if (defaultValue !== undefined) {
+            return this.config.get<T>(key, defaultValue);
+        }
+        return this.config.get<T>(key);
     }
 
     public async setDefaultModel(modelId: string): Promise<void> {

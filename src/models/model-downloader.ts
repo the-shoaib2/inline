@@ -305,61 +305,118 @@ export class ModelDownloader {
     }
 
     public async importModel(filePath: string): Promise<ModelInfo> {
-        if (!fs.existsSync(filePath)) {
-            throw new Error(`File not found: ${filePath}`);
-        }
-
-        const fileExtension = path.extname(filePath).toLowerCase();
-        let modelId: string;
-        let destPath: string;
-
-        if (fileExtension === '.gguf') {
-            // Direct GGUF file import
-            const fileName = path.basename(filePath, '.gguf');
-            modelId = `imported_${fileName}_${Date.now()}`;
-            destPath = path.join(this.safeModelsDir, `${modelId}.gguf`);
-
-            // Copy file to safe models directory
-            fs.copyFileSync(filePath, destPath);
-
-        } else if (fileExtension === '.tar.gz' || fileExtension === '.tgz') {
-            // Extract and import
-            const tempDir = path.join(this.safeModelsDir, 'temp_import');
-            fs.mkdirSync(tempDir, { recursive: true });
-
-            await this.extractModel(filePath, tempDir);
-
-            // Look for GGUF files in extracted content
-            const extractedFiles = fs.readdirSync(tempDir);
-            const ggufFile = extractedFiles.find(f => f.endsWith('.gguf'));
-
-            if (!ggufFile) {
-                fs.rmSync(tempDir, { recursive: true });
-                throw new Error('No GGUF model file found in the archive');
+        try {
+            if (!fs.existsSync(filePath)) {
+                throw new Error(`File not found: ${filePath}`);
             }
 
-            modelId = `imported_${path.basename(ggufFile, '.gguf')}_${Date.now()}`;
-            destPath = path.join(this.safeModelsDir, `${modelId}.gguf`);
+            const stats = fs.statSync(filePath);
+            const fileName = path.basename(filePath);
+            const fileExtension = path.extname(filePath).toLowerCase();
+            let modelId = `imported_${path.basename(filePath, fileExtension).replace(/[^a-zA-Z0-9]/g, '_')}`;
+            let destPath: string;
 
-            fs.renameSync(path.join(tempDir, ggufFile), destPath);
-            fs.rmSync(tempDir, { recursive: true });
+            // Validate file type
+            if (fileExtension !== '.gguf' && fileExtension !== '.tar.gz' && fileExtension !== '.tgz') {
+                throw new Error('Unsupported file format. Please provide a .gguf or .tar.gz file');
+            }
 
-        } else {
-            throw new Error('Unsupported file format. Please provide a .gguf or .tar.gz file');
+            // Create temp directory for processing
+            const tempDir = path.join(os.tmpdir(), `inline-import-${Date.now()}`);
+            fs.mkdirSync(tempDir, { recursive: true });
+
+            try {
+                if (fileExtension === '.gguf') {
+                    // Direct GGUF file import
+
+                    // Validate GGUF magic number
+                    const fd = fs.openSync(filePath, 'r');
+                    const magicBuffer = Buffer.alloc(4);
+                    fs.readSync(fd, magicBuffer, 0, 4, 0);
+                    fs.closeSync(fd);
+
+                    if (magicBuffer.toString('utf8') !== 'GGUF') {
+                        throw new Error('Invalid GGUF file: Magic number mismatch');
+                    }
+
+                    destPath = path.join(this.safeModelsDir, `${modelId}.gguf`);
+
+                    // Copy file with progress tracking
+                    await this.copyFileWithProgress(filePath, destPath);
+                } else {
+                    // Handle archive extraction (existing logic)
+                    await this.extractModel(filePath, tempDir);
+
+                    // Look for GGUF files in extracted content
+                    const files = fs.readdirSync(tempDir);
+                    const ggufFile = files.find(f => f.endsWith('.gguf'));
+
+                    if (!ggufFile) {
+                        throw new Error('No GGUF model file found in the archive');
+                    }
+
+                    modelId = `imported_${path.basename(ggufFile, '.gguf')}_${Date.now()}`;
+                    destPath = path.join(this.safeModelsDir, `${modelId}.gguf`);
+
+                    fs.renameSync(path.join(tempDir, ggufFile), destPath);
+                }
+
+                const modelInfo: ModelInfo = {
+                    id: modelId,
+                    
+                    name: path.basename(destPath, '.gguf').replace(/_/g, ' '),
+                    description: `Imported model (${this.formatFileSize(stats.size)})`,
+                    languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust', 'shellscript', 'c' ,'shell'], // Assumed general purpose
+                    requirements: {
+                        vram: 8, // Default VRAM requirement
+                        ram: 12,
+                        cpu: true,
+                        gpu: true
+                    },
+                    isDownloaded: true,
+                    path: destPath,
+                    size: stats.size,
+                    architecture: 'llama', // Assumed for GGUF
+                    quantization: 'unknown', // Could extract from metadata
+                    contextWindow: 4096, // Default
+                    downloadUrl: '', // Local import
+
+                };
+
+                return modelInfo;
+            } finally {
+                // Cleanup temp directory
+                if (fs.existsSync(tempDir)) {
+                    fs.rmSync(tempDir, { recursive: true, force: true });
+                }
+            }
+        } catch (error) {
+            this.logger.error(`Failed to import model: ${error}`);
+            throw error;
         }
+    }
 
-        const importedModel: ModelInfo = {
-            id: modelId,
-            name: `Imported: ${path.basename(filePath)}`,
-            description: 'User-imported model',
-            size: fs.statSync(destPath).size,
-            languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust', 'shell'],
-            requirements: { vram: 0, ram: Math.ceil(fs.statSync(destPath).size / (1024 * 1024 * 1024)), cpu: true, gpu: false },
-            isDownloaded: true
-        };
+    private async copyFileWithProgress(src: string, dest: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const stat = fs.statSync(src);
+            const totalBytes = stat.size;
+            let processedBytes = 0;
 
-        this.logger.info(`Model imported successfully: ${modelId}`);
-        return importedModel;
+            const readStream = fs.createReadStream(src);
+            const writeStream = fs.createWriteStream(dest);
+
+            readStream.on('data', (chunk) => {
+                processedBytes += chunk.length;
+                // We could emit progress here if we had a callback
+            });
+
+            readStream.on('error', reject);
+            writeStream.on('error', reject);
+
+            writeStream.on('finish', () => resolve());
+
+            readStream.pipe(writeStream);
+        });
     }
 
     private async extractModel(tarPath: string, extractPath: string): Promise<void> {

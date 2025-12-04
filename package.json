@@ -2,7 +2,7 @@
   "name": "inline",
   "displayName": "Inline - Offline code suggestions (Alpha)",
   "description": "Code suggestions that works entirely offline with automatic model management",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "inline",
   "author": "Inline Team",
   "icon": "resources/icon.png",

@@ -14,7 +14,7 @@ export function run(): Promise<void> {
 
   return new Promise((resolve, reject) => {
     // Run only E2E tests
-    glob('e2e/{extension,ui,completion}.test.js', { cwd: testsRoot }).then((files: string[]) => {
+    glob('e2e/**/*.{test,spec}.js', { cwd: testsRoot }).then((files: string[]) => {
 
       // Add files to the test suite
       files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));

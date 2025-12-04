@@ -4,705 +4,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-{{nonce}}';">
     <title>Inline Model Manager</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --container-padding: 20px;
+            --card-bg: var(--vscode-editor-background);
+            --card-border: var(--vscode-panel-border);
+            --text-primary: var(--vscode-foreground);
+            --text-secondary: var(--vscode-descriptionForeground);
+            --accent-color: var(--vscode-button-background);
+            --accent-hover: var(--vscode-button-hoverBackground);
         }
 
         body {
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
+            color: var(--text-primary);
             background: var(--vscode-editor-background);
-            padding: 8px;
-            min-height: 100vh;
-            line-height: 1.4;
+            padding: var(--container-padding);
+            margin: 0;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 8px;
         }
 
         .header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--vscode-panel-border);
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
         }
 
         .header h1 {
-            color: var(--vscode-foreground);
             font-size: 24px;
-            font-weight: 700;
+            font-weight: 600;
             margin: 0;
-            letter-spacing: -0.025em;
         }
 
-        .status-indicator {
+        .actions {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: var(--vscode-descriptionForeground);
-            font-weight: 500;
+            gap: 12px;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4CAF50;
-        }
-
-        .status-dot.offline {
-            background: #FF9800;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 2px;
-            margin-bottom: 12px;
-            background: var(--vscode-editor-background);
-            padding: 2px;
-            border-radius: 6px;
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .tab {
-            padding: 2px 6px;
-            background: transparent;
-            border: none;
-            color: var(--vscode-foreground);
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            font-size: 13px;
-            flex: 1;
-            text-align: center;
-        }
-
-        .tab:hover {
-            background: var(--vscode-toolbar-hoverBackground);
-        }
-
-        .tab.active {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
         }
 
         .model-card {
-            background: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 6px;
-            padding: 12px;
-            transition: all 0.2s ease;
-            margin-bottom: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .model-card:hover {
-            border-color: var(--vscode-button-background);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .model-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .model-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--vscode-foreground);
-            margin-bottom: 4px;
-            line-height: 1.3;
-        }
-
-        .model-size {
-            font-size: 12px;
-            color: var(--vscode-descriptionForeground);
-            font-weight: 500;
-        }
-
-        .model-description {
-            font-size: 13px;
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
-
-        .model-languages {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-bottom: 8px;
-        }
-
-        .language-tag {
-            font-size: 10px;
-            padding: 2px 6px;
-            background: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            border-radius: 4px;
-            font-weight: 500;
-        }
-
-        .model-requirements {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 12px;
-            padding: 6px;
-            background: var(--vscode-textBlockQuote-background);
-            border-radius: 4px;
-            border-left: 2px solid var(--vscode-button-background);
-        }
-
-        .model-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-        }
-
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: var(--vscode-font-family);
-            min-width: 80px;
-        }
-
-        .btn-primary {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-        }
-
-        .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-
-        .btn-secondary {
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .btn-secondary:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-        }
-
-        .btn-danger {
-            background: var(--vscode-errorBackground);
-            color: var(--vscode-errorForeground);
-        }
-
-        .btn-danger:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .download-progress {
-            margin-top: 12px;
-            padding: 12px;
-            background: var(--vscode-textBlockQuote-background);
-            border-radius: 4px;
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: var(--vscode-progressBar-background);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--vscode-progressBar-foreground), var(--vscode-charts-blue));
-            transition: width 0.5s ease;
-            border-radius: 2px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(90deg,
-                    transparent,
-                    rgba(255, 255, 255, 0.3),
-                    transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% {
-                transform: translateX(-100%);
-            }
-
-            100% {
-                transform: translateX(100%);
-            }
-        }
-
-        .progress-text {
-            font-size: 13px;
-            color: var(--vscode-descriptionForeground);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .progress-percentage {
-            font-weight: 600;
-            color: var(--vscode-foreground);
-            font-size: 14px;
-        }
-
-        .progress-details {
-            font-size: 12px;
-            color: var(--vscode-descriptionForeground);
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .progress-speed {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .progress-eta {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .current-model {
-            border-color: var(--vscode-charts-blue);
-            background: linear-gradient(135deg, rgba(var(--vscode-charts-blue), 0.1), rgba(var(--vscode-charts-blue), 0.05));
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .current-model-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            padding: 6px 12px;
-            background: linear-gradient(135deg, var(--vscode-charts-blue), var(--vscode-button-background));
-            color: white;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            font-weight: 600;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from {
-                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-            }
-
-            to {
-                box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
-            }
-        }
-
-        .model-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        @media (min-width: 768px) {
-            .model-grid {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            }
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid var(--vscode-button-background);
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 64px 32px;
-            color: var(--vscode-descriptionForeground);
-            background: var(--vscode-editor-background);
-            border-radius: 12px;
-            border: 2px dashed var(--vscode-panel-border);
-            margin: 32px 0;
-        }
-
-        .empty-state h3 {
-            margin-bottom: 16px;
-            color: var(--vscode-foreground);
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .empty-state p {
-            font-size: 14px;
-            line-height: 1.6;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 20px;
-            border-radius: 8px;
-            background: var(--vscode-notifications-background);
-            color: var(--vscode-notifications-foreground);
-            border: 1px solid var(--vscode-notifications-border);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            max-width: 350px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .notification.success {
-            background: linear-gradient(135deg, #E8F5E8, #C8E6C9);
-            color: #2E7D32;
-            border-color: #4CAF50;
-        }
-
-        .notification.error {
-            background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
-            color: #C62828;
-            border-color: #F44336;
-        }
-
-        .notification.warning {
-            background: linear-gradient(135deg, #FFF8E1, #FFECB3);
-            color: #F57F17;
-            border-color: #FFC107;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 16px;
-            }
-
-            .model-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 16px;
-                align-items: flex-start;
-                padding: 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .tabs {
-                overflow-x: auto;
-                padding: 6px;
-            }
-
-            .tab {
-                padding: 6px 10px;
-                font-size: 13px;
-            }
-
-            .model-actions {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .model-card {
-                padding: 20px;
-            }
-
-            .notification {
-                right: 16px;
-                left: 16px;
-                max-width: none;
-            }
-        }
-
-        .import-section.drag-over {
-            border-color: var(--vscode-button-background);
-            background: var(--vscode-button-hoverBackground);
-        }
-
-        .model-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: var(--vscode-font-family);
-            position: relative;
-            overflow: hidden;
-            min-width: 100px;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
-        }
-
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--vscode-button-background), var(--vscode-charts-blue));
-            color: var(--vscode-button-foreground);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--vscode-button-hoverBackground), var(--vscode-charts-blue));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-secondary {
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .btn-secondary:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--accent-color);
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, var(--vscode-errorBackground), #d32f2f);
-            color: var(--vscode-errorForeground);
-            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
-        }
-
-        .btn-danger:hover {
-            background: linear-gradient(135deg, var(--vscode-button-hoverBackground), #b71c1c);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        .download-progress {
-            margin-top: 12px;
-            padding: 12px;
-            background: var(--vscode-textBlockQuote-background);
-            border-radius: 4px;
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: var(--vscode-progressBar-background);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--vscode-progressBar-foreground), var(--vscode-charts-blue));
-            transition: width 0.5s ease;
-            border-radius: 4px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(90deg,
-                    transparent,
-                    rgba(255, 255, 255, 0.3),
-                    transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% {
-                transform: translateX(-100%);
-            }
-
-            100% {
-                transform: translateX(100%);
-            }
-        }
-
-        .progress-text {
-            font-size: 13px;
-            color: var(--vscode-descriptionForeground);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .progress-percentage {
-            font-weight: 600;
-            color: var(--vscode-foreground);
-            font-size: 14px;
-        }
-
-        .progress-details {
-            font-size: 12px;
-            color: var(--vscode-descriptionForeground);
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .progress-speed {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .progress-eta {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .current-model {
-            border-color: var(--vscode-charts-blue);
-            background: linear-gradient(135deg, rgba(var(--vscode-charts-blue), 0.1), rgba(var(--vscode-charts-blue), 0.05));
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .current-model-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            padding: 6px 12px;
-            background: linear-gradient(135deg, var(--vscode-charts-blue), var(--vscode-button-background));
-            color: white;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            font-weight: 600;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from {
-                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-            }
-
-            to {
-                box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
-            }
-        }
-
-        .model-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 16px;
-        }
-
-        .model-card:hover {
-            border-color: var(--vscode-button-background);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        .model-card.active {
+            border-color: var(--accent-color);
+            background: linear-gradient(to bottom right, var(--card-bg), rgba(var(--vscode-button-background), 0.05));
+            box-shadow: 0 0 0 2px var(--accent-color);
         }
 
         .model-header {
@@ -715,74 +90,78 @@
         .model-name {
             font-size: 18px;
             font-weight: 600;
-            color: var(--vscode-foreground);
+            margin: 0;
         }
 
-        .model-status {
+        .model-badge {
+            font-size: 11px;
             padding: 4px 8px;
             border-radius: 12px;
-            font-size: 12px;
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
             font-weight: 500;
         }
 
-        .model-status.downloaded {
-            background: #E8F5E8;
-            color: #2E7D32;
-        }
-
-        .model-status.available {
-            background: #FFF3E0;
-            color: #F57C00;
+        .model-badge.active {
+            background: var(--accent-color);
+            color: var(--vscode-button-foreground);
         }
 
         .model-description {
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 12px;
-            line-height: 1.4;
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            flex-grow: 1;
         }
 
         .model-specs {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
             margin-bottom: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(0, 0, 0, 0.05);
+            padding: 12px;
+            border-radius: 6px;
         }
 
-        .spec-tag {
-            background: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-        }
-
-        .model-actions {
+        .spec-item {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-flex;
             align-items: center;
             gap: 6px;
         }
 
+        .model-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+            flex: 1;
+        }
+
         .btn-primary {
-            background: var(--vscode-button-background);
+            background: var(--accent-color);
             color: var(--vscode-button-foreground);
         }
 
         .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
+            background: var(--accent-hover);
         }
 
         .btn-secondary {
@@ -795,196 +174,72 @@
         }
 
         .btn-danger {
-            background: #D32F2F;
-            color: white;
+            background: var(--vscode-errorBackground);
+            color: var(--vscode-errorForeground);
         }
 
         .btn-danger:hover {
-            background: #B71C1C;
+            opacity: 0.9;
         }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .progress-container {
+            margin-top: 12px;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
         }
 
         .progress-bar {
-            width: 100%;
             height: 4px;
-            background: var(--vscode-progress-bar-background);
+            background: var(--vscode-progressBar-background);
             border-radius: 2px;
             overflow: hidden;
-            margin: 8px 0;
+            margin-bottom: 4px;
         }
 
         .progress-fill {
             height: 100%;
-            background: var(--vscode-progress-bar-foreground);
-            transition: width 0.3s;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
         }
 
-        .settings-section h3 {
-            margin-bottom: 16px;
-            margin-top: 24px;
-            color: var(--vscode-foreground);
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .setting-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding: 8px 0;
-        }
-
-        .setting-label {
-            flex: 1;
-            color: var(--vscode-foreground);
-        }
-
-        .setting-control {
-            min-width: 200px;
-        }
-
-        .setting-control input,
-        .setting-control select {
-            width: 100%;
-            padding: 6px 8px;
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            color: var(--vscode-input-foreground);
-        }
-
-        .import-section {
-            border: 2px dashed var(--vscode-panel-border);
-            border-radius: 8px;
-            padding: 32px;
-            text-align: center;
-            margin-bottom: 24px;
-            transition: all 0.2s;
-        }
-
-        .import-section:hover {
-            border-color: var(--vscode-button-background);
-        }
-
-        .import-section.drag-over {
-            border-color: var(--vscode-button-background);
-            background: var(--vscode-button-hoverBackground);
-        }
-
-        .rules-editor {
-            background: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .rule-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-            padding: 8px;
-            background: var(--vscode-list-inactiveSelectionBackground);
-            border-radius: 4px;
-        }
-
-        .rule-item input {
-            flex: 1;
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            padding: 6px 8px;
-            color: var(--vscode-input-foreground);
-        }
-
-        .notification {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            padding: 12px 16px;
-            border-radius: 4px;
-            background: var(--vscode-notifications-background);
-            color: var(--vscode-notifications-foreground);
-            border: 1px solid var(--vscode-notifications-border);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            max-width: 300px;
-        }
-
-        .notification.success {
-            background: #E8F5E8;
-            color: #2E7D32;
-            border-color: #4CAF50;
-        }
-
-        .notification.error {
-            background: #FFEBEE;
-            color: #C62828;
-            border-color: #F44336;
-        }
-
-        .notification.warning {
-            background: #FFF8E1;
-            color: #F57F17;
-            border-color: #FFC107;
-        }
-
-        @media (max-width: 768px) {
-            .model-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 12px;
-                align-items: flex-start;
-            }
-
-            .tabs {
-                overflow-x: auto;
-            }
-
-            .model-actions {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--vscode-button-background);
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        .progress-text {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: right;
         }
 
         .empty-state {
             text-align: center;
-            padding: 48px;
-            color: var(--vscode-descriptionForeground);
+            padding: 40px;
+            color: var(--text-secondary);
+            border: 2px dashed var(--card-border);
+            border-radius: 8px;
+            grid-column: 1 / -1;
         }
 
-        .empty-state h3 {
-            margin-bottom: 16px;
-            color: var(--vscode-foreground);
+        .import-zone {
+            border: 2px dashed var(--card-border);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .import-zone:hover {
+            border-color: var(--accent-color);
+            background: rgba(var(--vscode-button-background), 0.05);
+        }
+
+        .import-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
         }
     </style>
 </head>
@@ -992,313 +247,58 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Settings</h1>
-            <div class="status-indicator">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Offline</span>
+            <div>
+                <h1>Model Manager</h1>
+                <p style="color: var(--text-secondary); margin-top: 4px;">Manage your local AI models for code
+                    completion</p>
             </div>
-        </div>
-
-        <div class="tabs">
-            <button class="tab active" data-tab="models">Models</button>
-            <button class="tab" data-tab="settings">Config</button>
-            <button class="tab" data-tab="rules">Rules</button>
-            <button class="tab" data-tab="import">Import</button>
-        </div>
-
-        <div class="tab-content active" id="models-tab">
-            <div class="model-grid" id="modelGrid">
-                <!-- Models will be populated here -->
-            </div>
-        </div>
-
-        <div class="tab-content" id="settings-tab">
-            <div class="settings-section">
-                <h3>General Settings</h3>
-                <div class="setting-item">
-                    <label class="setting-label">Auto Offline Mode</label>
-                    <div class="setting-control">
-                        <input type="checkbox" id="autoOffline">
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Default Model</label>
-                    <div class="setting-control">
-                        <select id="defaultModel">
-                            <option value="deepseek-coder-6.7b">DeepSeek Coder 6.7B</option>
-                            <option value="starcoder2-3b">StarCoder2 3B</option>
-                            <option value="codellama-7b">Code Llama 7B</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Max Tokens</label>
-                    <div class="setting-control">
-                        <input type="number" id="maxTokens" min="1" max="2048" value="512">
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Temperature</label>
-                    <div class="setting-control">
-                        <input type="number" id="temperature" min="0" max="1" step="0.1" value="0.1">
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>Performance Settings</h3>
-                <div class="setting-item">
-                    <label class="setting-label">Cache Size</label>
-                    <div class="setting-control">
-                        <input type="number" id="cacheSize" min="10" max="1000" value="100">
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Context Window</label>
-                    <div class="setting-control">
-                        <input type="number" id="contextWindow" min="1024" max="8192" step="1024" value="4096">
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Suggestion Delay (ms)</label>
-                    <div class="setting-control">
-                        <input type="number" id="suggestionDelay" min="100" max="2000" step="100" value="500">
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Resource Monitoring</label>
-                    <div class="setting-control">
-                        <input type="checkbox" id="resourceMonitoring">
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>Model Storage</h3>
-                <div class="setting-item">
-                    <label class="setting-label">Custom Model Path</label>
-                    <div class="setting-control">
-                        <input type="text" id="modelPath" placeholder="Leave empty for default">
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label class="setting-label">Auto Download Models</label>
-                    <div class="setting-control">
-                        <input type="checkbox" id="autoDownload">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="rules-tab">
-            <div class="rules-editor">
-                <h3>Custom Coding Rules</h3>
-                <div id="rulesList">
-                    <!-- Rules will be populated here -->
-                </div>
-                <button class="btn btn-primary" id="addRuleBtn">
-                    <span>+</span> Add Rule
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="refreshData()">
+                    <span class="codicon codicon-refresh"></span> Refresh
                 </button>
             </div>
         </div>
 
-        <div class="tab-content" id="import-tab">
-            <div class="import-section" id="importSection">
-                <h3>Import Model</h3>
-                <p>Click to browse and select a .gguf or .tar.gz model file</p>
-                <button class="btn btn-primary" id="browseBtn">Browse Files</button>
-            </div>
+        <div class="import-zone" onclick="importModel()">
+            <div class="import-icon">📥</div>
+            <h3>Import GGUF Model</h3>
+            <p>Click to select a .gguf file from your computer</p>
+        </div>
+
+        <div id="model-grid" class="model-grid">
+            <!-- Models will be injected here -->
         </div>
     </div>
 
-    <script>
+    <script nonce="{{nonce}}">
         const vscode = acquireVsCodeApi();
+        let currentModels = [];
 
-        // State management
-        let state = {
-            models: [],
-            settings: {},
-            rules: [],
-            isOffline: true,
-            downloading: new Set()
-        };
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeTabs();
-            loadData();
-            setupEventListeners();
+        // Handle messages from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'updateData':
+                    renderModels(message.data.models, message.data.currentModel);
+                    break;
+                case 'downloadProgress':
+                    updateProgress(message.modelId, message.progress);
+                    break;
+                case 'downloadComplete':
+                    refreshData();
+                    break;
+                case 'notification':
+                    // TODO: Show toast notification
+                    break;
+            }
         });
 
-        function initializeTabs() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const tabName = tab.dataset.tab;
-                    switchTab(tabName);
-                });
-            });
-        }
-
-        function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function loadData() {
+        function refreshData() {
             vscode.postMessage({ command: 'getData' });
         }
 
-        function setupEventListeners() {
-            // File import - use native VS Code file picker
-            const browseBtn = document.getElementById('browseBtn');
-
-            if (browseBtn) {
-                browseBtn.addEventListener('click', () => {
-                    vscode.postMessage({ command: 'pickAndImportModel' });
-                });
-            }
-
-            // Settings
-            document.getElementById('autoOffline').addEventListener('change', updateSetting);
-            document.getElementById('defaultModel').addEventListener('change', updateSetting);
-            document.getElementById('maxTokens').addEventListener('change', updateSetting);
-            document.getElementById('temperature').addEventListener('change', updateSetting);
-            document.getElementById('cacheSize').addEventListener('change', updateSetting);
-            document.getElementById('contextWindow').addEventListener('change', updateSetting);
-            document.getElementById('suggestionDelay').addEventListener('change', updateSetting);
-            document.getElementById('resourceMonitoring').addEventListener('change', updateSetting);
-            document.getElementById('modelPath').addEventListener('change', updateSetting);
-            document.getElementById('autoDownload').addEventListener('change', updateSetting);
-
-            // Rules
-            document.getElementById('addRuleBtn').addEventListener('click', addRule);
-        }
-
-        function updateSetting(e) {
-            const setting = e.target.id;
-            const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-
-            vscode.postMessage({
-                command: 'updateSetting',
-                setting,
-                value
-            });
-        }
-
-        function handleFileImport(file) {
-            if (!file) return;
-
-            const validExtensions = ['.gguf', '.tar.gz', '.tgz'];
-            const isValidFile = validExtensions.some(ext => file.name.endsWith(ext));
-
-            if (!isValidFile) {
-                showNotification('Please select a valid model file (.gguf, .tar.gz, .tgz)', 'error');
-                return;
-            }
-
-            vscode.postMessage({
-                command: 'importModel',
-                filePath: file.path
-            });
-        }
-
-        function renderModels() {
-            const modelGrid = document.getElementById('modelGrid');
-
-            if (state.models.length === 0) {
-                modelGrid.innerHTML = `
-                    <div class="empty-state">
-                        <h3>No models available</h3>
-                        <p>Download or import models to get started with offline code completion.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            modelGrid.innerHTML = state.models.map(model => `
-                <div class="model-card">
-                    <div class="model-header">
-                        <h3 class="model-name">${model.name}</h3>
-                        <span class="model-status ${model.isDownloaded ? 'downloaded' : 'available'}">
-                            ${model.isDownloaded ? 'Downloaded' : 'Available'}
-                        </span>
-                    </div>
-                    <p class="model-description">${model.description}</p>
-                    <div class="model-specs">
-                        <span class="spec-tag">${formatFileSize(model.size)}</span>
-                        <span class="spec-tag">${model.languages.join(', ')}</span>
-                        <span class="spec-tag">VRAM: ${model.requirements.vram}GB</span>
-                        <span class="spec-tag">RAM: ${model.requirements.ram}GB</span>
-                    </div>
-                    ${state.downloading.has(model.id) ? `
-                        <div class="download-progress">
-                            <div class="progress-text">
-                                <span>Downloading...</span>
-                                <span class="progress-percentage">${state.downloadProgress || 0}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${state.downloadProgress || 0}%"></div>
-                            </div>
-                        </div>
-                    ` : ''}
-                    <div class="model-actions">
-                        ${model.isDownloaded ? `
-                            <button class="btn btn-primary" onclick="selectModel('${model.id}')">
-                                Use Model
-                            </button>
-                            <button class="btn btn-danger" onclick="deleteModel('${model.id}')">
-                                Delete
-                            </button>
-                        ` : `
-                            <button class="btn btn-primary" onclick="downloadModel('${model.id}')" ${state.downloading.has(model.id) ? 'disabled' : ''}>
-                                ${state.downloading.has(model.id) ? '<span class="loading"></span> Downloading...' : 'Download'}
-                            </button>
-                        `}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderSettings() {
-            // Populate settings from state
-            Object.keys(state.settings).forEach(key => {
-                const element = document.getElementById(key);
-                if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = state.settings[key];
-                    } else {
-                        element.value = state.settings[key];
-                    }
-                }
-            });
-        }
-
-        function renderRules() {
-            const rulesList = document.getElementById('rulesList');
-
-            if (state.rules.length === 0) {
-                rulesList.innerHTML = '<p style="color: var(--vscode-descriptionForeground);">No custom rules defined. Add rules to customize code suggestions.</p>';
-                return;
-            }
-
-            rulesList.innerHTML = state.rules.map((rule, index) => `
-                <div class="rule-item">
-                    <input type="text" placeholder="Rule name" value="${rule.name}" onchange="updateRule(${index}, 'name', this.value)">
-                    <input type="text" placeholder="Pattern" value="${rule.pattern}" onchange="updateRule(${index}, 'pattern', this.value)">
-                    <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="updateRule(${index}, 'enabled', this.checked)">
-                    <button class="btn btn-danger" onclick="removeRule(${index})">Remove</button>
-                </div>
-            `).join('');
+        function importModel() {
+            vscode.postMessage({ command: 'pickAndImportModel' });
         }
 
         function downloadModel(modelId) {
@@ -1310,85 +310,112 @@
         }
 
         function deleteModel(modelId) {
-            vscode.postMessage({ command: 'deleteModel', modelId });
+            if (confirm('Are you sure you want to delete this model?')) {
+                vscode.postMessage({ command: 'deleteModel', modelId });
+            }
         }
 
-        function addRule() {
-            vscode.postMessage({ command: 'addRule' });
+        function updateProgress(modelId, progress) {
+            const card = document.getElementById(`model-${modelId}`);
+            if (card) {
+                const progressContainer = card.querySelector('.progress-container');
+                const progressFill = card.querySelector('.progress-fill');
+                const progressText = card.querySelector('.progress-text');
+
+                if (progressContainer && progressFill && progressText) {
+                    progressContainer.classList.add('active');
+                    progressFill.style.width = `${progress}%`;
+                    progressText.textContent = `${Math.round(progress)}%`;
+                }
+            }
         }
 
-        function updateRule(index, field, value) {
-            vscode.postMessage({
-                command: 'updateRule',
-                index,
-                field,
-                value
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function renderModels(models, currentModelId) {
+            const grid = document.getElementById('model-grid');
+            grid.innerHTML = '';
+
+            if (models.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Models Available</h3>
+                        <p>Download a model or import a GGUF file to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            models.forEach(model => {
+                const isActive = model.id === currentModelId;
+                const isDownloaded = model.isDownloaded;
+
+                const card = document.createElement('div');
+                card.className = `model-card ${isActive ? 'active' : ''}`;
+                card.id = `model-${model.id}`;
+
+                let actionButtons = '';
+                if (isDownloaded) {
+                    if (isActive) {
+                        actionButtons = `<button class="btn btn-secondary" disabled>Active</button>`;
+                    } else {
+                        actionButtons = `
+                            <button class="btn btn-primary" onclick="selectModel('${model.id}')">Load</button>
+                            <button class="btn btn-danger" onclick="deleteModel('${model.id}')">Delete</button>
+                        `;
+                    }
+                } else {
+                    actionButtons = `<button class="btn btn-primary" onclick="downloadModel('${model.id}')">Download</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="model-header">
+                        <h3 class="model-name">${model.name}</h3>
+                        ${isActive ? '<span class="model-badge active">Active</span>' : ''}
+                        ${isDownloaded && !isActive ? '<span class="model-badge">Downloaded</span>' : ''}
+                    </div>
+                    <p class="model-description">${model.description}</p>
+                    <div class="model-specs">
+                        <div class="spec-item">
+                            <span>📦 Size:</span>
+                            <strong>${formatSize(model.size)}</strong>
+                        </div>
+                        <div class="spec-item">
+                            <span>🧠 RAM:</span>
+                            <strong>${model.requirements.ram}GB</strong>
+                        </div>
+                        <div class="spec-item">
+                            <span>💻 VRAM:</span>
+                            <strong>${model.requirements.vram}GB</strong>
+                        </div>
+                        <div class="spec-item">
+                            <span>📝 Context:</span>
+                            <strong>${model.contextWindow || 4096}</strong>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">0%</div>
+                    </div>
+                    <div class="model-actions">
+                        ${actionButtons}
+                    </div>
+                `;
+
+                grid.appendChild(card);
             });
         }
 
-        function removeRule(index) {
-            vscode.postMessage({ command: 'removeRule', index });
-        }
-
-        function formatFileSize(bytes) {
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            if (bytes === 0) return '0 B';
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-        }
-
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // Handle messages from extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-
-            switch (message.command) {
-                case 'updateData':
-                    state = { ...state, ...message.data };
-                    renderModels();
-                    renderSettings();
-                    renderRules();
-                    updateStatus();
-                    break;
-                case 'downloadProgress':
-                    state.downloading.add(message.modelId);
-                    state.downloadProgress = message.progress;
-                    renderModels();
-                    break;
-                case 'downloadComplete':
-                    state.downloading.delete(message.modelId);
-                    delete state.downloadProgress;
-                    renderModels();
-                    showNotification('Model downloaded successfully!', 'success');
-                    break;
-                case 'notification':
-                    showNotification(message.message, message.type);
-                    break;
-            }
-        });
-
-        function updateStatus() {
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-
-            if (state.isOffline) {
-                statusDot.classList.add('offline');
-                statusText.textContent = 'Offline';
-            } else {
-                statusDot.classList.remove('offline');
-                statusText.textContent = 'Online';
-            }
-        }
+        // Initial load
+        refreshData();
     </script>
 </body>
 

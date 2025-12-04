@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { LlamaInference } from './llama-inference';
+import { Logger } from '../utils/logger';
 
 export interface ModelInfo {
     id: string;
@@ -17,6 +19,10 @@ export interface ModelInfo {
     };
     isDownloaded: boolean;
     path?: string;
+    architecture?: string;
+    quantization?: string;
+    contextWindow?: number;
+    downloadUrl?: string;
 }
 
 export interface ModelRequirements {
@@ -32,10 +38,14 @@ export class ModelManager {
     private modelsDirectory: string;
     private availableModels: Map<string, ModelInfo> = new Map();
     private currentModel: ModelInfo | null = null;
+    private inferenceEngine: LlamaInference;
+    private logger: Logger;
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
+        this.logger = new Logger('ModelManager');
         this.modelsDirectory = path.join(context.globalStorageUri.fsPath, 'models');
+        this.inferenceEngine = new LlamaInference();
         this.initializeModelsDirectory();
         this.loadAvailableModels();
     }
@@ -46,7 +56,7 @@ export class ModelManager {
                 fs.mkdirSync(this.modelsDirectory, { recursive: true });
             }
         } catch (error) {
-            console.error('Failed to create models directory:', error);
+            this.logger.error(`Failed to create models directory: ${error}`);
         }
     }
 
@@ -59,7 +69,9 @@ export class ModelManager {
                 description: 'Fast and efficient model for Python/JavaScript',
                 languages: ['python', 'javascript', 'typescript'],
                 requirements: { vram: 2, ram: 4, cpu: true, gpu: false },
-                isDownloaded: false
+                isDownloaded: false,
+                architecture: 'gemma',
+                contextWindow: 8192
             },
             {
                 id: 'stablecode:3b',
@@ -68,7 +80,9 @@ export class ModelManager {
                 description: 'Multi-language support with good performance',
                 languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go'],
                 requirements: { vram: 4, ram: 6, cpu: true, gpu: false },
-                isDownloaded: false
+                isDownloaded: false,
+                architecture: 'stablelm',
+                contextWindow: 16384
             },
             {
                 id: 'deepseek-coder:6.7b',
@@ -77,7 +91,9 @@ export class ModelManager {
                 description: 'Excellent for complex patterns and scientific computing',
                 languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go', 'rust'],
                 requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false
+                isDownloaded: false,
+                architecture: 'llama',
+                contextWindow: 16384
             },
             {
                 id: 'starcoder2:7b',
@@ -86,7 +102,9 @@ export class ModelManager {
                 description: 'Strong across multiple programming languages',
                 languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go', 'rust', 'php'],
                 requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false
+                isDownloaded: false,
+                architecture: 'starcoder2',
+                contextWindow: 16384
             },
             {
                 id: 'codellama:7b',
@@ -95,7 +113,9 @@ export class ModelManager {
                 description: 'Meta\'s proven model for enterprise patterns',
                 languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go'],
                 requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false
+                isDownloaded: false,
+                architecture: 'llama',
+                contextWindow: 16384
             }
         ];
 
@@ -108,53 +128,68 @@ export class ModelManager {
 
     private checkDownloadedModels(): void {
         try {
-            const downloaded = fs.readdirSync(this.modelsDirectory);
-            downloaded.forEach(modelId => {
-                const modelPath = path.join(this.modelsDirectory, modelId);
-                if (fs.statSync(modelPath).isDirectory()) {
-                    const model = this.availableModels.get(modelId);
-                    if (model) {
-                        model.isDownloaded = true;
-                        model.path = modelPath;
-                    }
+            if (!fs.existsSync(this.modelsDirectory)) return;
+
+            const files = fs.readdirSync(this.modelsDirectory);
+
+            // Check for known models
+            this.availableModels.forEach(model => {
+                const modelPath = path.join(this.modelsDirectory, `${model.id}.gguf`);
+                if (fs.existsSync(modelPath)) {
+                    model.isDownloaded = true;
+                    model.path = modelPath;
+                }
+            });
+
+            // Check for imported models
+            files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf')).forEach(file => {
+                const modelId = path.basename(file, '.gguf');
+                const modelPath = path.join(this.modelsDirectory, file);
+                const stats = fs.statSync(modelPath);
+
+                if (!this.availableModels.has(modelId)) {
+                    const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
+                    this.availableModels.set(modelId, {
+                        id: modelId,
+                        name: `Imported: ${name}`,
+                        description: 'User imported model',
+                        size: stats.size,
+                        languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
+                        requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
+                        isDownloaded: true,
+                        path: modelPath,
+                        architecture: 'llama', // Assumed
+                        contextWindow: 4096
+                    });
                 }
             });
         } catch (error) {
-            console.error('Failed to check downloaded models:', error);
+            this.logger.error(`Failed to check downloaded models: ${error}`);
         }
     }
 
     async downloadModel(modelId: string, progressCallback?: (progress: number) => void): Promise<void> {
+        // This is mainly a metadata update wrapper now, actual download happens in ModelDownloader
         const model = this.availableModels.get(modelId);
         if (!model) {
-            throw new Error(`Model ${modelId} not found`);
+            // Might be a newly imported model
+            this.checkDownloadedModels();
+            if (!this.availableModels.has(modelId)) {
+                throw new Error(`Model ${modelId} not found`);
+            }
+            return;
         }
 
         if (model.isDownloaded) {
             return;
         }
 
-        try {
-            const modelPath = path.join(this.modelsDirectory, modelId);
-            fs.mkdirSync(modelPath, { recursive: true });
-
-            // Simulate download progress
-            for (let i = 0; i <= 100; i += 10) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                progressCallback?.(i);
-            }
-
-            // Create a placeholder file to simulate downloaded model
-            const placeholderFile = path.join(modelPath, 'model.gguf');
-            fs.writeFileSync(placeholderFile, 'placeholder model data');
-
+        // Verify file exists
+        const modelPath = path.join(this.modelsDirectory, `${modelId}.gguf`);
+        if (fs.existsSync(modelPath)) {
             model.isDownloaded = true;
             model.path = modelPath;
-
-            vscode.window.showInformationMessage(`Successfully downloaded ${model.name}`);
-        } catch (error) {
-            vscode.window.showErrorMessage(`Failed to download model: ${error}`);
-            throw error;
+            vscode.window.showInformationMessage(`Model ${model.name} is ready`);
         }
     }
 
@@ -165,14 +200,19 @@ export class ModelManager {
         }
 
         try {
-            if (model.path && fs.existsSync(model.path)) {
-                fs.rmSync(model.path, { recursive: true, force: true });
+            // Unload if current
+            if (this.currentModel?.id === modelId) {
+                await this.inferenceEngine.unloadModel();
+                this.currentModel = null;
             }
+
+            // File deletion handled by ModelDownloader
             model.isDownloaded = false;
             model.path = undefined;
 
-            if (this.currentModel?.id === modelId) {
-                this.currentModel = null;
+            // If it was an imported model, remove from map
+            if (modelId.startsWith('imported_')) {
+                this.availableModels.delete(modelId);
             }
 
             vscode.window.showInformationMessage(`Successfully removed ${model.name}`);
@@ -193,7 +233,7 @@ export class ModelManager {
         // Filter by language if specified
         let candidates = availableModels;
         if (requirements.language) {
-            candidates = availableModels.filter(model => 
+            candidates = availableModels.filter(model =>
                 model.languages.includes(requirements.language!)
             );
         }
@@ -218,12 +258,25 @@ export class ModelManager {
 
     async setCurrentModel(modelId: string): Promise<void> {
         const model = this.availableModels.get(modelId);
-        if (!model || !model.isDownloaded) {
+        if (!model || !model.isDownloaded || !model.path) {
             throw new Error(`Model ${modelId} is not available`);
         }
 
-        this.currentModel = model;
-        vscode.window.showInformationMessage(`Switched to ${model.name}`);
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `Loading model ${model.name}...`,
+                cancellable: false
+            }, async () => {
+                await this.inferenceEngine.loadModel(model.path!);
+                this.currentModel = model;
+            });
+
+            vscode.window.showInformationMessage(`Switched to ${model.name}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to load model: ${error}`);
+            throw error;
+        }
     }
 
     getCurrentModel(): ModelInfo | null {
@@ -246,6 +299,10 @@ export class ModelManager {
         }
     }
 
+    getInferenceEngine(): LlamaInference {
+        return this.inferenceEngine;
+    }
+
     async optimizeModel(language: string): Promise<void> {
         // TODO: Implement model optimization for specific languages
         vscode.window.showInformationMessage(`Optimizing model for ${language}...`);
@@ -255,7 +312,7 @@ export class ModelManager {
         const totalMemory = os.totalmem();
         const freeMemory = os.freemem();
         const usedMemory = totalMemory - freeMemory;
-        
+
         return {
             vram: 0, // TODO: Implement VRAM monitoring
             ram: usedMemory / totalMemory,
@@ -264,7 +321,7 @@ export class ModelManager {
     }
 
     cleanup(): void {
-        // Cleanup resources
+        this.inferenceEngine.unloadModel().catch(console.error);
         this.currentModel = null;
     }
 }

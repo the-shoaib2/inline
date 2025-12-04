@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-
 import * as path from 'path';
 
 export interface CodeContext {
@@ -34,8 +33,12 @@ export class ContextEngine {
         const text = document.getText();
         const offset = document.offsetAt(position);
 
-        const prefix = text.substring(Math.max(0, offset - this.maxContextLength), offset);
-        const suffix = text.substring(offset, Math.min(text.length, offset + this.maxContextLength));
+        // Get more context before cursor, less after
+        const prefixLength = Math.floor(this.maxContextLength * 0.75);
+        const suffixLength = Math.floor(this.maxContextLength * 0.25);
+
+        const prefix = text.substring(Math.max(0, offset - prefixLength), offset);
+        const suffix = text.substring(offset, Math.min(text.length, offset + suffixLength));
 
         const context: CodeContext = {
             prefix,
@@ -67,7 +70,9 @@ export class ContextEngine {
             javascript: /^import\s+.*|^const\s+.*=\s*require\(.*/gm,
             typescript: /^import\s+.*|^const\s+.*=\s*require\(.*/gm,
             java: /^import\s+.*;/gm,
-            cpp: /^#include\s+.*/gm
+            cpp: /^#include\s+.*/gm,
+            go: /^import\s+(\([^)]*\)|".*")/gm,
+            rust: /^use\s+.*;/gm
         };
 
         const pattern = patterns[document.languageId as keyof typeof patterns];
@@ -89,8 +94,10 @@ export class ContextEngine {
             python: /^def\s+\w+\s*\([^)]*\):/gm,
             javascript: /^function\s+\w+\s*\([^)]*\)\s*{|^\w+\s*:\s*function\s*\([^)]*\)\s*{|^\w+\s*=\s*\([^)]*\)\s*=>/gm,
             typescript: /^function\s+\w+\s*\([^)]*\)\s*[:{]?|^\w+\s*\([^)]*\)\s*[:{]?|^\w+\s*:\s*\([^)]*\)\s*=>/gm,
-            java: /^public\s+.*\s+\w+\s*\([^)]*\)\s*{|^private\s+.*\s+\w+\s*\([^)]*\)\s*{|^protected\s+.*\s+\w+\s*\([^)]*\)\s*{|^\w+\s*\([^)]*\)\s*{/gm,
-            cpp: /^\w+\s+\w+\s*\([^)]*\)\s*{/gm
+            java: /^(?:public|private|protected)?\s+.*\s+\w+\s*\([^)]*\)\s*{/gm,
+            cpp: /^\w+\s+\w+\s*\([^)]*\)\s*{/gm,
+            go: /^func\s+\w+\s*\([^)]*\)/gm,
+            rust: /^fn\s+\w+\s*\([^)]*\)/gm
         };
 
         const pattern = patterns[document.languageId as keyof typeof patterns];
@@ -112,8 +119,10 @@ export class ContextEngine {
             python: /^class\s+\w+/gm,
             javascript: /^class\s+\w+/gm,
             typescript: /^class\s+\w+/gm,
-            java: /^public\s+class\s+\w+|^private\s+class\s+\w+|^protected\s+class\s+\w+/gm,
-            cpp: /^class\s+\w+/gm
+            java: /^(?:public|private|protected)?\s+class\s+\w+/gm,
+            cpp: /^class\s+\w+/gm,
+            go: /^type\s+\w+\s+struct/gm,
+            rust: /^struct\s+\w+/gm
         };
 
         const pattern = patterns[document.languageId as keyof typeof patterns];
@@ -136,7 +145,9 @@ export class ContextEngine {
             javascript: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
             typescript: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
             java: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-            cpp: /\/\/.*$|\/\*[\s\S]*?\*\//gm
+            cpp: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
+            go: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
+            rust: /\/\/.*$|\/\*[\s\S]*?\*\//gm
         };
 
         const pattern = patterns[document.languageId as keyof typeof patterns];
@@ -156,61 +167,38 @@ export class ContextEngine {
     }
 
     async generatePrompt(context: CodeContext): Promise<string> {
-        const patterns = this.projectPatterns.get(context.project);
+        // Use Fill-In-The-Middle (FIM) format which is standard for code completion models
+        // <PRE> prefix <SUF> suffix <MID>
 
-        let prompt = `You are a coding assistant providing code completions for ${context.language}.\n\n`;
+        const fimPrefix = '<PRE>';
+        const fimSuffix = '<SUF>';
+        const fimMiddle = '<MID>';
 
-        // Add project context
-        if (patterns) {
-            prompt += `Project: ${context.project}\n`;
-            if (patterns.codeStyle.length > 0) {
-                prompt += `Code style: ${patterns.codeStyle.join(', ')}\n`;
-            }
-            if (patterns.commonImports.length > 0) {
-                prompt += `Common imports: ${patterns.commonImports.join(', ')}\n`;
-            }
+        // Construct the prompt
+        // We can inject some context before the prefix if needed (like file name, imports)
+
+        let header = '';
+        if (context.filename) {
+            header += `// File: ${context.filename}\n`;
+        }
+        if (context.language) {
+            header += `// Language: ${context.language}\n`;
         }
 
-        // Add file context
-        prompt += `\nFile: ${context.filename}\n`;
-        prompt += `Language: ${context.language}\n\n`;
-
-        // Add imports
-        if (context.imports.length > 0) {
-            prompt += `Imports:\n${context.imports.join('\n')}\n\n`;
+        if (context.imports && context.imports.length > 0) {
+            header += `// Imports:\n${context.imports.join('\n')}\n`;
         }
 
-        // Add functions and classes
-        if (context.functions.length > 0) {
-            prompt += `Functions in this file:\n${context.functions.join('\n')}\n\n`;
-        }
+        // Add imports if they are not in the prefix (e.g. from other files)
+        // For now, we assume imports are in the file content
 
-        if (context.classes.length > 0) {
-            prompt += `Classes in this file:\n${context.classes.join('\n')}\n\n`;
-        }
+        const fullPrefix = header + context.prefix;
 
-        // Add comments for context
-        const relevantComments = context.comments.filter(comment =>
-            comment.toLowerCase().includes('todo') ||
-            comment.toLowerCase().includes('fix') ||
-            comment.toLowerCase().includes('implement') ||
-            comment.toLowerCase().includes('create')
-        );
-
-        if (relevantComments.length > 0) {
-            prompt += `Relevant comments:\n${relevantComments.join('\n')}\n\n`;
-        }
-
-        // Add code context
-        prompt += `Code context:\n${context.prefix}\n\n`;
-        prompt += 'Complete the code after the cursor:\n';
-
-        return prompt;
+        return `${fimPrefix} ${fullPrefix} ${fimSuffix} ${context.suffix} ${fimMiddle}`;
     }
 
     private loadProjectPatterns(): void {
         // TODO: Load and analyze project patterns
-        // This would involve analyzing the codebase to identify patterns
     }
 
     async extractProjectPatterns(workspaceFolder: vscode.WorkspaceFolder): Promise<ProjectPatterns> {
@@ -223,7 +211,7 @@ export class ContextEngine {
 
         try {
             const files = await vscode.workspace.findFiles(
-                new vscode.RelativePattern(workspaceFolder, '**/*.{js,ts,py,java,cpp,c}'),
+                new vscode.RelativePattern(workspaceFolder, '**/*.{js,ts,py,java,cpp,c,go,rs}'),
                 '**/node_modules/**'
             );
 
@@ -253,8 +241,6 @@ export class ContextEngine {
         if (importMatches) {
             patterns.commonImports.push(...importMatches);
         }
-
-        // TODO: Add more pattern analysis logic
     }
 
     analyzeComments(comments: string[]): { intent: string; requirements: string[] } {

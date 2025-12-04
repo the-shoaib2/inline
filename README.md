@@ -41,6 +41,8 @@ Inline is a VS Code extension that delivers intelligent code completion entirely
 For detailed setup instructions, see [SETUP.md](SETUP.md)
 
 ## Supported Models
+- **GGUF Support**: Import any `.gguf` model compatible with `llama.cpp`
+- **Auto-Detection**: Automatically detects model architecture and parameters
 
 ### Lightweight Models (2-4GB VRAM)
 - **CodeGemma-2B**: Great for Python/JavaScript
@@ -51,6 +53,13 @@ For detailed setup instructions, see [SETUP.md](SETUP.md)
 - **DeepSeek-Coder-6.7B**: Excellent for complex patterns
 - **StarCoder2-7B**: Strong across languages
 - **CodeLlama-7B**: Meta's proven model
+
+### Custom Models
+You can import your own GGUF models directly through the Model Manager:
+1. Open Model Manager
+2. Click "Import GGUF Model"
+3. Select your `.gguf` file
+4. The model will be validated and added to your local library
 
 ## Commands
 
@@ -146,6 +155,21 @@ See [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) for contribution 
 - Node.js 18.x or higher
 - Minimum 4GB RAM (8GB+ recommended)
 - Optional: GPU with 6GB+ VRAM for better performance
+
+## Troubleshooting
+
+### Installation Issues
+If you encounter errors during installation related to `node-llama-cpp`:
+1. Ensure you have C++ build tools installed:
+   - **Windows**: Install Visual Studio Build Tools with "Desktop development with C++"
+   - **Mac**: Run `xcode-select --install`
+   - **Linux**: Install `build-essential` and `cmake`
+2. Try rebuilding the dependency: `npm rebuild node-llama-cpp`
+
+### Model Loading Failed
+- Verify the model file is a valid `.gguf` file
+- Ensure you have enough RAM/VRAM to load the model
+- Check the "Inline" output channel for detailed error logs
 
 ## Architecture
 
