@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { getLlama, LlamaModel, LlamaContext } from 'node-llama-cpp';
+import type { LlamaModel, LlamaContext } from 'node-llama-cpp';
 import { Logger } from '../utils/logger';
 
 export interface InferenceOptions {
@@ -39,6 +39,8 @@ export class LlamaInference {
                 throw new Error(`Model file not found: ${modelPath}`);
             }
 
+            // Dynamic import to avoid ESM/CommonJS conflict
+            const { getLlama } = await import('node-llama-cpp');
             const llama = await getLlama();
 
             this.model = await llama.loadModel({

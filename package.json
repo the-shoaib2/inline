@@ -7,6 +7,10 @@
   "author": "Inline Team",
   "icon": "resources/icon.png",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/the-shoaib2/inline"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -207,7 +211,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run build",
+    "vscode:prepublish:disabled": "pnpm run build",
     "build": "pnpm run clean && tsc -p ./",
     "compile": "tsc -p ./ --incremental",
     "compile:watch": "tsc -p ./ --watch --incremental",
@@ -221,7 +225,7 @@
     "test:coverage": "nyc pnpm test",
     "benchmark": "node ./test/benchmark.js",
     "benchmark:full": "pnpm run compile && node ./out/test/benchmark/performance.benchmark.js",
-    "package": "vsce package",
+    "package": "pnpm run build && vsce package --no-dependencies --no-git-tag-version",
     "publish:patch": "./scripts/publish.sh patch --auto",
     "publish:minor": "./scripts/publish.sh minor --auto",
     "publish:major": "./scripts/publish.sh major --auto",
