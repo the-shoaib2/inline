@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2025-12-04
+
+### Added
+- Major version release with stable API
+- Fixed TypeScript compilation issues with node-llama-cpp
+- Improved model loading and inference capabilities
+- Enhanced error handling and logging
+- Full compatibility with latest node-llama-cpp API
+
+### Changed
+- Updated dependencies to resolve compatibility issues
+- Refactored inference engine for better performance
+- Improved resource management
+
+### Fixed
+- Fixed import errors with node-llama-cpp package
+- Resolved TypeScript compilation failures
+- Fixed model context sequence handling
+
+---
+
 ## [0.1.0] - 2024-12-04
 
 ### Added
