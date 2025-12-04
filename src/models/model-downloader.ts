@@ -2,33 +2,60 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as https from 'https';
+import * as os from 'os';
 // @ts-ignore - tar module types not available
 import * as tar from 'tar';
 import { ModelInfo } from '../core/model-manager';
 import { Logger } from '../utils/logger';
-
 
 interface DownloadTask {
     model: ModelInfo;
     progressCallback?: (progress: number) => void;
     resolve: (filePath: string) => void;
     reject: (error: unknown) => void;
+    cancellationToken?: vscode.CancellationToken;
+}
+
+interface DownloadProgress {
+    modelId: string;
+    progress: number;
+    downloadedBytes: number;
+    totalBytes: number;
+    speed: number;
+    eta: number;
 }
 
 export class ModelDownloader {
     private downloadQueue: DownloadTask[] = [];
     private isDownloading: boolean = false;
     private logger: Logger;
+    private activeDownloads: Map<string, DownloadProgress> = new Map();
+    private safeModelsDir: string;
 
     constructor(private modelsDir: string) {
         this.logger = new Logger('ModelDownloader');
+        this.safeModelsDir = this.getSafeModelsDirectory();
         this.ensureModelsDirectory();
     }
 
+    private getSafeModelsDirectory(): string {
+        // Get global storage directory for safe model storage
+        const extension = vscode.extensions.getExtension('inline.inline');
+        if (extension && extension.extensionPath) {
+            const globalStoragePath = extension.extensionUri.fsPath;
+            const safeDir = path.join(globalStoragePath, 'models');
+            return safeDir;
+        }
+
+        // Fallback to user home directory
+        const homeDir = os.homedir();
+        return path.join(homeDir, '.inline', 'models');
+    }
+
     private ensureModelsDirectory(): void {
-        if (!fs.existsSync(this.modelsDir)) {
-            fs.mkdirSync(this.modelsDir, { recursive: true });
-            this.logger.info(`Created models directory: ${this.modelsDir}`);
+        if (!fs.existsSync(this.safeModelsDir)) {
+            fs.mkdirSync(this.safeModelsDir, { recursive: true });
+            this.logger.info(`Created safe models directory: ${this.safeModelsDir}`);
         }
     }
 
@@ -78,16 +105,22 @@ export class ModelDownloader {
         return downloadedModels;
     }
 
+    public getDownloadProgress(modelId: string): DownloadProgress | null {
+        return this.activeDownloads.get(modelId) || null;
+    }
+
     public async downloadModel(
         model: ModelInfo,
-        progressCallback?: (progress: number) => void
+        progressCallback?: (progress: number) => void,
+        cancellationToken?: vscode.CancellationToken
     ): Promise<string> {
         return new Promise((resolve, reject) => {
             const task: DownloadTask = {
                 model,
                 progressCallback,
                 resolve,
-                reject
+                reject,
+                cancellationToken
             };
 
             this.downloadQueue.push(task);
@@ -105,7 +138,7 @@ export class ModelDownloader {
 
         try {
             const fileName = `${task.model.id}.gguf`;
-            const filePath = path.join(this.modelsDir, fileName);
+            const filePath = path.join(this.safeModelsDir, fileName);
 
             // Check if model already exists
             if (fs.existsSync(filePath)) {
@@ -113,8 +146,19 @@ export class ModelDownloader {
                 return;
             }
 
-            // Simulate download for now - replace with actual download URL
-            await this.downloadFile('https://example.com/model.gguf', filePath, task.progressCallback);
+            // Initialize progress tracking
+            const progress: DownloadProgress = {
+                modelId: task.model.id,
+                progress: 0,
+                downloadedBytes: 0,
+                totalBytes: task.model.size,
+                speed: 0,
+                eta: 0
+            };
+            this.activeDownloads.set(task.model.id, progress);
+
+            // Simulate download with progress for demo purposes
+            await this.simulateDownload(task.progressCallback, task.cancellationToken, progress);
             this.logger.info(`Model downloaded successfully: ${task.model.name}`);
             task.resolve(filePath);
         } catch (error: unknown) {
@@ -122,13 +166,67 @@ export class ModelDownloader {
             task.reject(error);
         } finally {
             this.isDownloading = false;
+            this.activeDownloads.delete(task.model.id);
             this.processQueue();
         }
     }
 
-    private async downloadFile(url: string, destPath: string, progressCallback?: (progress: number) => void): Promise<void> {
+    private async simulateDownload(
+        progressCallback?: (progress: number) => void,
+        cancellationToken?: vscode.CancellationToken,
+        progress?: DownloadProgress
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let currentProgress = 0;
+            const totalSteps = 100;
+            const stepDelay = 100; // 100ms per step = 10 seconds total
+
+            const interval = setInterval(() => {
+                if (cancellationToken?.isCancellationRequested) {
+                    clearInterval(interval);
+                    reject(new Error('Download cancelled'));
+                    return;
+                }
+
+                currentProgress++;
+
+                if (progress && progressCallback) {
+                    progress.progress = currentProgress;
+                    progress.downloadedBytes = Math.floor((currentProgress / 100) * progress.totalBytes);
+
+                    // Simulate speed and ETA
+                    progress.speed = progress.totalBytes / (totalSteps * stepDelay / 1000); // bytes per second
+
+                    if (currentProgress < 100) {
+                        progress.eta = ((totalSteps - currentProgress) * stepDelay) / 1000;
+                    } else {
+                        progress.eta = 0;
+                    }
+
+                    progressCallback(currentProgress);
+                } else if (progressCallback) {
+                    progressCallback(currentProgress);
+                }
+
+                if (currentProgress >= totalSteps) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, stepDelay);
+        });
+    }
+
+    private async downloadFile(
+        url: string,
+        destPath: string,
+        progressCallback?: (progress: number) => void,
+        cancellationToken?: vscode.CancellationToken,
+        progress?: DownloadProgress
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             const file = fs.createWriteStream(destPath);
+            const startTime = Date.now();
+            let lastUpdateTime = startTime;
 
             const request = https.get(url, (response) => {
                 if (response.statusCode !== 200) {
@@ -139,17 +237,54 @@ export class ModelDownloader {
                 const totalSize = parseInt(response.headers['content-length'] || '0');
                 let downloadedSize = 0;
 
+                // Handle cancellation
+                if (cancellationToken) {
+                    cancellationToken.onCancellationRequested(() => {
+                        request.destroy();
+                        file.close();
+                        fs.unlinkSync(destPath);
+                        reject(new Error('Download cancelled'));
+                    });
+                }
+
                 response.on('data', (chunk) => {
+                    if (cancellationToken?.isCancellationRequested) {
+                        return;
+                    }
+
                     downloadedSize += chunk.length;
                     file.write(chunk);
 
-                    if (totalSize > 0 && progressCallback) {
+                    if (progress && progressCallback) {
+                        const currentTime = Date.now();
+                        const timeDiff = (currentTime - lastUpdateTime) / 1000; // seconds
+
+                        if (timeDiff >= 0.5) { // Update every 0.5 seconds
+                            progress.downloadedBytes = downloadedSize;
+                            progress.totalBytes = totalSize;
+                            progress.progress = totalSize > 0 ? (downloadedSize / totalSize) * 100 : 0;
+
+                            // Calculate speed and ETA
+                            const elapsedSeconds = (currentTime - startTime) / 1000;
+                            progress.speed = downloadedSize / elapsedSeconds; // bytes per second
+
+                            if (progress.speed > 0 && totalSize > downloadedSize) {
+                                progress.eta = (totalSize - downloadedSize) / progress.speed; // seconds
+                            }
+
+                            progressCallback(progress.progress);
+                            lastUpdateTime = currentTime;
+                        }
+                    } else if (totalSize > 0 && progressCallback) {
                         const progress = (downloadedSize / totalSize) * 100;
                         progressCallback(progress);
                     }
                 });
 
                 response.on('end', () => {
+                    if (cancellationToken?.isCancellationRequested) {
+                        return;
+                    }
                     file.end();
                     resolve();
                 });
@@ -157,7 +292,9 @@ export class ModelDownloader {
 
             request.on('error', (error) => {
                 file.close();
-                fs.unlinkSync(destPath);
+                if (fs.existsSync(destPath)) {
+                    fs.unlinkSync(destPath);
+                }
                 reject(error);
             });
 
@@ -180,14 +317,14 @@ export class ModelDownloader {
             // Direct GGUF file import
             const fileName = path.basename(filePath, '.gguf');
             modelId = `imported_${fileName}_${Date.now()}`;
-            destPath = path.join(this.modelsDir, `${modelId}.gguf`);
+            destPath = path.join(this.safeModelsDir, `${modelId}.gguf`);
 
-            // Copy file to models directory
+            // Copy file to safe models directory
             fs.copyFileSync(filePath, destPath);
 
         } else if (fileExtension === '.tar.gz' || fileExtension === '.tgz') {
             // Extract and import
-            const tempDir = path.join(this.modelsDir, 'temp_import');
+            const tempDir = path.join(this.safeModelsDir, 'temp_import');
             fs.mkdirSync(tempDir, { recursive: true });
 
             await this.extractModel(filePath, tempDir);
@@ -202,7 +339,7 @@ export class ModelDownloader {
             }
 
             modelId = `imported_${path.basename(ggufFile, '.gguf')}_${Date.now()}`;
-            destPath = path.join(this.modelsDir, `${modelId}.gguf`);
+            destPath = path.join(this.safeModelsDir, `${modelId}.gguf`);
 
             fs.renameSync(path.join(tempDir, ggufFile), destPath);
             fs.rmSync(tempDir, { recursive: true });
@@ -247,8 +384,46 @@ export class ModelDownloader {
     }
 
     public getModelPath(modelId: string): string | null {
-        const filePath = path.join(this.modelsDir, `${modelId}.gguf`);
+        const filePath = path.join(this.safeModelsDir, `${modelId}.gguf`);
         return fs.existsSync(filePath) ? filePath : null;
+    }
+
+    public deleteModel(modelId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const filePath = path.join(this.safeModelsDir, `${modelId}.gguf`);
+
+            if (fs.existsSync(filePath)) {
+                try {
+                    fs.unlinkSync(filePath);
+                    this.logger.info(`Model deleted successfully: ${modelId}`);
+                    resolve();
+                } catch (error) {
+                    this.logger.error(`Failed to delete model: ${error}`);
+                    reject(error);
+                }
+            } else {
+                reject(new Error(`Model not found: ${modelId}`));
+            }
+        });
+    }
+
+    public getModelsDirectorySize(): number {
+        try {
+            const files = fs.readdirSync(this.safeModelsDir);
+            let totalSize = 0;
+
+            for (const file of files) {
+                const filePath = path.join(this.safeModelsDir, file);
+                const stats = fs.statSync(filePath);
+                if (stats.isFile()) {
+                    totalSize += stats.size;
+                }
+            }
+
+            return totalSize;
+        } catch (error) {
+            return 0;
+        }
     }
 
     public cancelDownload(modelId: string): void {
