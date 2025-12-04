@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -259,18 +260,21 @@
             left: 0;
             bottom: 0;
             right: 0;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.3),
-                transparent
-            );
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent);
             animation: shimmer 2s infinite;
         }
 
         @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
 
         .progress-text {
@@ -329,8 +333,13 @@
         }
 
         @keyframes glow {
-            from { box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); }
-            to { box-shadow: 0 0 20px rgba(0, 123, 255, 0.8); }
+            from {
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            }
+
+            to {
+                box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
+            }
         }
 
         .model-grid {
@@ -357,7 +366,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .empty-state {
@@ -400,8 +411,15 @@
         }
 
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .notification.success {
@@ -594,18 +612,21 @@
             left: 0;
             bottom: 0;
             right: 0;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.3),
-                transparent
-            );
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent);
             animation: shimmer 2s infinite;
         }
 
         @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
 
         .progress-text {
@@ -664,8 +685,13 @@
         }
 
         @keyframes glow {
-            from { box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); }
-            to { box-shadow: 0 0 20px rgba(0, 123, 255, 0.8); }
+            from {
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            }
+
+            to {
+                box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
+            }
         }
 
         .model-grid {
@@ -945,7 +971,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .empty-state {
@@ -960,6 +988,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -1076,9 +1105,8 @@
         <div class="tab-content" id="import-tab">
             <div class="import-section" id="importSection">
                 <h3>Import Model</h3>
-                <p>Drag and drop a .gguf or .tar.gz file here, or click to browse</p>
-                <button class="btn btn-secondary" id="browseBtn">Browse Files</button>
-                <input type="file" id="fileInput" accept=".gguf,.tar.gz,.tgz" style="display: none;">
+                <p>Click to browse and select a .gguf or .tar.gz model file</p>
+                <button class="btn btn-primary" id="browseBtn">Browse Files</button>
             </div>
         </div>
     </div>
@@ -1131,30 +1159,14 @@
         }
 
         function setupEventListeners() {
-            // File import
-            const importSection = document.getElementById('importSection');
-            const fileInput = document.getElementById('fileInput');
+            // File import - use native VS Code file picker
             const browseBtn = document.getElementById('browseBtn');
 
-            importSection.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                importSection.classList.add('drag-over');
-            });
-
-            importSection.addEventListener('dragleave', () => {
-                importSection.classList.remove('drag-over');
-            });
-
-            importSection.addEventListener('drop', (e) => {
-                e.preventDefault();
-                importSection.classList.remove('drag-over');
-                handleFileImport(e.dataTransfer.files[0]);
-            });
-
-            browseBtn.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', (e) => {
-                handleFileImport(e.target.files[0]);
-            });
+            if (browseBtn) {
+                browseBtn.addEventListener('click', () => {
+                    vscode.postMessage({ command: 'pickAndImportModel' });
+                });
+            }
 
             // Settings
             document.getElementById('autoOffline').addEventListener('change', updateSetting);
@@ -1379,4 +1391,5 @@
         }
     </script>
 </body>
+
 </html>

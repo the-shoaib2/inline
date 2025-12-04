@@ -124,10 +124,19 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": {"type": "string"},
-              "pattern": {"type": "string"},
-              "description": {"type": "string"},
-              "enabled": {"type": "boolean", "default": true}
+              "name": {
+                "type": "string"
+              },
+              "pattern": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true
+              }
             }
           }
         },
@@ -160,8 +169,19 @@
         },
         "inline.excludePatterns": {
           "type": "array",
-          "default": ["node_modules", ".git", "dist", "build"],
-          "description": "File patterns to exclude from context analysis"
+          "default": [
+            "node_modules",
+            ".git",
+            "dist",
+            "build",
+            "out",
+            ".vscode",
+            ".github",
+            "*.vsix",
+            "coverage",
+            ".nyc_output"
+          ],
+          "description": "File patterns to exclude from context analysis (especially useful during extension development)"
         }
       }
     }

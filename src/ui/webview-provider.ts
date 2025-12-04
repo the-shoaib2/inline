@@ -64,6 +64,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 case 'importModel':
                     await this.importModel(data.filePath);
                     break;
+                case 'pickAndImportModel':
+                    await this.pickAndImportModel();
+                    break;
                 case 'updateSetting':
                     await this.updateSetting(data.setting, data.value);
                     break;
@@ -190,6 +193,30 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: `Failed to delete model: ${error}`,
+                type: 'error'
+            });
+        }
+    }
+
+    private async pickAndImportModel() {
+        try {
+            const fileUri = await vscode.window.showOpenDialog({
+                canSelectMany: false,
+                openLabel: 'Import Model',
+                filters: {
+                    'Model Files': ['gguf', 'tar.gz', 'tgz'],
+                    'All Files': ['*']
+                },
+                title: 'Select a model file to import'
+            });
+
+            if (fileUri && fileUri[0]) {
+                await this.importModel(fileUri[0].fsPath);
+            }
+        } catch (error) {
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Failed to open file picker: ${error}`,
                 type: 'error'
             });
         }
