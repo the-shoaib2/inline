@@ -74,7 +74,7 @@ export const ModelItem: React.FC<ModelItemProps> = ({
                     </div>
                 </div>
 
-                <div style={{ fontSize: '0.9em', marginTop: '6px', color: 'var(--vscode-descriptionForeground)' }}>
+                <div style={{ fontSize: '0.9em', marginTop: '4px', color: 'var(--vscode-descriptionForeground)' }}>
                     {model.description}
                 </div>
             </div>

@@ -42,9 +42,9 @@ export class Logger {
         const formattedArgs = args.length > 0 ? ` ${JSON.stringify(args)}` : '';
         const levelString = LogLevel[level].toUpperCase(); // Convert LogLevel enum value to string
         const logMessage = `[${timestamp}] [${levelString}] ${message}${formattedArgs}`;
-        
+
         this.outputChannel.appendLine(logMessage);
-        
+
         // Also log to console in development
         if (process.env.NODE_ENV === 'development') {
             console.log(logMessage);

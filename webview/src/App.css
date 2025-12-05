@@ -97,13 +97,13 @@ h3 {
 }
 
 .model-item {
-  padding: 12px 20px;
+  padding: 8px 20px;
   border-left: 3px solid transparent;
   background: transparent;
   transition: background-color 0.1s ease;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .model-item:hover {
@@ -199,8 +199,8 @@ h3 {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.1));
 }
 
@@ -642,7 +642,7 @@ input[type="number"] {
 
 .tab-button.active {
   color: var(--vscode-panelTitle-activeForeground, #ffffff);
-  border-bottom: none;
+  border-bottom-color: var(--vscode-panelTitle-activeBorder, #e7e7e7);
   font-weight: 400;
 }
 

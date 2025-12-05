@@ -67,7 +67,7 @@ export class ModelManager {
         }
     }
 
-    private loadAvailableModels(): void {
+    private async loadAvailableModels(): Promise<void> {
         const models: ModelInfo[] = [
             {
                 id: 'codegemma:2b',
@@ -130,7 +130,36 @@ export class ModelManager {
             this.availableModels.set(model.id, model);
         });
 
-        this.checkDownloadedModels();
+        // Await the check so imported models are registered before we try to restore one
+        await this.checkDownloadedModels();
+        this.restoreLastActiveModel();
+    }
+
+    private restoreLastActiveModel(): void {
+        const lastModelId = this.context.globalState.get<string>('lastActiveModelId');
+        if (lastModelId) {
+            const model = this.availableModels.get(lastModelId);
+            if (model && model.isDownloaded) {
+                // Determine if we should auto-load the engine or just set the current object
+                // The user wants it "when active never remveo", so we should probably keep it selected.
+                // But loading the engine is heavy. 
+                // However, updated setCurrentModel loads the engine.
+                // Let's just set the reference here and let the user (or warmup) trigger load if needed?
+                // OR, effectively "restore" means making it active.
+                
+                // If I just set this.currentModel, it's "selected" in UI but not loaded in engine.
+                // If I want it to be truly active (ready to gen), I should load it.
+                // But forcing a load on startup might be aggressive if the user just wants to see it selected.
+                // Wait, the Extension Activation has a warmup block that calls `engine.loadModel(model.path)`.
+                // So if I set `this.currentModel` here, the warmup logic in `extension.ts` will pick it up and load it!
+                
+                this.currentModel = model;
+                this.logger.info(`Restored last active model: ${model.name}`);
+            } else {
+                // If model no longer exists or isn't downloaded, clear the state
+                this.context.globalState.update('lastActiveModelId', undefined);
+            }
+        }
     }
 
     public async refreshModels(): Promise<void> {
@@ -173,7 +202,7 @@ export class ModelManager {
                         const stats = fs.statSync(modelPath);
                         const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
                         
-                        const metadata = this.parseModelMetadata(file);
+                        const metadata = this.extractModelMetadata(file);
 
                         this.availableModels.set(modelId, {
                             id: modelId,
@@ -186,8 +215,7 @@ export class ModelManager {
                             path: modelPath,
                             architecture: metadata.architecture || 'llama',
                             quantization: metadata.quantization,
-                            // We don't have parameterCount in ModelInfo interface yet, adding it? 
-                            // Wait, ModelInfo is in this file too. I need to update ModelInfo interface as well.
+                            parameterCount: metadata.parameterCount,
                             contextWindow: 4096
                         });
                     } catch (e) {
@@ -264,7 +292,7 @@ export class ModelManager {
         }
     }
 
-    async downloadModel(modelId: string, progressCallback?: (progress: number) => void): Promise<void> {
+    async downloadModel(modelId: string, _progressCallback?: (progress: number) => void): Promise<void> {
         // This is mainly a metadata update wrapper now, actual download happens in ModelDownloader
         const model = this.availableModels.get(modelId);
         if (!model) {
@@ -300,6 +328,8 @@ export class ModelManager {
             if (this.currentModel?.id === modelId) {
                 await this.inferenceEngine.unloadModel();
                 this.currentModel = null;
+                // Clear persistence
+                await this.context.globalState.update('lastActiveModelId', undefined);
             }
 
             // File deletion handled by ModelDownloader
@@ -378,8 +408,20 @@ export class ModelManager {
                      await this.inferenceEngine.unloadModel();
                 }
 
-                await this.inferenceEngine.loadModel(model.path!);
+                const config = vscode.workspace.getConfiguration('inline');
+                const threads = config.get<number>('inference.threads', 4);
+                const gpuLayers = config.get<number>('inference.gpuLayers');
+                const contextSize = config.get<number>('contextWindow', 4096);
+
+                await this.inferenceEngine.loadModel(model.path!, {
+                     threads,
+                     gpuLayers,
+                     contextSize
+                });
                 this.currentModel = model;
+                
+                // Save persistence
+                await this.context.globalState.update('lastActiveModelId', model.id);
                 
                 this.logger.info(`Successfully loaded model: ${model.name} from ${model.path}`);
             });
@@ -391,6 +433,8 @@ export class ModelManager {
             // Ensure we don't leave it in a half-state
             if (this.currentModel?.id === modelId) {
                 this.currentModel = null;
+                // Don't clear persistence here necessarily, maybe they can retry? 
+                // But it wasn't loaded successfully, so null is correct.
             }
             throw error;
         }
@@ -400,6 +444,8 @@ export class ModelManager {
         if (this.currentModel) {
             await this.inferenceEngine.unloadModel();
             this.currentModel = null;
+            // Clear persistence
+            await this.context.globalState.update('lastActiveModelId', undefined);
             this.logger.info('Model unloaded manually');
             vscode.window.showInformationMessage('Model unloaded');
         }
@@ -444,6 +490,50 @@ export class ModelManager {
             ram: usedMemory / totalMemory,
             cpu: os.loadavg()[0] / os.cpus().length
         };
+    }
+
+    private extractModelMetadata(filename: string): { architecture?: string; quantization?: string; parameterCount?: string } {
+        // Extract metadata from filename patterns like:
+        // "imported_starcoder2_7b_Q4_K_M.gguf" -> { architecture: 'starcoder2', quantization: 'Q4_K_M', parameterCount: '7B' }
+        // "imported_deepseek_coder_6_7b.gguf" -> { architecture: 'deepseek_coder', parameterCount: '6.7B' }
+
+        const baseName = filename.replace('imported_', '').replace('.gguf', '');
+        const parts = baseName.split('_');
+
+        let architecture: string | undefined;
+        let quantization: string | undefined;
+        let parameterCount: string | undefined;
+
+        // Common quantization patterns
+        const quantPatterns = ['Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q8', 'F16', 'F32'];
+        const quantParts = parts.filter(part =>
+            quantPatterns.some(pattern => part.includes(pattern))
+        );
+
+        if (quantParts.length > 0) {
+            quantization = quantParts.join('_');
+        }
+
+        // Extract parameters (e.g., 7b, 1.5b, 7B)
+        // Look for parts ending in 'b' or 'B' that start with a number
+        const paramPart = parts.find(part => /^\d+(\.\d+)?[bB]$/.test(part));
+        if (paramPart) {
+            parameterCount = paramPart.toUpperCase();
+        }
+
+        // Try to extract architecture from common patterns
+        const archCandidates = parts.filter(part =>
+            !part.match(/^\d+$/) && // Not just numbers
+            !quantParts.includes(part) && // Not quantization
+            part !== paramPart && // Not parameter count
+            part.length > 2 // Not too short
+        );
+
+        if (archCandidates.length > 0) {
+            architecture = archCandidates.join('_');
+        }
+
+        return { architecture, quantization, parameterCount };
     }
 
     cleanup(): void {

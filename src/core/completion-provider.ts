@@ -4,6 +4,7 @@ import { ContextEngine, CodeContext } from './context-engine';
 import { StatusBarManager } from '../ui/status-bar-manager';
 import { NetworkDetector } from '../utils/network-detector';
 import { ResourceManager } from '../utils/resource-manager';
+import { CacheManager } from './cache-manager';
 
 interface CompletionCache {
     key: string;
@@ -17,36 +18,33 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private statusBarManager: StatusBarManager;
     private networkDetector: NetworkDetector;
     private resourceManager: ResourceManager;
+    private cacheManager: CacheManager; // Added CacheManager
     private contextEngine: ContextEngine;
     private cache: Map<string, CompletionCache> = new Map();
     private maxCacheSize: number = 50;
     private isProcessing: boolean = false;
     private debounceTimer: NodeJS.Timeout | null = null;
-    private debounceDelay: number = 300; // Increased debounce for real inference
-
+    
     constructor(
         modelManager: ModelManager,
         statusBarManager: StatusBarManager,
         networkDetector: NetworkDetector,
-        resourceManager: ResourceManager
+        resourceManager: ResourceManager,
+        cacheManager: CacheManager // Injected CacheManager
     ) {
         this.modelManager = modelManager;
         this.statusBarManager = statusBarManager;
         this.networkDetector = networkDetector;
         this.resourceManager = resourceManager;
+        this.cacheManager = cacheManager;
         this.contextEngine = new ContextEngine();
 
         this.loadCacheFromDisk();
     }
 
     private loadCacheFromDisk(): void {
-        setTimeout(() => {
-            try {
-                // Implementation would load from workspace storage
-            } catch (error) {
-                console.error('Failed to load cache:', error);
-            }
-        }, 1000);
+        // CacheManager handles disk I/O, we just use it.
+        // potentially preload hot items if needed, but CacheManager is efficient.
     }
 
     async provideInlineCompletionItems(
@@ -59,11 +57,18 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             clearTimeout(this.debounceTimer);
         }
 
+        const config = vscode.workspace.getConfiguration('inline');
+        const debounceInterval = config.get<number>('debounce.min', 75);
+
         return new Promise((resolve) => {
             this.debounceTimer = setTimeout(async () => {
+                if (token.isCancellationRequested) {
+                    resolve([]);
+                    return;
+                }
                 const result = await this.provideCompletionInternal(document, position, context, token);
                 resolve(result);
-            }, this.debounceDelay);
+            }, debounceInterval);
         });
     }
 
@@ -91,9 +96,19 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         try {
             const cacheKey = this.generateCacheKey(document, position);
-            const cached = this.cache.get(cacheKey);
-            if (cached && this.isCacheValid(cached)) {
-                return [this.createCompletionItem(cached.completion, position)];
+            
+            // 1. Check Memory Cache
+            const memCached = this.cache.get(cacheKey);
+            if (memCached && this.isCacheValid(memCached)) {
+                return [this.createCompletionItem(memCached.completion, position)];
+            }
+
+            // 2. Check Disk Cache via CacheManager
+            const diskCached = this.cacheManager.get(cacheKey) as CompletionCache | null;
+            if (diskCached && this.isCacheValid(diskCached)) {
+                // Promot to memory cache
+                this.cache.set(cacheKey, diskCached);
+                return [this.createCompletionItem(diskCached.completion, position)];
             }
 
             const codeContext = await this.contextEngine.buildContext(document, position);
@@ -181,12 +196,17 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
         }
 
-        this.cache.set(key, {
+        const cacheEntry = {
             key,
             completion,
             timestamp: Date.now(),
             context: JSON.stringify(context)
-        });
+        };
+
+        this.cache.set(key, cacheEntry);
+        
+        // Persist to disk
+        this.cacheManager.set(key, cacheEntry);
     }
 
     private createCompletionItem(completion: string, position: vscode.Position): vscode.InlineCompletionItem {

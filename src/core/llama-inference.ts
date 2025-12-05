@@ -35,7 +35,11 @@ export class LlamaInference {
         return LlamaInference._llamaInstance;
     }
 
-    public async loadModel(modelPath: string): Promise<void> {
+    public async loadModel(modelPath: string, options: { 
+        threads?: number; 
+        gpuLayers?: number; 
+        contextSize?: number; 
+    } = {}): Promise<void> {
         try {
             if (this.currentModelPath === modelPath && this.isLoaded) {
                 return;
@@ -56,11 +60,12 @@ export class LlamaInference {
             this.model = await llama.loadModel({
                 modelPath: modelPath,
                 useMlock: true, // Keep model in memory to prevent swapping
+                gpuLayers: options.gpuLayers, // Enable GPU acceleration if configured
             });
 
             this.context = await this.model!.createContext({
-                contextSize: 4096,
-                threads: 4,
+                contextSize: options.contextSize || 4096,
+                threads: options.threads || 4, // Default to 4 threads
                 batchSize: 512, // Optimize for batch processing
             });
 

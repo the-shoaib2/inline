@@ -28,7 +28,6 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onView:inline.modelManagerView",
     "onLanguage:*"
   ],
   "main": "./out/src/extension.js",
@@ -90,7 +89,8 @@
         {
           "type": "webview",
           "id": "inline.modelManagerView",
-          "name": "Model Manager"
+          "name": "Model Manager",
+          "icon": "$(cloud-download)"
         }
       ]
     },
@@ -253,7 +253,7 @@
   },
   "scripts": {
     "vscode:prepublish:disabled": "pnpm run build",
-    "build": "pnpm run clean && tsc -p ./ && pnpm run build:ui",
+    "build": "pnpm run clean && tsc -p ./ && pnpm run build:ui && echo '✅ Build successful!'",
     "build:ui": "cd webview && pnpm install && pnpm run build",
     "watch:ui": "cd webview && pnpm run watch",
     "compile": "tsc -p ./ --incremental",

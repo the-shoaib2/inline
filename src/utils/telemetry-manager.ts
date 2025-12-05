@@ -30,7 +30,7 @@ export class TelemetryManager {
         };
 
         this.events.push(event);
-        
+
         // In production, send to analytics service
         this.sendEvent(event);
     }
