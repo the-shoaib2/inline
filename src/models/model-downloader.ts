@@ -34,7 +34,7 @@ export class ModelDownloader {
 
     constructor(private modelsDir: string) {
         this.logger = new Logger('ModelDownloader');
-        this.safeModelsDir = this.getSafeModelsDirectory();
+        this.safeModelsDir = modelsDir; // Use provided directory which should match ModelManager
         this.ensureModelsDirectory();
     }
 

@@ -23,6 +23,18 @@ export class LlamaInference {
         this.logger = new Logger('LlamaInference');
     }
 
+    private static _llamaInstance: any = null;
+
+    private async getLlamaInstance(): Promise<any> {
+        if (!LlamaInference._llamaInstance) {
+             // Dynamic import to avoid ESM/CommonJS conflict and prevent TS from converting to require()
+            const dynamicImport = new Function('specifier', 'return import(specifier)');
+            const { getLlama } = await dynamicImport('node-llama-cpp');
+            LlamaInference._llamaInstance = await getLlama();
+        }
+        return LlamaInference._llamaInstance;
+    }
+
     public async loadModel(modelPath: string): Promise<void> {
         try {
             if (this.currentModelPath === modelPath && this.isLoaded) {
@@ -39,17 +51,17 @@ export class LlamaInference {
                 throw new Error(`Model file not found: ${modelPath}`);
             }
 
-            // Dynamic import to avoid ESM/CommonJS conflict
-            const { getLlama } = await import('node-llama-cpp');
-            const llama = await getLlama();
+            const llama = await this.getLlamaInstance();
 
             this.model = await llama.loadModel({
-                modelPath: modelPath
+                modelPath: modelPath,
+                useMlock: true, // Keep model in memory to prevent swapping
             });
 
-            this.context = await this.model.createContext({
-                contextSize: 4096, // Default context size
-                threads: 4 // Use 4 threads by default
+            this.context = await this.model!.createContext({
+                contextSize: 4096,
+                threads: 4,
+                batchSize: 512, // Optimize for batch processing
             });
 
             this.sequence = this.context.getSequence();
@@ -59,6 +71,10 @@ export class LlamaInference {
             this.logger.info('Model loaded successfully');
         } catch (error) {
             this.logger.error(`Failed to load model: ${error}`);
+            // Detailed error logging
+            if (error instanceof Error) {
+                 this.logger.error(`Stack trace: ${error.stack}`);
+            }
             this.isLoaded = false;
             this.currentModelPath = null;
             throw error;

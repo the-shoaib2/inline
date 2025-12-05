@@ -255,7 +255,7 @@
     "vscode:prepublish:disabled": "pnpm run build",
     "build": "pnpm run clean && tsc -p ./ && pnpm run build:ui",
     "build:ui": "cd webview && pnpm install && pnpm run build",
-    "watch:ui": "cd webview && pnpm run dev",
+    "watch:ui": "cd webview && pnpm run watch",
     "compile": "tsc -p ./ --incremental",
     "compile:watch": "tsc -p ./ --watch --incremental",
     "pretest": "pnpm run compile",

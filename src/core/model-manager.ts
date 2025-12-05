@@ -126,49 +126,129 @@ export class ModelManager {
         this.checkDownloadedModels();
     }
 
-    public refreshModels(): void {
-        this.checkDownloadedModels();
+    public async refreshModels(): Promise<void> {
+        await this.checkDownloadedModels();
     }
 
-    private checkDownloadedModels(): void {
+    private async checkDownloadedModels(): Promise<void> {
         try {
-            if (!fs.existsSync(this.modelsDirectory)) return;
+            // 1. Check workspace models first (prioritize local project models)
+            await this.checkWorkspaceModels();
 
-            const files = fs.readdirSync(this.modelsDirectory);
+            // 2. Check global models directory
+            if (fs.existsSync(this.modelsDirectory)) {
+                const files = fs.readdirSync(this.modelsDirectory);
 
-            // Check for known models
-            this.availableModels.forEach(model => {
-                const modelPath = path.join(this.modelsDirectory, `${model.id}.gguf`);
-                if (fs.existsSync(modelPath)) {
-                    model.isDownloaded = true;
-                    model.path = modelPath;
-                }
-            });
+                // Check for known models
+                this.availableModels.forEach(model => {
+                    // Skip if already found in workspace (preserve workspace path)
+                    if (model.isDownloaded && model.path && model.path.includes(this.modelsDirectory) === false) {
+                        return;
+                    }
 
-            // Check for imported models
-            files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf')).forEach(file => {
-                const modelId = path.basename(file, '.gguf');
-                const modelPath = path.join(this.modelsDirectory, file);
-                const stats = fs.statSync(modelPath);
+                    const modelPath = path.join(this.modelsDirectory, `${model.id}.gguf`);
+                    if (fs.existsSync(modelPath)) {
+                        model.isDownloaded = true;
+                        model.path = modelPath;
+                    }
+                });
 
-                if (!this.availableModels.has(modelId)) {
-                    const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
-                    this.availableModels.set(modelId, {
-                        id: modelId,
-                        name: `Imported: ${name}`,
-                        description: 'User imported model',
-                        size: stats.size,
-                        languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
-                        requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
-                        isDownloaded: true,
-                        path: modelPath,
-                        architecture: 'llama', // Assumed
-                        contextWindow: 4096
-                    });
-                }
-            });
+                // Check for imported models in global dir
+                files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf')).forEach(file => {
+                    const modelId = path.basename(file, '.gguf');
+                    // Skip if we already have this model from workspace
+                    if (this.availableModels.has(modelId) && this.availableModels.get(modelId)?.isDownloaded) {
+                        return;
+                    }
+
+                    const modelPath = path.join(this.modelsDirectory, file);
+                    try {
+                        const stats = fs.statSync(modelPath);
+                        const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
+                        
+                        this.availableModels.set(modelId, {
+                            id: modelId,
+                            name: `Imported: ${name}`,
+                            description: 'User imported model',
+                            size: stats.size,
+                            languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
+                            requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
+                            isDownloaded: true,
+                            path: modelPath,
+                            architecture: 'llama', // Assumed
+                            contextWindow: 4096
+                        });
+                    } catch (e) {
+                        this.logger.warn(`Failed to stat imported model ${file}: ${e}`);
+                    }
+                });
+            }
         } catch (error) {
             this.logger.error(`Failed to check downloaded models: ${error}`);
+        }
+    }
+
+    private async checkWorkspaceModels(): Promise<void> {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) return;
+
+        for (const folder of workspaceFolders) {
+            try {
+                const modelsDir = path.join(folder.uri.fsPath, 'models');
+                if (fs.existsSync(modelsDir)) {
+                    const files = await fs.promises.readdir(modelsDir);
+                    const ggufFiles = files.filter(f => f.endsWith('.gguf'));
+
+                    for (const file of ggufFiles) {
+                        const modelPath = path.join(modelsDir, file);
+                        const stats = fs.statSync(modelPath);
+                        // Use filename as ID, removing extension. 
+                        // If it matches a known ID (e.g. starcoder2:7b), we map it.
+                        // But filenames usually don't have colons.
+                        // Let's normalize name: imported_starcoder2_7b_Q4_K_M.gguf -> imported_starcoder2_7b_Q4_K_M
+                        
+                        let modelId = path.basename(file, '.gguf');
+                        
+                        // Heuristic: If user is trying to provide a standard model manually
+                        // e.g. models/starcoder2-7b.gguf -> map to 'starcoder2:7b' if plausible?
+                        // For now, treat workspace models as "Imported" unless they match specific naming convention
+                        // preventing conflicts.
+                        
+                        // Actually, if the user mentioned 'imported_starcoder2_7b_Q4_K_M.gguf', it's likely custom.
+                        
+                        // Check if we can map to existing model definition
+                        // ... (Skipping complex mapping for now, treating as generic or imported)
+
+                        const name = modelId.replace(/_/g, ' ').replace(/-/g, ' ');
+
+                        // If it's already in availableModels (e.g. standard model), update it
+                        // This is hard because IDs differ. 
+                        // Let's add it as a new entry if not found.
+                        
+                        if (!this.availableModels.has(modelId)) {
+                             this.availableModels.set(modelId, {
+                                id: modelId,
+                                name: `Workspace: ${name}`,
+                                description: `Model from ${folder.name}/models`,
+                                size: stats.size,
+                                languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'], // Generic
+                                requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
+                                isDownloaded: true,
+                                path: modelPath,
+                                architecture: 'llama', // Best guess
+                                contextWindow: 4096
+                            });
+                        } else {
+                            // Update existing model (if checking repeatedly)
+                            const model = this.availableModels.get(modelId)!;
+                            model.isDownloaded = true;
+                            model.path = modelPath;
+                        }
+                    }
+                }
+            } catch (err) {
+                this.logger.warn(`Error checking workspace folder ${folder.name} for models: ${err}`);
+            }
         }
     }
 
@@ -261,9 +341,16 @@ export class ModelManager {
     }
 
     async setCurrentModel(modelId: string): Promise<void> {
+        // Refresh to find any new models (like workspace ones)
+        await this.checkDownloadedModels();
+
         const model = this.availableModels.get(modelId);
-        if (!model || !model.isDownloaded || !model.path) {
-            throw new Error(`Model ${modelId} is not available`);
+        if (!model) {
+            throw new Error(`Model ${modelId} not found in registry`);
+        }
+        
+        if (!model.isDownloaded || !model.path) {
+             throw new Error(`Model ${modelId} is not available/downloaded`);
         }
 
         try {
@@ -271,14 +358,28 @@ export class ModelManager {
                 location: vscode.ProgressLocation.Notification,
                 title: `Loading model ${model.name}...`,
                 cancellable: false
-            }, async () => {
+            }, async (progress) => {
+                progress.report({ message: 'Initializing engine...' });
+                
+                // If switching, unload first
+                if (this.currentModel) {
+                     await this.inferenceEngine.unloadModel();
+                }
+
                 await this.inferenceEngine.loadModel(model.path!);
                 this.currentModel = model;
+                
+                this.logger.info(`Successfully loaded model: ${model.name} from ${model.path}`);
             });
 
             vscode.window.showInformationMessage(`Switched to ${model.name}`);
         } catch (error) {
-            vscode.window.showErrorMessage(`Failed to load model: ${error}`);
+            this.logger.error(`Failed to load model ${modelId}: ${error}`);
+            vscode.window.showErrorMessage(`Failed to load model: ${error instanceof Error ? error.message : String(error)}`);
+            // Ensure we don't leave it in a half-state
+            if (this.currentModel?.id === modelId) {
+                this.currentModel = null;
+            }
             throw error;
         }
     }

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { ModelManager } from '../core/model-manager';
 import { ModelDownloader } from '../models/model-downloader';
 import { DownloadManager } from '../models/download-manager';
@@ -30,7 +31,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     ) {
         this._configManager = new ConfigManager();
         this._modelDownloader = new ModelDownloader(
-            path.join(_extensionUri.fsPath, 'models')
+            path.join(os.homedir(), '.inline', 'models')
         );
         this._downloadManager = new DownloadManager(2);
         this._modelRegistry = new ModelRegistry();
@@ -202,6 +203,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             }
         } catch (error) {
             console.error('Error scanning for imported models:', error);
+        }
+
+        // Add models found by ModelManager (e.g. Workspace models)
+        // These might not be in our hardcoded lists or global registry
+        const managerModels = this.modelManager.getAllModels();
+        for (const model of managerModels) {
+             if (!allModels.some(m => m.id === model.id)) {
+                 allModels.push(model as any);
+             }
         }
 
         return allModels.map(model => ({

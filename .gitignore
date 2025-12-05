@@ -45,3 +45,6 @@ resources/models/*
 # Temporary files
 *.tmp
 .temp/
+
+#Models
+models/
