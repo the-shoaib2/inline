@@ -229,6 +229,10 @@ export const ModelManager: React.FC = () => {
                                     )}
 
                                     <h4 style={{ margin: '24px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>Suggested Models</h4>
+                                    <ImportZone
+                                        onImportFile={handleImportFile}
+                                        onPickFile={handlePickFile}
+                                    />
                                     <ModelList
                                         models={availableModels}
                                         currentModelId={currentModelId}
@@ -241,10 +245,6 @@ export const ModelManager: React.FC = () => {
                                         emptyMessage="No suggested models found matching your criteria."
                                     />
                                 </div>
-                                <ImportZone
-                                    onImportFile={handleImportFile}
-                                    onPickFile={handlePickFile}
-                                />
                             </>
                         )}
 

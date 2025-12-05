@@ -17,6 +17,7 @@ import { TelemetryManager } from './utils/telemetry-manager';
 import { NetworkConfig } from './utils/network-config';
 import { ProcessInfoDisplay } from './utils/process-info-display';
 import { PerformanceTuner } from './utils/performance-tuner';
+import { AICommandsProvider } from './ui/ai-commands-provider';
 
 let completionProvider: InlineCompletionProvider;
 let modelManager: ModelManager;
@@ -29,6 +30,7 @@ let logger: Logger;
 let configManager: ConfigManager;
 let errorHandler: ErrorHandler;
 let telemetryManager: TelemetryManager;
+let aiCommandsProvider: AICommandsProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
     try {
@@ -83,33 +85,9 @@ export async function activate(context: vscode.ExtensionContext) {
             )
         );
 
-        // CHECK: If in Development Mode, disable AI features
+        // Development Mode: All features enabled for testing
         if (context.extensionMode === vscode.ExtensionMode.Development) {
-            logger.info('Development Mode detected: AI features disabled');
-            
-            // Force offline mode
-            networkDetector.setForcedOffline(true);
-            
-            // Suppress UI: Do NOT show status bar
-            // statusBarManager.initialize(); 
-            // statusBarManager.setText('$(circle-slash) Inline: Dev Mode');
-            // statusBarManager.setTooltip('AI features are disabled in Development Mode (Forced Offline)');
-            // statusBarManager.updateStatus(true);
-            
-            // Suppress Commands: Do NOT register commands
-            // registerCommands(context, modelManager);
-            
-            logger.info('UI and Commands suppressed in Dev Mode');
-            
-            return {
-                 modelManager,
-                 cacheManager,
-                 statusBarManager,
-                 networkDetector,
-                 resourceManager,
-                 webviewProvider,
-                 completionProvider: undefined // Explicitly undefined
-            };
+            logger.info('Development Mode detected: All features enabled for testing');
         }
 
         // Register completion provider
@@ -137,6 +115,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 hoverProvider
             )
         );
+
+        // Register AI commands provider (NEW)
+        aiCommandsProvider = new AICommandsProvider(modelManager);
+        aiCommandsProvider.registerCommands(context);
 
         // Register commands
         registerCommands(context, modelManager);

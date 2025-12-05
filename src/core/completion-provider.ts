@@ -130,20 +130,55 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
 
     private shouldProvideCompletion(document: vscode.TextDocument, position: vscode.Position): boolean {
-        const excludedLanguages = ['plaintext', 'markdown', 'json', 'log'];
+        // Exclude certain file types
+        const excludedLanguages = ['plaintext', 'log'];
         if (excludedLanguages.includes(document.languageId)) {
             return false;
         }
 
         const line = document.lineAt(position.line);
         const lineText = line.text.substring(0, position.character);
-        const isInComment = this.isInComment(document, position);
+        
+        // Allow completions in most cases, including after comments (Copilot-like behavior)
+        // Only block if line is completely empty or just whitespace
+        if (lineText.trim().length === 0 && position.line > 0) {
+            // Check if previous line is a comment - if so, generate code!
+            const prevLine = document.lineAt(position.line - 1);
+            const prevText = prevLine.text.trim();
+            
+            // If previous line is a comment, allow completion (this is the Copilot pattern)
+            if (this.isCommentLine(prevText, document.languageId)) {
+                return true;
+            }
+        }
 
-        if (isInComment && !this.containsTaskKeyword(lineText)) {
+        // Allow completions when typing code (not in comments)
+        const isInComment = this.isInComment(document, position);
+        if (isInComment) {
+            // Don't generate while typing inside a comment
             return false;
         }
 
         return true;
+    }
+
+    private isCommentLine(text: string, languageId: string): boolean {
+        const commentStarts: Record<string, string[]> = {
+            'javascript': ['//', '/*'],
+            'typescript': ['//', '/*'],
+            'python': ['#'],
+            'java': ['//', '/*'],
+            'cpp': ['//', '/*'],
+            'c': ['//', '/*'],
+            'go': ['//', '/*'],
+            'rust': ['//', '/*'],
+            'shellscript': ['#'],
+            'ruby': ['#'],
+            'php': ['//', '#', '/*']
+        };
+
+        const starts = commentStarts[languageId] || ['//', '#'];
+        return starts.some(start => text.startsWith(start));
     }
 
     private isInComment(document: vscode.TextDocument, position: vscode.Position): boolean {

@@ -82,6 +82,66 @@
         "command": "inline.checkForUpdates",
         "title": "Inline: Check for Model Updates",
         "category": "Inline"
+      },
+      {
+        "command": "inline.generateTests",
+        "title": "Inline: Generate Tests",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.generateDocstring",
+        "title": "Inline: Generate Documentation",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.explainError",
+        "title": "Inline: Explain Error",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.scanSecurity",
+        "title": "Inline: Scan for Security Issues",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.generatePRDescription",
+        "title": "Inline: Generate PR Description",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.generateCommitMessage",
+        "title": "Inline: Generate Commit Message",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.documentFile",
+        "title": "Inline: Document Entire File",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.generateTestFile",
+        "title": "Inline: Generate Test File",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.suggestCommand",
+        "title": "Inline: Suggest Terminal Command",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.explainCommand",
+        "title": "Inline: Explain Terminal Command",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.refactorCode",
+        "title": "Inline: Refactor Code",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.suggestRefactorings",
+        "title": "Inline: Suggest Refactorings",
+        "category": "Inline"
       }
     ],
     "views": {

@@ -67,6 +67,7 @@ export class LlamaInference {
                 contextSize: options.contextSize || 4096,
                 threads: options.threads || 4, // Default to 4 threads
                 batchSize: 512, // Optimize for batch processing
+                sequences: 2, // Allocate 2 sequences to prevent exhaustion
             });
 
             this.sequence = this.context.getSequence();
@@ -101,27 +102,54 @@ export class LlamaInference {
         this.logger.info('Model unloaded');
     }
 
-    public async generateCompletion(prompt: string, options: InferenceOptions = {}): Promise<string> {
-        if (!this.isLoaded || !this.sequence || !this.model) {
-            throw new Error('Model not loaded');
+    async generateCompletion(prompt: string, options: InferenceOptions = {}): Promise<string> {
+        if (!this.isLoaded || !this.model || !this.context) {
+            throw new Error('Model not loaded. Please load a model first.');
         }
 
+        // Simple mutex to prevent concurrent sequence usage
+        while ((this as any)._generating) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        (this as any)._generating = true;
+
+        let sequence: any = null;
+
         try {
-            const maxTokens = options.maxTokens || 128;
-            const temperature = options.temperature || 0.1;
-            const stop = options.stop || ['<|endoftext|>', '\n\n'];
+            const maxTokens = options.maxTokens || 512;
+            const temperature = options.temperature || 0.7;
+            const stop = options.stop || [];
 
+            this.logger.info('Starting completion generation...');
+
+            // Tokenize the prompt
             const tokens = this.model.tokenize(prompt);
-            let completion = '';
-            let tokensGenerated = 0;
+            this.logger.info(`Tokenized prompt: ${tokens.length} tokens`);
 
-            const stream = await this.sequence.evaluate(tokens, {
+            // Always get a fresh sequence for each completion
+            // This prevents sequence exhaustion issues
+            try {
+                this.logger.info('Getting new sequence...');
+                sequence = this.context.getSequence();
+                this.logger.info('Sequence obtained successfully');
+            } catch (error) {
+                this.logger.error(`Failed to get sequence: ${error}`);
+                throw new Error(`Failed to get sequence. The context may be exhausted. Try reloading the model.`);
+            }
+
+            // Evaluate tokens and stream the response
+            this.logger.info('Starting token evaluation...');
+            const stream = await sequence.evaluate(tokens, {
                 temperature,
                 topP: options.topP || 0.95,
                 topK: options.topK || 40,
                 yieldEogToken: false
             });
 
+            let completion = '';
+            let tokensGenerated = 0;
+
+            // Stream tokens and build completion
             for await (const token of stream) {
                 if (tokensGenerated >= maxTokens) {
                     break;
@@ -131,36 +159,67 @@ export class LlamaInference {
                 completion += text;
                 tokensGenerated++;
 
-                if (stop.some(s => completion.includes(s))) {
+                // Check for stop sequences
+                if (stop.length > 0 && stop.some(s => completion.includes(s))) {
                     break;
                 }
             }
 
+            this.logger.info(`Completion generated: ${tokensGenerated} tokens`);
+            
+            // Dispose the sequence after use to free it back to the pool
+            if (sequence && typeof sequence.dispose === 'function') {
+                try {
+                    await sequence.dispose();
+                    this.logger.info('Sequence disposed successfully');
+                } catch (error) {
+                    this.logger.warn(`Failed to dispose sequence: ${error}`);
+                }
+            }
+            
             return completion;
         } catch (error) {
-            this.logger.error(`Inference error: ${error}`);
+            this.logger.error(`Completion generation failed: ${error}`);
+            
+            // Try to dispose sequence on error
+            if (sequence && typeof sequence.dispose === 'function') {
+                try {
+                    await sequence.dispose();
+                } catch (disposeError) {
+                    this.logger.warn(`Failed to dispose sequence after error: ${disposeError}`);
+                }
+            }
+            
             throw error;
+        } finally {
+            (this as any)._generating = false;
         }
     }
 
-    public async generateImprovement(code: string, instruction: string, options: InferenceOptions = {}): Promise<string> {
-        // Construct a prompt optimized for instruction following
-        // Using a generic Alpaca/Instruct format which works well with most coding models
-        // ### Instruction: ... ### Input: ... ### Response:
-        
+    async generateImprovement(code: string, instruction: string, options: InferenceOptions = {}): Promise<string> {
+        if (!this.isLoaded) {
+            throw new Error('Model not loaded');
+        }
+
         const prompt = `### Instruction:\n${instruction}\n\n### Input:\n\`\`\`\n${code}\n\`\`\`\n\n### Response:\n`;
-        
-        // For explaining, we might want more tokens
+
         const maxTokens = options.maxTokens || 512;
-        
+
         return this.generateCompletion(prompt, { ...options, maxTokens, stop: ['### Instruction:', '```\n'] });
     }
 
-    public isModelLoaded(): boolean {
-        return this.isLoaded;
+    isModelLoaded(): boolean {
+        return this.isLoaded && this.model !== null;
     }
 
-    public getModelPath(): string | null {
+    getModelPath(): string | null {
         return this.currentModelPath;
+    }
+
+    getModelStatus(): { loaded: boolean; modelPath: string | null } {
+        return {
+            loaded: this.isLoaded,
+            modelPath: this.currentModelPath
+        };
     }
 }
