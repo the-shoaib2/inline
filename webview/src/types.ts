@@ -10,7 +10,11 @@ export interface Model {
     };
     contextWindow: number;
     isDownloaded: boolean;
+    isImported?: boolean;
     languages?: string[];
+    architecture?: string;
+    quantization?: string;
+    parameterCount?: string;
 }
 
 export interface Settings {

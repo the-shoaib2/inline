@@ -97,10 +97,13 @@ h3 {
 }
 
 .model-item {
-  padding: 8px 20px;
-  border-left: 2px solid transparent;
+  padding: 12px 20px;
+  border-left: 3px solid transparent;
   background: transparent;
   transition: background-color 0.1s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .model-item:hover {
@@ -113,15 +116,20 @@ h3 {
   border-left-color: var(--vscode-focusBorder);
 }
 
-.model-item .model-header {
+.model-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 4px;
+  align-items: center;
 }
 
 .model-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: inherit;
 }
@@ -133,26 +141,58 @@ h3 {
 }
 
 .badge {
-  font-size: 11px;
+  font-size: 10px;
   padding: 2px 6px;
   border-radius: 2px;
+  font-weight: 400;
+  text-transform: uppercase;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  font-weight: 400;
 }
 
-.model-item .model-details {
+.badge.active-badge {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.badge.imported-badge {
+  background: var(--vscode-charts-purple);
+  color: white;
+}
+
+.badge.downloaded-badge {
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.model-meta-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 8px 0;
-  color: var(--vscode-descriptionForeground);
-  font-size: 12px;
+  gap: 16px;
+  margin-top: 4px;
 }
 
-.model-item .model-details span {
-  display: inline-flex;
-  align-items: center;
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 600;
+}
+
+.meta-value {
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.model-item.active .meta-label {
+  color: var(--vscode-list-activeSelectionForeground);
+  opacity: 0.8;
 }
 
 .model-actions {
@@ -160,6 +200,12 @@ h3 {
   gap: 8px;
   justify-content: flex-end;
   margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.1));
+}
+
+.model-item:not(:hover):not(.active) .model-actions {
+  opacity: 0.7;
 }
 
 /* Progress Bar - VS Code style */
@@ -561,6 +607,7 @@ input[type="number"] {
 }
 
 /* Tabs Container */
+/* Tabs Container - Refined */
 .tabs-container {
   display: flex;
   flex-direction: column;
@@ -577,40 +624,139 @@ input[type="number"] {
 .tab-button {
   background: transparent;
   border: none;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-panelTitle-inactiveForeground, rgba(255, 255, 255, 0.6));
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 16px;
-  transition: all 0.15s ease;
-  position: relative;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 8px 12px;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: all 0.1s ease;
   margin-bottom: -1px;
+  letter-spacing: 0.5px;
 }
 
 .tab-button:hover:not(.active) {
   color: var(--vscode-foreground);
-  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
 }
 
 .tab-button.active {
-  color: var(--vscode-foreground);
-  border-bottom: 2px solid var(--vscode-focusBorder, #007acc);
-  font-weight: 600;
+  color: var(--vscode-panelTitle-activeForeground, #ffffff);
+  border-bottom: none;
+  font-weight: 400;
 }
 
 .tabs-content {
   padding: 0;
-  animation: fadeIn 0.2s ease-in;
+  animation: fadeIn 0.15s ease-out;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(2px);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* VS Code Loader */
+.vscode-loader-container {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: var(--vscode-progressBar-background, rgba(128, 128, 128, 0.2));
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.vscode-loader-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background-color: var(--vscode-progressBar-background, #0e70c0);
+  width: 2%;
+  animation: vscode-loader-anim 4s infinite cubic-bezier(0.2, 0.2, 0.4, 0.8);
+}
+
+@keyframes vscode-loader-anim {
+  0% {
+    left: 0;
+    width: 2%;
+  }
+
+  50% {
+    left: 30%;
+    width: 70%;
+  }
+
+  100% {
+    left: 100%;
+    width: 0%;
+  }
+}
+
+/* Skeleton Loader */
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 10px;
+}
+
+.skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+}
+
+.skeleton-icon {
+  width: 24px;
+  height: 24px;
+  background-color: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
+  border-radius: 4px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-line {
+  background-color: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
+  height: 10px;
+  border-radius: 2px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line.title {
+  width: 30%;
+  height: 12px;
+}
+
+.skeleton-line.subtitle {
+  width: 60%;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+
+  100% {
+    opacity: 0.6;
   }
 }

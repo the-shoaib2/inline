@@ -2,17 +2,15 @@ import React, { useState, type DragEvent } from 'react';
 
 interface ImportZoneProps {
     onImportFile: (path: string) => void;
-    onDownloadUrl: (url: string) => void;
     onPickFile: () => void;
 }
 
 export const ImportZone: React.FC<ImportZoneProps> = ({
     onImportFile,
-    onDownloadUrl,
     onPickFile
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
-    const [url, setUrl] = useState('');
+    // const [url, setUrl] = useState('');
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -40,12 +38,12 @@ export const ImportZone: React.FC<ImportZoneProps> = ({
         }
     };
 
-    const handleDownload = () => {
-        if (url.trim()) {
-            onDownloadUrl(url.trim());
-            setUrl('');
-        }
-    };
+    // const handleDownload = () => {
+    //     if (url.trim()) {
+    //         onDownloadUrl(url.trim());
+    //         setUrl('');
+    //     }
+    // };
 
     return (
         <div
@@ -56,7 +54,7 @@ export const ImportZone: React.FC<ImportZoneProps> = ({
         >
             <p>Drag & drop .gguf file here or</p>
             <button onClick={onPickFile}>Select File</button>
-            <div className="url-input-container" onClick={(e) => e.stopPropagation()}>
+            {/* <div className="url-input-container" onClick={(e) => e.stopPropagation()}>
                 <input
                     type="text"
                     value={url}
@@ -64,7 +62,7 @@ export const ImportZone: React.FC<ImportZoneProps> = ({
                     placeholder="Or enter model URL (Hugging Face .gguf link)"
                 />
                 <button onClick={handleDownload}>Download</button>
-            </div>
+            </div> */}
         </div>
     );
 };

@@ -21,8 +21,15 @@ export interface ModelInfo {
     path?: string;
     architecture?: string;
     quantization?: string;
+    parameterCount?: string;
     contextWindow?: number;
     downloadUrl?: string;
+}
+
+export interface ModelMetadata {
+    architecture?: string;
+    parameterCount?: string;
+    quantization?: string;
 }
 
 export interface ModelRequirements {
@@ -166,6 +173,8 @@ export class ModelManager {
                         const stats = fs.statSync(modelPath);
                         const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
                         
+                        const metadata = this.parseModelMetadata(file);
+
                         this.availableModels.set(modelId, {
                             id: modelId,
                             name: `Imported: ${name}`,
@@ -175,7 +184,10 @@ export class ModelManager {
                             requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
                             isDownloaded: true,
                             path: modelPath,
-                            architecture: 'llama', // Assumed
+                            architecture: metadata.architecture || 'llama',
+                            quantization: metadata.quantization,
+                            // We don't have parameterCount in ModelInfo interface yet, adding it? 
+                            // Wait, ModelInfo is in this file too. I need to update ModelInfo interface as well.
                             contextWindow: 4096
                         });
                     } catch (e) {
@@ -381,6 +393,15 @@ export class ModelManager {
                 this.currentModel = null;
             }
             throw error;
+        }
+    }
+
+    async unloadModel(): Promise<void> {
+        if (this.currentModel) {
+            await this.inferenceEngine.unloadModel();
+            this.currentModel = null;
+            this.logger.info('Model unloaded manually');
+            vscode.window.showInformationMessage('Model unloaded');
         }
     }
 

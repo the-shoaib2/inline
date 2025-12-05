@@ -10,7 +10,6 @@ import { Statistics } from './Statistics';
 
 export const ModelManager: React.FC = () => {
     const [models, setModels] = useState<Model[]>([]);
-    const [filteredModels, setFilteredModels] = useState<Model[]>([]);
     const [currentModelId, setCurrentModelId] = useState<string | null>(null);
     const [downloadProgressMap, setDownloadProgressMap] = useState<Record<string, DownloadProgress>>({});
     const [settings, setSettings] = useState<SettingsType>({});
@@ -19,6 +18,7 @@ export const ModelManager: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'model' | 'settings' | 'rules' | 'stats'>('model');
     const [searchQuery, setSearchQuery] = useState('');
     const [languageFilter, setLanguageFilter] = useState('');
+    const [sortCriteria, setSortCriteria] = useState<'name' | 'size' | 'none'>('none');
 
     const [logoUri, setLogoUri] = useState<string | undefined>(undefined);
 
@@ -26,17 +26,17 @@ export const ModelManager: React.FC = () => {
         // Listen for messages from the extension
         vscode.onMessage((message) => {
             switch (message.command) {
-                case 'updateData':
+                case 'updateData': {
                     const data = message.data as AppData;
                     setModels(data.models);
-                    setFilteredModels(data.models);
                     setCurrentModelId(data.currentModel);
                     setSettings(data.settings || {});
-                    setRules(data.rules || []);
+                    setRules(data.rules || {});
                     if (data.logoUri) {
                         setLogoUri(data.logoUri);
                     }
                     break;
+                }
                 case 'downloadProgress':
                     setDownloadProgressMap(prev => ({
                         ...prev,
@@ -67,7 +67,7 @@ export const ModelManager: React.FC = () => {
     }, []);
 
     // Filter models based on search and language
-    useEffect(() => {
+    const filteredModels = React.useMemo(() => {
         let filtered = models;
 
         if (searchQuery) {
@@ -83,8 +83,32 @@ export const ModelManager: React.FC = () => {
             );
         }
 
-        setFilteredModels(filtered);
-    }, [models, searchQuery, languageFilter]);
+        // Apply sorting
+        if (sortCriteria !== 'none') {
+            filtered = [...filtered].sort((a, b) => {
+                // Sort downloaded models first, then by criteria
+                const aDownloaded = a.isDownloaded ? 0 : 1;
+                const bDownloaded = b.isDownloaded ? 0 : 1;
+
+                if (aDownloaded !== bDownloaded) {
+                    return aDownloaded - bDownloaded;
+                }
+
+                if (sortCriteria === 'name') return a.name.localeCompare(b.name);
+                if (sortCriteria === 'size') return a.size - b.size;
+                return 0;
+            });
+        } else {
+            // Default: downloaded models first
+            filtered = [...filtered].sort((a, b) => {
+                const aDownloaded = a.isDownloaded ? 0 : 1;
+                const bDownloaded = b.isDownloaded ? 0 : 1;
+                return aDownloaded - bDownloaded;
+            });
+        }
+
+        return filtered;
+    }, [models, searchQuery, languageFilter, sortCriteria]);
 
     const handleRefresh = () => {
         vscode.postMessage('getData');
@@ -92,10 +116,6 @@ export const ModelManager: React.FC = () => {
 
     const handleImportFile = (path: string) => {
         vscode.postMessage('importModel', { filePath: path });
-    };
-
-    const handleDownloadUrl = (url: string) => {
-        vscode.postMessage('downloadFromUrl', { url });
     };
 
     const handlePickFile = () => {
@@ -107,9 +127,7 @@ export const ModelManager: React.FC = () => {
     };
 
     const handleDeleteModel = (modelId: string) => {
-        if (confirm('Delete this model?')) {
-            vscode.postMessage('deleteModel', { modelId });
-        }
+        vscode.postMessage('deleteModel', { modelId });
     };
 
     const handleDownloadModel = (modelId: string) => {
@@ -119,6 +137,17 @@ export const ModelManager: React.FC = () => {
     const handleCancelDownload = (modelId: string) => {
         vscode.postMessage('cancelDownload', { modelId });
     };
+
+    const handleUnloadModel = (modelId: string) => {
+        vscode.postMessage('unloadModel', { modelId });
+    };
+
+    // Separate models by status for display
+    const downloadedModels = filteredModels.filter(m => m.isDownloaded || m.id === currentModelId);
+    const availableModels = filteredModels.filter(m => !m.isDownloaded && m.id !== currentModelId);
+    const allModelsCount = filteredModels.length;
+    const downloadedCount = downloadedModels.length;
+    const availableCount = availableModels.length;
 
     return (
         <div className="container">
@@ -165,7 +194,6 @@ export const ModelManager: React.FC = () => {
                         {activeTab === 'model' && (
                             <ImportZone
                                 onImportFile={handleImportFile}
-                                onDownloadUrl={handleDownloadUrl}
                                 onPickFile={handlePickFile}
                             />
                         )}
@@ -187,47 +215,50 @@ export const ModelManager: React.FC = () => {
 
             <div className="section">
                 <div className="model-header">
-                    <h3>Downloaded Models</h3>
-                    <span className="model-count">{filteredModels.filter(m => m.isDownloaded).length} models</span>
+                    <h3>All Models ({allModelsCount})</h3>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span className="model-count">
+                            {downloadedCount} Downloaded
+                        </span>
+                        <span className="model-count">
+                            {availableCount} Available
+                        </span>
+                    </div>
                 </div>
                 <ModelSearch
                     onSearch={setSearchQuery}
                     onFilterLanguage={setLanguageFilter}
-                    onSort={(sortBy) => {
-                        const sorted = [...filteredModels].sort((a, b) => {
-                            if (sortBy === 'name') return a.name.localeCompare(b.name);
-                            if (sortBy === 'size') return a.size - b.size;
-                            return 0;
-                        });
-                        setFilteredModels(sorted);
-                    }}
+                    onSort={(sortBy) => setSortCriteria(sortBy as 'name' | 'size' | 'none')}
                 />
-                <ModelList
-                    models={filteredModels.filter(m => m.isDownloaded)}
-                    currentModelId={currentModelId}
-                    downloadProgressMap={downloadProgressMap}
-                    onSelect={handleSelectModel}
-                    onDelete={handleDeleteModel}
-                    onDownload={handleDownloadModel}
-                    onCancelDownload={handleCancelDownload}
-                    emptyMessage="No downloaded models. Import a model using the Model tab or download one from Available Models below."
-                />
-            </div>
 
-            <div className="section">
-                <div className="model-header">
-                    <h3>Available Models</h3>
-                    <span className="model-count">{filteredModels.filter(m => !m.isDownloaded).length} models</span>
-                </div>
+                {downloadedCount > 0 && (
+                    <>
+                        <h4 style={{ margin: '16px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>My Models</h4>
+                        <ModelList
+                            models={downloadedModels}
+                            currentModelId={currentModelId}
+                            downloadProgressMap={downloadProgressMap}
+                            onSelect={handleSelectModel}
+                            onDelete={handleDeleteModel}
+                            onDownload={handleDownloadModel}
+                            onCancelDownload={handleCancelDownload}
+                            onUnload={handleUnloadModel}
+                            emptyMessage="No downloaded models found."
+                        />
+                    </>
+                )}
+
+                <h4 style={{ margin: '24px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>Suggested Models</h4>
                 <ModelList
-                    models={filteredModels.filter(m => !m.isDownloaded)}
+                    models={availableModels}
                     currentModelId={currentModelId}
                     downloadProgressMap={downloadProgressMap}
                     onSelect={handleSelectModel}
                     onDelete={handleDeleteModel}
                     onDownload={handleDownloadModel}
                     onCancelDownload={handleCancelDownload}
-                    emptyMessage="No models available to download. Try adjusting your search or filter criteria."
+                    onUnload={handleUnloadModel}
+                    emptyMessage="No suggested models found matching your criteria."
                 />
             </div>
         </div>

@@ -127,3 +127,25 @@ input::placeholder {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
 }
+
+/* VS Code standard select */
+select {
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 2px;
+}
+
+select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+  border-color: var(--vscode-focusBorder);
+}
+
+option {
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+}

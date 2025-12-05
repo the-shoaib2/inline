@@ -15,6 +15,7 @@ interface ModelItemProps {
     onDownload: (id: string) => void;
     onCancelDownload: (id: string) => void;
     onRetry?: (id: string) => void;
+    onUnload: (id: string) => void;
 }
 
 export const ModelItem: React.FC<ModelItemProps> = ({
@@ -28,8 +29,12 @@ export const ModelItem: React.FC<ModelItemProps> = ({
     onDelete,
     onDownload,
     onCancelDownload,
-    onRetry
+    onRetry,
+    onUnload
 }) => {
+    const [isHoveringActive, setIsHoveringActive] = React.useState(false);
+    const [showDetails, setShowDetails] = React.useState(false);
+
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -40,22 +45,38 @@ export const ModelItem: React.FC<ModelItemProps> = ({
 
     return (
         <div className={`model-item ${isActive ? 'active' : ''} ${downloadError ? 'error' : ''}`} id={`model-${model.id}`}>
-            <div className="model-header">
-                <span className="model-name">{model.name}</span>
-                <div className="model-badges">
-                    {isActive && <span className="badge">Active</span>}
-                    {model.isDownloaded && <span className="badge">Downloaded</span>}
-                    {queuePosition !== undefined && queuePosition > 0 && (
-                        <span className="badge queue-badge">Queued #{queuePosition}</span>
-                    )}
+            <div className="model-main-content">
+                <div className="model-header-row">
+                    <span className="model-name">{model.name}</span>
+                    <div className="model-badges">
+                        {isActive ? (
+                            <span className="badge active-badge">Active</span>
+                        ) : (
+                            <>
+                                {model.isImported && <span className="badge imported-badge">Imported</span>}
+                                {!model.isImported && model.isDownloaded && <span className="badge downloaded-badge">Downloaded</span>}
+                            </>
+                        )}
+                        {queuePosition !== undefined && queuePosition > 0 && (
+                            <span className="badge queue-badge">Queued #{queuePosition}</span>
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div style={{ fontSize: '0.9em', marginTop: '4px' }}>{model.description}</div>
-            <div className="model-info">
-                <span>Size: {formatSize(model.size)}</span>
-                <span>RAM: {model.requirements.ram}GB</span>
-                <span>VRAM: {model.requirements.vram}GB</span>
-                <span>Context: {model.contextWindow || 4096}</span>
+
+                <div className="model-meta-row">
+                    <div className="meta-item">
+                        <span className="meta-label">Size</span>
+                        <span className="meta-value">{formatSize(model.size)}</span>
+                    </div>
+                    <div className="meta-item">
+                        <span className="meta-label">Context</span>
+                        <span className="meta-value">{model.contextWindow || 4096}</span>
+                    </div>
+                </div>
+
+                <div style={{ fontSize: '0.9em', marginTop: '6px', color: 'var(--vscode-descriptionForeground)' }}>
+                    {model.description}
+                </div>
             </div>
 
             {downloadError && (
@@ -80,10 +101,25 @@ export const ModelItem: React.FC<ModelItemProps> = ({
             )}
 
             <div className="model-actions">
+                <button
+                    className="secondary"
+                    onClick={() => setShowDetails(!showDetails)}
+                    title={showDetails ? "Hide Details" : "Show Details"}
+                >
+                    {showDetails ? "Hide Details" : "Show Details"}
+                </button>
+
                 {model.isDownloaded ? (
                     <>
                         {isActive ? (
-                            <button disabled>Active</button>
+                            <button
+                                className={isHoveringActive ? 'secondary' : ''}
+                                onMouseEnter={() => setIsHoveringActive(true)}
+                                onMouseLeave={() => setIsHoveringActive(false)}
+                                onClick={() => onUnload(model.id)}
+                            >
+                                {isHoveringActive ? 'Disable' : 'Active'}
+                            </button>
                         ) : (
                             <button onClick={() => onSelect(model.id)}>Load</button>
                         )}
@@ -97,7 +133,7 @@ export const ModelItem: React.FC<ModelItemProps> = ({
                 )}
             </div>
 
-            <ModelDetails model={model} />
+            {showDetails && <ModelDetails model={model} />}
         </div>
     );
 };

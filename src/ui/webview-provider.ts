@@ -94,6 +94,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 case 'removeRule':
                     await this.removeRule(data.index);
                     break;
+                case 'unloadModel':
+                    await this.unloadModel();
+                    break;
             }
         });
 
@@ -188,6 +191,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                         const stats = fs.statSync(filePath);
                         const modelName = modelId.replace('imported_', '').replace(/_/g, ' ');
 
+                        // Parse metadata from filename
+                        let architecture = 'Unknown';
+                        let quantization = 'Unknown';
+                        let parameterCount = 'Unknown';
+
+                        const archMatch = modelId.match(/(llama|codellama|mistral|gemma|starcoder|phi|qwen|deepseek)/i);
+                        if (archMatch) architecture = archMatch[0];
+
+                        const quantMatch = modelId.match(/(Q\d+_[K|0-9]+_[S|M|L]|Q\d+_[0-9]|f16|f32)/i);
+                        if (quantMatch) quantization = quantMatch[0].toUpperCase();
+
+                        const paramMatch = modelId.match(/(\d+(?:\.\d+)?)[bB]/);
+                        if (paramMatch) parameterCount = paramMatch[0].toUpperCase();
+
                         allModels.push({
                             id: modelId,
                             name: `Imported: ${modelName}`,
@@ -196,7 +213,11 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                             requirements: { ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, vram: 4 },
                             contextWindow: 4096,
                             languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
-                            path: filePath
+                            path: filePath,
+                            isImported: true,
+                            architecture,
+                            quantization,
+                            parameterCount
                         } as any);
                     }
                 }
@@ -216,8 +237,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
         return allModels.map(model => ({
             ...model,
-            isDownloaded: downloadedModels.some(dm => dm.id === model.id) || !!(model.path && fs.existsSync(model.path))
-        }));
+            isDownloaded: downloadedModels.some(dm => dm.id === model.id) || !!(model.path && fs.existsSync(model.path)),
+            isImported: (model as any).isImported || model.id.startsWith('imported_')
+        })).filter(m => m.size > 1024 * 1024); // Filter out models smaller than 1MB (dummy/corrupted)
     }
 
     private formatFileSize(bytes: number): string {
@@ -348,25 +370,42 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     private async selectModel(modelId: string) {
         try {
             const currentModel = this.modelManager.getCurrentModel();
+            const modelName = this.getAllModels().find(m => m.id === modelId)?.name || modelId;
 
-            // Show switching message if changing from another model
-            if (currentModel && currentModel.id !== modelId) {
-                this._view?.webview.postMessage({
-                    command: 'notification',
-                    message: `Switching from ${currentModel.name || currentModel.id} to new model...`,
-                    type: 'info'
-                });
-            }
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `Loading Model: ${modelName}`,
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0, message: 'Initializing...' });
+                
+                // Show switching message if changing from another model
+                if (currentModel && currentModel.id !== modelId) {
+                    progress.report({ message: `Switching from ${currentModel.name || currentModel.id}...` });
+                }
 
-            await this.modelManager.setCurrentModel(modelId);
+                await this.modelManager.setCurrentModel(modelId);
+                
+                progress.report({ increment: 100, message: 'Model activated!' });
+                
+                // Short delay to let user see the success message
+                await new Promise(resolve => setTimeout(resolve, 500));
+            });
+
             this.sendData();
 
+            // Optional: still send a success notification to webview if needed for UI update, 
+            // but the native alert covers the "alert" requirement.
+            // keeping it for sync.
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: `Model activated successfully`,
                 type: 'success'
             });
+
         } catch (error) {
+            vscode.window.showErrorMessage(`Failed to select model: ${error}`);
+            // Also notify webview to reset state if needed
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: `Failed to select model: ${error}`,
@@ -377,6 +416,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
     private async deleteModel(modelId: string) {
         try {
+            // Native confirmation dialog
+            const answer = await vscode.window.showWarningMessage(
+                `Are you sure you want to delete model '${modelId}'?`,
+                { modal: true },
+                'Delete'
+            );
+
+            if (answer !== 'Delete') {
+                return;
+            }
+
+            // Delete file first
+            await this._modelDownloader.deleteModel(modelId);
+            // Then update manager state
             await this.modelManager.removeModel(modelId);
             this.sendData();
 
@@ -389,6 +442,25 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: `Failed to delete model: ${error}`,
+                type: 'error'
+            });
+        }
+    }
+
+    private async unloadModel() {
+        try {
+            await this.modelManager.unloadModel();
+            this.sendData();
+            
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: 'Model unloaded',
+                type: 'info'
+            });
+        } catch (error) {
+             this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Failed to unload model: ${error}`,
                 type: 'error'
             });
         }
