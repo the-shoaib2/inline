@@ -1,0 +1,4 @@
+ignoredBuiltDependencies:
+  - '@vscode/vsce-sign'
+  - keytar
+  - node-llama-cpp
