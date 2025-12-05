@@ -131,4 +131,19 @@ export class NetworkDetector {
             this.startMonitoring(this.statusCallback);
         }
     }
+
+    setForcedOffline(enabled: boolean): void {
+        this.isOfflineMode = enabled;
+        if (enabled) {
+            // Stop monitoring to prevent auto-reconnection
+            this.stopMonitoring();
+        } else {
+            // Restart monitoring if disabled
+            this.startMonitoring(this.statusCallback);
+        }
+        
+        if (this.statusCallback) {
+            this.statusCallback(this.isOfflineMode);
+        }
+    }
 }

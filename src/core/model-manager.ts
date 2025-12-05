@@ -142,17 +142,17 @@ export class ModelManager {
             if (model && model.isDownloaded) {
                 // Determine if we should auto-load the engine or just set the current object
                 // The user wants it "when active never remveo", so we should probably keep it selected.
-                // But loading the engine is heavy. 
+                // But loading the engine is heavy.
                 // However, updated setCurrentModel loads the engine.
                 // Let's just set the reference here and let the user (or warmup) trigger load if needed?
                 // OR, effectively "restore" means making it active.
-                
+
                 // If I just set this.currentModel, it's "selected" in UI but not loaded in engine.
                 // If I want it to be truly active (ready to gen), I should load it.
                 // But forcing a load on startup might be aggressive if the user just wants to see it selected.
                 // Wait, the Extension Activation has a warmup block that calls `engine.loadModel(model.path)`.
                 // So if I set `this.currentModel` here, the warmup logic in `extension.ts` will pick it up and load it!
-                
+
                 this.currentModel = model;
                 this.logger.info(`Restored last active model: ${model.name}`);
             } else {
@@ -201,13 +201,13 @@ export class ModelManager {
                     try {
                         const stats = fs.statSync(modelPath);
                         const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
-                        
+
                         const metadata = this.extractModelMetadata(file);
 
                         this.availableModels.set(modelId, {
                             id: modelId,
                             name: `Imported: ${name}`,
-                            description: 'User imported model',
+                            description: 'Imported model',
                             size: stats.size,
                             languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
                             requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
@@ -242,29 +242,29 @@ export class ModelManager {
                     for (const file of ggufFiles) {
                         const modelPath = path.join(modelsDir, file);
                         const stats = fs.statSync(modelPath);
-                        // Use filename as ID, removing extension. 
+                        // Use filename as ID, removing extension.
                         // If it matches a known ID (e.g. starcoder2:7b), we map it.
                         // But filenames usually don't have colons.
                         // Let's normalize name: imported_starcoder2_7b_Q4_K_M.gguf -> imported_starcoder2_7b_Q4_K_M
-                        
+
                         let modelId = path.basename(file, '.gguf');
-                        
+
                         // Heuristic: If user is trying to provide a standard model manually
                         // e.g. models/starcoder2-7b.gguf -> map to 'starcoder2:7b' if plausible?
                         // For now, treat workspace models as "Imported" unless they match specific naming convention
                         // preventing conflicts.
-                        
+
                         // Actually, if the user mentioned 'imported_starcoder2_7b_Q4_K_M.gguf', it's likely custom.
-                        
+
                         // Check if we can map to existing model definition
                         // ... (Skipping complex mapping for now, treating as generic or imported)
 
                         const name = modelId.replace(/_/g, ' ').replace(/-/g, ' ');
 
                         // If it's already in availableModels (e.g. standard model), update it
-                        // This is hard because IDs differ. 
+                        // This is hard because IDs differ.
                         // Let's add it as a new entry if not found.
-                        
+
                         if (!this.availableModels.has(modelId)) {
                              this.availableModels.set(modelId, {
                                 id: modelId,
@@ -390,7 +390,7 @@ export class ModelManager {
         if (!model) {
             throw new Error(`Model ${modelId} not found in registry`);
         }
-        
+
         if (!model.isDownloaded || !model.path) {
              throw new Error(`Model ${modelId} is not available/downloaded`);
         }
@@ -402,7 +402,7 @@ export class ModelManager {
                 cancellable: false
             }, async (progress) => {
                 progress.report({ message: 'Initializing engine...' });
-                
+
                 // If switching, unload first
                 if (this.currentModel) {
                      await this.inferenceEngine.unloadModel();
@@ -419,10 +419,10 @@ export class ModelManager {
                      contextSize
                 });
                 this.currentModel = model;
-                
+
                 // Save persistence
                 await this.context.globalState.update('lastActiveModelId', model.id);
-                
+
                 this.logger.info(`Successfully loaded model: ${model.name} from ${model.path}`);
             });
 
@@ -433,7 +433,7 @@ export class ModelManager {
             // Ensure we don't leave it in a half-state
             if (this.currentModel?.id === modelId) {
                 this.currentModel = null;
-                // Don't clear persistence here necessarily, maybe they can retry? 
+                // Don't clear persistence here necessarily, maybe they can retry?
                 // But it wasn't loaded successfully, so null is correct.
             }
             throw error;

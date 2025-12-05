@@ -66,6 +66,18 @@ export class StatusBarManager {
         this.cacheSize = size;
         this.updateDisplay();
     }
+    
+    public setText(text: string) {
+        if (this.statusBarItem) {
+            this.statusBarItem.text = text;
+        }
+    }
+    
+    public setTooltip(tooltip: string) {
+        if (this.statusBarItem) {
+            this.statusBarItem.tooltip = tooltip;
+        }
+    }
 
     private updateDisplay(): void {
         if (this.isDisposed) {

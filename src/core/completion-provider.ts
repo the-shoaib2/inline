@@ -265,7 +265,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 // Auto-load if not loaded (should be handled by setCurrentModel, but safety check)
                 const currentModel = this.modelManager.getCurrentModel();
                 if (currentModel && currentModel.path) {
-                    await inferenceEngine.loadModel(currentModel.path);
+                    await inferenceEngine.loadModel(currentModel.path, {
+                        threads: config.get<number>('inference.threads', 4),
+                        gpuLayers: config.get<number>('inference.gpuLayers'),
+                        contextSize: config.get<number>('contextWindow', 4096)
+                    });
                 } else {
                     return '';
                 }
@@ -274,7 +278,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // Generate completion
             const maxLines = config.get<number>('maxCompletionLines', 5);
             const completion = await inferenceEngine.generateCompletion(prompt, {
-                maxTokens: 128,
+                maxTokens: config.get<number>('maxTokens', 128),
                 stop: ['<|endoftext|>', '<EOT>', '\n\n\n'], // Stop at multiple newlines
                 temperature: config.get<number>('temperature', 0.1)
             });

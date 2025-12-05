@@ -192,10 +192,60 @@ export const ModelManager: React.FC = () => {
 
                     <div className="tabs-content">
                         {activeTab === 'model' && (
-                            <ImportZone
-                                onImportFile={handleImportFile}
-                                onPickFile={handlePickFile}
-                            />
+                            <>
+                                <div className="section">
+                                    <div className="model-header">
+                                        <h3>All Models ({allModelsCount})</h3>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <span className="model-count">
+                                                {downloadedCount} Downloaded
+                                            </span>
+                                            <span className="model-count">
+                                                {availableCount} Available
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <ModelSearch
+                                        onSearch={setSearchQuery}
+                                        onFilterLanguage={setLanguageFilter}
+                                        onSort={(sortBy) => setSortCriteria(sortBy as 'name' | 'size' | 'none')}
+                                    />
+
+                                    {downloadedCount > 0 && (
+                                        <>
+                                            <h4 style={{ margin: '16px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>My Models</h4>
+                                            <ModelList
+                                                models={downloadedModels}
+                                                currentModelId={currentModelId}
+                                                downloadProgressMap={downloadProgressMap}
+                                                onSelect={handleSelectModel}
+                                                onDelete={handleDeleteModel}
+                                                onDownload={handleDownloadModel}
+                                                onCancelDownload={handleCancelDownload}
+                                                onUnload={handleUnloadModel}
+                                                emptyMessage="No downloaded models found."
+                                            />
+                                        </>
+                                    )}
+
+                                    <h4 style={{ margin: '24px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>Suggested Models</h4>
+                                    <ModelList
+                                        models={availableModels}
+                                        currentModelId={currentModelId}
+                                        downloadProgressMap={downloadProgressMap}
+                                        onSelect={handleSelectModel}
+                                        onDelete={handleDeleteModel}
+                                        onDownload={handleDownloadModel}
+                                        onCancelDownload={handleCancelDownload}
+                                        onUnload={handleUnloadModel}
+                                        emptyMessage="No suggested models found matching your criteria."
+                                    />
+                                </div>
+                                <ImportZone
+                                    onImportFile={handleImportFile}
+                                    onPickFile={handlePickFile}
+                                />
+                            </>
                         )}
 
                         {activeTab === 'settings' && (
@@ -211,55 +261,6 @@ export const ModelManager: React.FC = () => {
                         )}
                     </div>
                 </div>
-            </div>
-
-            <div className="section">
-                <div className="model-header">
-                    <h3>All Models ({allModelsCount})</h3>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span className="model-count">
-                            {downloadedCount} Downloaded
-                        </span>
-                        <span className="model-count">
-                            {availableCount} Available
-                        </span>
-                    </div>
-                </div>
-                <ModelSearch
-                    onSearch={setSearchQuery}
-                    onFilterLanguage={setLanguageFilter}
-                    onSort={(sortBy) => setSortCriteria(sortBy as 'name' | 'size' | 'none')}
-                />
-
-                {downloadedCount > 0 && (
-                    <>
-                        <h4 style={{ margin: '16px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>My Models</h4>
-                        <ModelList
-                            models={downloadedModels}
-                            currentModelId={currentModelId}
-                            downloadProgressMap={downloadProgressMap}
-                            onSelect={handleSelectModel}
-                            onDelete={handleDeleteModel}
-                            onDownload={handleDownloadModel}
-                            onCancelDownload={handleCancelDownload}
-                            onUnload={handleUnloadModel}
-                            emptyMessage="No downloaded models found."
-                        />
-                    </>
-                )}
-
-                <h4 style={{ margin: '24px 0 8px 0', borderBottom: '1px solid var(--vscode-settings-headerBorder)' }}>Suggested Models</h4>
-                <ModelList
-                    models={availableModels}
-                    currentModelId={currentModelId}
-                    downloadProgressMap={downloadProgressMap}
-                    onSelect={handleSelectModel}
-                    onDelete={handleDeleteModel}
-                    onDownload={handleDownloadModel}
-                    onCancelDownload={handleCancelDownload}
-                    onUnload={handleUnloadModel}
-                    emptyMessage="No suggested models found matching your criteria."
-                />
             </div>
         </div>
     );

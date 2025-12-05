@@ -208,7 +208,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                         allModels.push({
                             id: modelId,
                             name: `Imported: ${modelName}`,
-                            description: `User imported model (${this.formatFileSize(stats.size)})`,
+                            description: `Imported model (${this.formatFileSize(stats.size)})`,
                             size: stats.size,
                             requirements: { ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, vram: 4 },
                             contextWindow: 4096,
@@ -378,23 +378,23 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 cancellable: false
             }, async (progress) => {
                 progress.report({ increment: 0, message: 'Initializing...' });
-                
+
                 // Show switching message if changing from another model
                 if (currentModel && currentModel.id !== modelId) {
                     progress.report({ message: `Switching from ${currentModel.name || currentModel.id}...` });
                 }
 
                 await this.modelManager.setCurrentModel(modelId);
-                
+
                 progress.report({ increment: 100, message: 'Model activated!' });
-                
+
                 // Short delay to let user see the success message
                 await new Promise(resolve => setTimeout(resolve, 500));
             });
 
             this.sendData();
 
-            // Optional: still send a success notification to webview if needed for UI update, 
+            // Optional: still send a success notification to webview if needed for UI update,
             // but the native alert covers the "alert" requirement.
             // keeping it for sync.
             this._view?.webview.postMessage({
@@ -451,7 +451,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         try {
             await this.modelManager.unloadModel();
             this.sendData();
-            
+
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: 'Model unloaded',

@@ -253,7 +253,7 @@
   },
   "scripts": {
     "vscode:prepublish:disabled": "pnpm run build",
-    "build": "pnpm run clean && tsc -p ./ && pnpm run build:ui && echo '✅ Build successful!'",
+    "build": "pnpm run clean && tsc -p ./ && pnpm run build:ui && echo 'Build successful!'",
     "build:ui": "cd webview && pnpm install && pnpm run build",
     "watch:ui": "cd webview && pnpm run watch",
     "compile": "tsc -p ./ --incremental",

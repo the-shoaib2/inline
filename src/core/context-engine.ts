@@ -12,6 +12,7 @@ export interface CodeContext {
     classes: string[];
     comments: string[];
     recentEdits: string[];
+    cursorRules?: string;
 }
 
 export interface ProjectPatterns {
@@ -50,10 +51,34 @@ export class ContextEngine {
             functions: this.extractFunctions(document),
             classes: this.extractClasses(document),
             comments: this.extractComments(document),
-            recentEdits: await this.getRecentEdits(document.uri)
+            recentEdits: await this.getRecentEdits(document.uri),
+            cursorRules: await this.loadCursorRules(document.uri)
         };
 
         return context;
+    }
+
+    private async loadCursorRules(uri: vscode.Uri): Promise<string | undefined> {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        if (!workspaceFolder) return undefined;
+
+        try {
+            const rulesUri = vscode.Uri.joinPath(workspaceFolder.uri, '.cursorrules');
+            // Check if file exists
+            await vscode.workspace.fs.stat(rulesUri);
+            const content = await vscode.workspace.fs.readFile(rulesUri);
+            return new TextDecoder().decode(content);
+        } catch {
+            // Also try .cursorrules (no dot? no, dot is standard) or .rules
+            try {
+                const rulesUri = vscode.Uri.joinPath(workspaceFolder.uri, '.rules');
+                await vscode.workspace.fs.stat(rulesUri);
+                const content = await vscode.workspace.fs.readFile(rulesUri);
+                return new TextDecoder().decode(content);
+            } catch {
+                return undefined;
+            }
+        }
     }
 
     private getProjectName(uri: vscode.Uri): string {
@@ -183,6 +208,11 @@ export class ContextEngine {
         }
         if (context.language) {
             header += `// Language: ${context.language}\n`;
+        }
+        
+        // Inject System Prompts / Rules
+        if (context.cursorRules) {
+            header += `\n/* INSTRUCTIONS:\n${context.cursorRules}\n*/\n`;
         }
 
         if (context.imports && context.imports.length > 0) {

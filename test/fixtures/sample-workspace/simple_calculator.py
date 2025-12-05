@@ -3,6 +3,7 @@ def simple_calculator():
     print("Simple Calculator")
     print("Operations: +, -, *, /")
 
+
     try:
         num1 = float(input("Enter first number: "))
         operator = input("Enter operator: ")
@@ -21,6 +22,7 @@ def simple_calculator():
                 return "Error: Division by zero"
         else:
             return "Error: Invalid operator"
+
 
         return f"{num1} {operator} {num2} = {result}"
 

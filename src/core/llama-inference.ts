@@ -143,6 +143,19 @@ export class LlamaInference {
         }
     }
 
+    public async generateImprovement(code: string, instruction: string, options: InferenceOptions = {}): Promise<string> {
+        // Construct a prompt optimized for instruction following
+        // Using a generic Alpaca/Instruct format which works well with most coding models
+        // ### Instruction: ... ### Input: ... ### Response:
+        
+        const prompt = `### Instruction:\n${instruction}\n\n### Input:\n\`\`\`\n${code}\n\`\`\`\n\n### Response:\n`;
+        
+        // For explaining, we might want more tokens
+        const maxTokens = options.maxTokens || 512;
+        
+        return this.generateCompletion(prompt, { ...options, maxTokens, stop: ['### Instruction:', '```\n'] });
+    }
+
     public isModelLoaded(): boolean {
         return this.isLoaded;
     }

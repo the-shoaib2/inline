@@ -1,8 +1,15 @@
 #include <stdio.h>
 
+// Simple calculator program in c as function create
+int 
+
+
 int main() {
     char operator;
     double num1, num2, result;
+    // Display menu and get user
+
+
 
     printf("Simple Calculator\n");
     printf("Enter operator (+, -, *, /): ");
