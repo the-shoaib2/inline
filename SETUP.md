@@ -89,39 +89,33 @@ Extension E2E Tests
 
 ## 🤖 Model Setup
 
-### Download Model (Online)
-
+### Option 1: Download from Recommended List
 1. **Open Model Manager**
    ```
    Ctrl+Shift+P → "Inline: Model Manager"
    ```
-
 2. **Select Model**
-   - DeepSeek-Coder-6.7B (recommended)
-   - CodeGemma-2B (lightweight)
-   - StarCoder2-7B (powerful)
-
+   - Choose from the curated list (e.g., DeepSeek-Coder-6.7B)
 3. **Click Download**
-   - Progress shown in status bar
-   - Model saved automatically
+   - Progress is shown in the card and status bar
+   - Model is automatically installed to `~/.inline/models`
 
-### Import Local Model
+### Option 2: Download from URL
+1. **Open Model Manager**
+2. **Enter URL**
+   - Paste a direct link to a `.gguf` file (e.g., from Hugging Face)
+   - Example: `https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_K_M.gguf`
+3. **Click Download**
+   - The manager handles the download and import automatically
 
-1. **Prepare Model File**
-   - Format: GGUF, GPTQ, or SAFETENSORS
-   - Size: 2GB - 7GB typically
-
-2. **Import**
-   ```
-   Ctrl+Shift+P → "Inline: Model Manager"
-   → "Import Local Model"
-   → Select file
-   ```
-
+### Option 3: Import Local File
+1. **Open Model Manager**
+2. **Drag & Drop**
+   - Drag your `.gguf` file into the "Import Zone"
+   - OR click the zone to browse for a file
 3. **Validation**
-   - Extension validates format
-   - Checks integrity
-   - Ready to use!
+   - The extension validates the GGUF format and metadata
+   - The model is added to your local registry immediately
 
 ## 📴 Offline Mode
 

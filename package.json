@@ -27,6 +27,8 @@
     "intellisense"
   ],
   "activationEvents": [
+    "onStartupFinished",
+    "onView:inline.modelManagerView",
     "onLanguage:*"
   ],
   "main": "./out/src/extension.js",
@@ -65,6 +67,21 @@
       {
         "command": "inline.showErrorLog",
         "title": "Inline: Show Error Log",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.downloadFromUrl",
+        "title": "Inline: Download Model from URL",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.openModelsFolder",
+        "title": "Inline: Open Models Folder",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.checkForUpdates",
+        "title": "Inline: Check for Model Updates",
         "category": "Inline"
       }
     ],
@@ -206,13 +223,39 @@
           "type": "boolean",
           "default": true,
           "description": "Preload the model when the extension activates for faster first response"
+        },
+        "inline.downloadConcurrency": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Maximum number of concurrent model downloads"
+        },
+        "inline.modelRegistry": {
+          "type": "string",
+          "default": "",
+          "description": "Custom model registry URL for downloading models"
+        },
+        "inline.autoUpdate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically check for and download model updates"
+        },
+        "inline.downloadRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Number of retry attempts for failed downloads"
         }
       }
     }
   },
   "scripts": {
     "vscode:prepublish:disabled": "pnpm run build",
-    "build": "pnpm run clean && tsc -p ./",
+    "build": "pnpm run clean && tsc -p ./ && pnpm run build:ui",
+    "build:ui": "cd webview && pnpm install && pnpm run build",
+    "watch:ui": "cd webview && pnpm run dev",
     "compile": "tsc -p ./ --incremental",
     "compile:watch": "tsc -p ./ --watch --incremental",
     "pretest": "pnpm run compile",

@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ModelManager } from '../core/model-manager';
 import { ModelDownloader } from '../models/model-downloader';
+import { DownloadManager } from '../models/download-manager';
+import { ModelRegistry } from '../models/model-registry';
 import { ConfigManager } from '../utils/config-manager';
 
 interface InlineConfigWithRules extends ReturnType<ConfigManager['getAll']> {
@@ -19,6 +21,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private _configManager: ConfigManager;
     private _modelDownloader: ModelDownloader;
+    private _downloadManager: DownloadManager;
+    private _modelRegistry: ModelRegistry;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -28,6 +32,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         this._modelDownloader = new ModelDownloader(
             path.join(_extensionUri.fsPath, 'models')
         );
+        this._downloadManager = new DownloadManager(2);
+        this._modelRegistry = new ModelRegistry();
     }
 
     public resolveWebviewView(
@@ -40,11 +46,13 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
-                vscode.Uri.joinPath(this._extensionUri, 'resources')
+                vscode.Uri.joinPath(this._extensionUri, 'resources'),
+                vscode.Uri.joinPath(this._extensionUri, 'out', 'webview')
             ]
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
 
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
@@ -54,6 +62,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'downloadModel':
                     await this.downloadModel(data.modelId);
+                    break;
+                case 'downloadFromUrl':
+                    await this.downloadFromUrl(data.url);
+                    break;
+                case 'cancelDownload':
+                    await this.cancelDownload(data.modelId);
                     break;
                 case 'selectModel':
                     await this.selectModel(data.modelId);
@@ -93,6 +107,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             const rules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
             const currentModel = this.modelManager.getCurrentModel();
 
+            const logoUri = this._view.webview.asWebviewUri(
+                vscode.Uri.joinPath(this._extensionUri, 'resources', 'icon.png')
+            ).toString();
+
             this._view.webview.postMessage({
                 command: 'updateData',
                 data: {
@@ -100,7 +118,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     settings,
                     rules,
                     currentModel: currentModel?.id,
-                    isOffline: true // TODO: Get from network detector
+                    isOffline: true, // TODO: Get from network detector
+                    logoUri
                 }
             });
         }
@@ -110,16 +129,97 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         const availableModels = this._modelDownloader.getAvailableModels();
         const downloadedModels = this.modelManager.getDownloadedModels();
 
-        // Merge available and downloaded models
-        return availableModels.map(model => ({
+        // Recommended models
+        const recommendedModels = [
+            {
+                id: 'deepseek-coder-6.7b-instruct',
+                name: 'DeepSeek Coder 6.7B',
+                description: 'State-of-the-art coding model with excellent reasoning capabilities.',
+                size: 4200000000,
+                url: 'https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF/resolve/main/deepseek-coder-6.7b-instruct.Q4_K_M.gguf',
+                requirements: { ram: 8, vram: 6 },
+                contextWindow: 16384,
+                languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust']
+            },
+            {
+                id: 'codellama-7b-instruct',
+                name: 'CodeLlama 7B',
+                description: 'Meta\'s powerful code generation model, fine-tuned for instruction following.',
+                size: 4000000000,
+                url: 'https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q4_K_M.gguf',
+                requirements: { ram: 8, vram: 6 },
+                contextWindow: 16384,
+                languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go']
+            },
+            {
+                id: 'phi-3-mini-4k-instruct',
+                name: 'Phi-3 Mini',
+                description: 'Microsoft\'s lightweight yet capable model, perfect for lower-end hardware.',
+                size: 2400000000,
+                url: 'https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf',
+                requirements: { ram: 4, vram: 2 },
+                contextWindow: 4096,
+                languages: ['python', 'javascript', 'typescript']
+            }
+        ];
+
+        // Merge recommended models with available models, avoiding duplicates
+        const allModels = [...availableModels];
+        for (const rec of recommendedModels) {
+            if (!allModels.some(m => m.id === rec.id)) {
+                allModels.push(rec as any);
+            }
+        }
+
+        // Scan for imported models in the models directory
+        const modelsDir = this._modelRegistry.getModelsDirectory();
+        try {
+            if (fs.existsSync(modelsDir)) {
+                const files = fs.readdirSync(modelsDir);
+                const importedFiles = files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf'));
+
+                for (const file of importedFiles) {
+                    const modelId = path.basename(file, '.gguf');
+                    const filePath = path.join(modelsDir, file);
+
+                    // Check if this model is already in the list
+                    if (!allModels.some(m => m.id === modelId)) {
+                        const stats = fs.statSync(filePath);
+                        const modelName = modelId.replace('imported_', '').replace(/_/g, ' ');
+
+                        allModels.push({
+                            id: modelId,
+                            name: `Imported: ${modelName}`,
+                            description: `User imported model (${this.formatFileSize(stats.size)})`,
+                            size: stats.size,
+                            requirements: { ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, vram: 4 },
+                            contextWindow: 4096,
+                            languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
+                            path: filePath
+                        } as any);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error scanning for imported models:', error);
+        }
+
+        return allModels.map(model => ({
             ...model,
-            isDownloaded: downloadedModels.some(dm => dm.id === model.id)
+            isDownloaded: downloadedModels.some(dm => dm.id === model.id) || !!(model.path && fs.existsSync(model.path))
         }));
+    }
+
+    private formatFileSize(bytes: number): string {
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        if (bytes === 0) return '0 Bytes';
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
     }
 
     private async downloadModel(modelId: string) {
         try {
-            const models = this._modelDownloader.getAvailableModels();
+            const models = this.getAllModels();
             const model = models.find(m => m.id === modelId);
 
             if (!model) {
@@ -130,14 +230,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             this._view?.webview.postMessage({
                 command: 'downloadProgress',
                 modelId,
-                progress: 0
+                progress: { progress: 0, speed: 0 }
             });
 
-            await this._modelDownloader.downloadModel(model, (progress) => {
+            await this._modelDownloader.downloadModel(model, (progressPercent) => {
+                // Get detailed progress including speed
+                const progressData = this._modelDownloader.getDownloadProgress(modelId);
+
                 this._view?.webview.postMessage({
                     command: 'downloadProgress',
                     modelId,
-                    progress
+                    progress: {
+                        progress: progressPercent,
+                        speed: progressData?.speed || 0
+                    }
                 });
             });
 
@@ -160,14 +266,94 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    private async downloadFromUrl(url: string) {
+        try {
+            // Validate URL
+            if (!url || !url.startsWith('http')) {
+                throw new Error('Invalid URL');
+            }
+
+            // Extract model name from URL
+            const urlParts = url.split('/');
+            const fileName = urlParts[urlParts.length - 1] || 'model.gguf';
+            const modelId = `downloaded_${Date.now()}`;
+
+            const destPath = path.join(this._modelRegistry.getModelsDirectory(), fileName);
+
+            // Start download
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: 'Starting download...',
+                type: 'info'
+            });
+
+            await this._downloadManager.download({
+                url,
+                destPath,
+                onProgress: (progress) => {
+                    this._view?.webview.postMessage({
+                        command: 'downloadProgress',
+                        modelId,
+                        progress
+                    });
+                },
+                onComplete: async (filePath) => {
+                    // Import the downloaded model
+                    try {
+                        const importedModel = await this._modelDownloader.importModel(filePath);
+                        await this.modelManager.downloadModel(importedModel.id);
+
+                        this._view?.webview.postMessage({
+                            command: 'downloadComplete',
+                            modelId: importedModel.id
+                        });
+
+                        this.sendData();
+                    } catch (error) {
+                        this._view?.webview.postMessage({
+                            command: 'notification',
+                            message: `Failed to import downloaded model: ${error}`,
+                            type: 'error'
+                        });
+                    }
+                },
+                onError: (error) => {
+                    this._view?.webview.postMessage({
+                        command: 'notification',
+                        message: `Download failed: ${error.message}`,
+                        type: 'error'
+                    });
+                }
+            });
+
+        } catch (error) {
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Failed to start download: ${error}`,
+                type: 'error'
+            });
+        }
+    }
+
     private async selectModel(modelId: string) {
         try {
+            const currentModel = this.modelManager.getCurrentModel();
+
+            // Show switching message if changing from another model
+            if (currentModel && currentModel.id !== modelId) {
+                this._view?.webview.postMessage({
+                    command: 'notification',
+                    message: `Switching from ${currentModel.name || currentModel.id} to new model...`,
+                    type: 'info'
+                });
+            }
+
             await this.modelManager.setCurrentModel(modelId);
             this.sendData();
 
             this._view?.webview.postMessage({
                 command: 'notification',
-                message: `Model ${modelId} selected successfully`,
+                message: `Model activated successfully`,
                 type: 'success'
             });
         } catch (error) {
@@ -193,6 +379,29 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: `Failed to delete model: ${error}`,
+                type: 'error'
+            });
+        }
+    }
+
+    private async cancelDownload(modelId: string) {
+        try {
+            // Cancel the download by sending a downloadComplete message
+            // This will clear the progress state in the UI
+            this._view?.webview.postMessage({
+                command: 'downloadComplete',
+                modelId
+            });
+
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Download cancelled for ${modelId}`,
+                type: 'info'
+            });
+        } catch (error) {
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Failed to cancel download: ${error}`,
                 type: 'error'
             });
         }
@@ -226,14 +435,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         try {
             const importedModel = await this._modelDownloader.importModel(filePath);
 
-            // Add to model manager
+            // Refresh backend to recognize new model
+            this.modelManager.refreshModels();
+
+            // Add to model manager (this just marks it downloaded if found)
             await this.modelManager.downloadModel(importedModel.id);
+
+            // Auto-activate the imported model
+            await this.modelManager.setCurrentModel(importedModel.id);
 
             this.sendData();
 
             this._view?.webview.postMessage({
                 command: 'notification',
-                message: 'Model imported successfully',
+                message: `Model imported and activated: ${importedModel.name || importedModel.id}`,
                 type: 'success'
             });
         } catch (error) {
@@ -353,23 +568,44 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
-        const htmlPath = vscode.Uri.joinPath(
-            this._extensionUri,
-            'resources',
-            'webview',
-            'model-manager.html'
-        );
+        const extensionUri = this._extensionUri;
+        const webviewUri = vscode.Uri.joinPath(extensionUri, 'out', 'webview');
+        const indexPath = vscode.Uri.joinPath(webviewUri, 'index.html');
 
         try {
-            let html = fs.readFileSync(htmlPath.fsPath, 'utf8');
+            let html = fs.readFileSync(indexPath.fsPath, 'utf8');
 
-            // Replace CSP and resource URIs
+            // Generate nonce for CSP
             const nonce = getNonce();
-            html = html.replace(/nonce=""/g, `nonce="${nonce}"`);
+
+            // Replace asset paths with webview URIs
+            const assetsUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewUri, 'assets'));
+
+            // Replace /assets/ paths and add nonce to script tags
+            html = html.replace(
+                /<script\s+([^>]*?)src="\/assets\/([^"]+)"/g,
+                `<script $1src="${assetsUri}/$2" nonce="${nonce}"`
+            );
+
+            // Replace /assets/ paths in link tags (CSS)
+            html = html.replace(
+                /href="\/assets\//g,
+                `href="${assetsUri}/`
+            );
+
+            // Replace any other /assets/ references
+            html = html.replace(
+                /src="\/assets\//g,
+                `src="${assetsUri}/`
+            );
+
+            // Add CSP that allows scripts with nonce and from webview source
+            const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; font-src ${webview.cspSource};">`;
+            html = html.replace('<head>', `<head>${csp}`);
 
             return html;
         } catch (error) {
-            // Fallback to basic HTML if file not found
+            console.error('Error loading webview html:', error);
             return this._getFallbackHtml(webview);
         }
     }

@@ -267,7 +267,7 @@ export class ModelManagerView {
         `;
     }
 
-    private async handleMessage(message: { command: string; [key: string]: unknown }): Promise<void> {
+    private async handleMessage(message: { command: string;[key: string]: unknown }): Promise<void> {
         switch (message.command) {
             case 'downloadModel':
                 this.downloadModel(message.modelId as string);

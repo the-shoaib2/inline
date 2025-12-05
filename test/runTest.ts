@@ -11,11 +11,10 @@ async function main() {
 
     // Download VS Code, unzip it and run the integration test
     await runTests({
+      version: '1.93.0',
       extensionDevelopmentPath,
       extensionTestsPath,
       launchArgs: [
-        '--disable-extensions',
-        '--disable-workspace-trust',
         path.resolve(__dirname, '../fixtures/sample-workspace')
       ]
     });

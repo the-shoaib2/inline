@@ -1,104 +1,201 @@
-import { ModelInfo } from '../core/model-manager';
 import * as fs from 'fs';
-import * as crypto from 'crypto';
-import * as os from 'os';
 import * as path from 'path';
+import { Logger } from '../utils/logger';
+
+export interface ValidationResult {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    metadata?: GGUFMetadata;
+}
+
+export interface GGUFMetadata {
+    version: number;
+    tensorCount?: number;
+    architecture?: string;
+    quantization?: string;
+    contextLength?: number;
+    embeddingLength?: number;
+    blockCount?: number;
+    headCount?: number;
+    fileType?: string;
+    modelName?: string;
+    parameters?: {
+        [key: string]: string | number | boolean;
+    };
+}
 
 export class ModelValidator {
-    public static validateModelInfo(model: unknown): model is ModelInfo {
-        if (!model || typeof model !== 'object') {
-            return false;
-        }
-        const m = model as Record<string, unknown>;
-        return (
-            typeof m.id === 'string' &&
-            typeof m.name === 'string' &&
-            typeof m.size === 'number' &&
-            typeof m.description === 'string' &&
-            Array.isArray(m.languages) &&
-            typeof m.requirements === 'object' &&
-            typeof m.isDownloaded === 'boolean'
-        );
+    private logger: Logger;
+
+    constructor() {
+        this.logger = new Logger('ModelValidator');
     }
 
-    public static validateModelFile(filePath: string): boolean {
-        // Check if file exists and has correct extension
-        if (!fs.existsSync(filePath)) {
-            return false;
-        }
+    public validateModel(modelPath: string): ValidationResult {
+        const result: ValidationResult = {
+            isValid: true,
+            errors: [],
+            warnings: []
+        };
 
-        // Check for GGUF magic number
-        const fd = fs.openSync(filePath, 'r');
-        const buffer = Buffer.alloc(4);
-        fs.readSync(fd, buffer, 0, 4, 0);
-        fs.closeSync(fd);
-        if (buffer.toString('utf8') === 'GGUF') {
-            return true; // If it's a GGUF file, we consider it valid for now
+        // Check if file exists
+        if (!fs.existsSync(modelPath)) {
+            result.isValid = false;
+            result.errors.push('Model file does not exist');
+            return result;
         }
 
         // Check file extension
-        const validExtensions = ['.gguf', '.bin', '.safetensors'];
-        const ext = path.extname(filePath).toLowerCase().replace('.', '');
-        const hasValidExtension = validExtensions.some(validExt => validExt.replace('.', '') === ext);
-
-        if (!hasValidExtension) {
-            return false;
+        const ext = path.extname(modelPath).toLowerCase();
+        if (ext !== '.gguf' && ext !== '.bin') {
+            result.warnings.push(`Unexpected file extension: ${ext}`);
         }
 
-        // Check file size (should be at least 1MB)
-        const stats = fs.statSync(filePath);
-        if (stats.size < 1024 * 1024) {
-            return false;
+        // Check file size
+        const stats = fs.statSync(modelPath);
+        if (stats.size < 1024 * 1024) { // Less than 1MB
+            result.isValid = false;
+            result.errors.push('Model file is too small to be valid');
+            return result;
         }
 
-        return true;
+        // Validate GGUF format if applicable
+        if (ext === '.gguf') {
+            const ggufValidation = this.validateGGUF(modelPath);
+            result.isValid = result.isValid && ggufValidation.isValid;
+            result.errors.push(...ggufValidation.errors);
+            result.warnings.push(...ggufValidation.warnings);
+            result.metadata = ggufValidation.metadata;
+        }
+
+        return result;
     }
 
-    public static async validateModelIntegrity(filePath: string): Promise<boolean> {
-        try {
-            // Calculate file hash
-            const fileBuffer = fs.readFileSync(filePath);
-            const hashSum = crypto.createHash('sha256');
-            hashSum.update(fileBuffer);
-            const hex = hashSum.digest('hex');
-
-            // In production, compare with known hash
-            // For now, just check if hash was calculated successfully
-            return hex.length === 64;
-        } catch (error) {
-            console.error('Failed to validate model integrity:', error);
-            return false;
-        }
-    }
-
-    public static checkSystemRequirements(model: ModelInfo): {
-        canRun: boolean;
-        warnings: string[];
-    } {
-        const warnings: string[] = [];
-
-        // Check RAM
-        const totalRAM = os.totalmem() / (1024 * 1024 * 1024); // Convert to GB
-        const requiredRAM = model.requirements.ram || 4;
-        
-        if (totalRAM < requiredRAM) {
-            warnings.push(`Insufficient RAM: ${totalRAM.toFixed(1)}GB available, ${requiredRAM}GB required`);
-        }
-
-        // Check CPU
-        const cpuCount = os.cpus().length;
-        if (cpuCount < 2) {
-            warnings.push('Low CPU count: At least 2 cores recommended');
-        }
-
-        // Check VRAM (if GPU required)
-        if (model.requirements.gpu && model.requirements.vram) {
-            warnings.push('GPU acceleration recommended but not verified');
-        }
-
-        return {
-            canRun: warnings.length === 0,
-            warnings
+    private validateGGUF(modelPath: string): ValidationResult {
+        const result: ValidationResult = {
+            isValid: true,
+            errors: [],
+            warnings: []
         };
+
+        try {
+            const fd = fs.openSync(modelPath, 'r');
+            const buffer = Buffer.alloc(1024);
+
+            // Read magic number (4 bytes)
+            fs.readSync(fd, buffer, 0, 4, 0);
+            const magic = buffer.toString('utf8', 0, 4);
+
+            if (magic !== 'GGUF') {
+                result.isValid = false;
+                result.errors.push('Invalid GGUF magic number');
+                fs.closeSync(fd);
+                return result;
+            }
+
+            // Read version (4 bytes)
+            fs.readSync(fd, buffer, 0, 4, 4);
+            const version = buffer.readUInt32LE(0);
+
+            if (version < 1 || version > 3) {
+                result.warnings.push(`Unusual GGUF version: ${version}`);
+            }
+
+            // Extract metadata
+            result.metadata = this.extractGGUFMetadata(fd, version, modelPath);
+            result.metadata.version = version;
+
+            fs.closeSync(fd);
+
+        } catch (error) {
+            result.isValid = false;
+            result.errors.push(`Failed to validate GGUF: ${error}`);
+        }
+
+        return result;
+    }
+
+    private extractGGUFMetadata(fd: number, version: number, modelPath: string): GGUFMetadata {
+        const metadata: GGUFMetadata = {
+            version,
+            parameters: {}
+        };
+
+        try {
+            const buffer = Buffer.alloc(8);
+
+            // Read tensor count (8 bytes at offset 8)
+            fs.readSync(fd, buffer, 0, 8, 8);
+            metadata.tensorCount = Number(buffer.readBigUInt64LE(0));
+
+            // Read metadata count (8 bytes at offset 16)
+            fs.readSync(fd, buffer, 0, 8, 16);
+            const metadataCount = Number(buffer.readBigUInt64LE(0));
+
+            // Infer quantization from filename
+            const fileName = path.basename(modelPath);
+            metadata.quantization = this.inferQuantizationFromName(fileName);
+
+            // Set default context length
+            metadata.contextLength = 4096;
+
+        } catch (error) {
+            this.logger.warn(`Failed to extract full metadata: ${error}`);
+        }
+
+        return metadata;
+    }
+
+    private inferQuantizationFromName(fileName: string): string {
+        const lower = fileName.toLowerCase();
+
+        if (lower.includes('q4_0')) return 'Q4_0';
+        if (lower.includes('q4_1')) return 'Q4_1';
+        if (lower.includes('q5_0')) return 'Q5_0';
+        if (lower.includes('q5_1')) return 'Q5_1';
+        if (lower.includes('q8_0')) return 'Q8_0';
+        if (lower.includes('f16')) return 'F16';
+        if (lower.includes('f32')) return 'F32';
+
+        return 'unknown';
+    }
+
+    public validateModelSize(modelPath: string, expectedSize?: number): boolean {
+        try {
+            const stats = fs.statSync(modelPath);
+            if (expectedSize) {
+                // Allow 5% variance
+                const variance = expectedSize * 0.05;
+                return Math.abs(stats.size - expectedSize) <= variance;
+            }
+            return stats.size > 0;
+        } catch {
+            return false;
+        }
+    }
+
+    public extractMetadata(modelPath: string): GGUFMetadata | null {
+        try {
+            const ext = path.extname(modelPath).toLowerCase();
+            if (ext !== '.gguf') {
+                return null;
+            }
+
+            const fd = fs.openSync(modelPath, 'r');
+            const buffer = Buffer.alloc(8);
+
+            // Read version
+            fs.readSync(fd, buffer, 0, 4, 4);
+            const version = buffer.readUInt32LE(0);
+
+            const metadata = this.extractGGUFMetadata(fd, version, modelPath);
+            fs.closeSync(fd);
+
+            return metadata;
+        } catch (error) {
+            this.logger.error(`Failed to extract metadata: ${error}`);
+            return null;
+        }
     }
 }

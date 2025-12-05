@@ -6,11 +6,13 @@ Inline is a VS Code extension that delivers intelligent code completion entirely
 
 - **Offline-First**: Works completely without internet connection
 - **Automatic Model Management**: Download and manage local models through a simple UI
+- **URL Download**: Download models directly from Hugging Face or other URLs
+- **Drag & Drop Import**: Easily import local GGUF models
 - **Language-Specific Optimization**: Optimized models for different programming languages
 - **Smart Context Building**: Understands your codebase and learns from patterns
 - **Resource Monitoring**: Monitors CPU/memory usage and adjusts accordingly
 - **Privacy-Focused**: All processing happens locally on your machine
-- **Modern UI**: VS Code-compliant webview with dark/light theme support
+- **Modern UI**: Premium VS Code-compliant webview with dark/light theme support
 - **Performance Optimized**: <500ms completion latency with intelligent caching
 
 ## Quick Start
@@ -35,7 +37,10 @@ Inline is a VS Code extension that delivers intelligent code completion entirely
 
 2. Install the extension from VS Code Marketplace
 3. Open the Model Manager with `Ctrl+Shift+P` → "Inline: Model Manager"
-4. Download your preferred model (recommended: DeepSeek-Coder-6.7B)
+4. Download a model or import one:
+   - **Recommended**: Click "Download" on any model in the "Recommended Models" list (DeepSeek, CodeLlama, etc.)
+   - **URL**: Paste a Hugging Face GGUF link
+   - **Import**: Drag & drop a `.gguf` file or click "Select File"
 5. Start coding! Inline will automatically provide completions
 
 For detailed setup instructions, see [SETUP.md](SETUP.md)
@@ -57,8 +62,8 @@ For detailed setup instructions, see [SETUP.md](SETUP.md)
 ### Custom Models
 You can import your own GGUF models directly through the Model Manager:
 1. Open Model Manager
-2. Click "Import GGUF Model"
-3. Select your `.gguf` file
+2. Drag and drop your `.gguf` file into the import zone
+3. Or paste a download URL (e.g., from Hugging Face)
 4. The model will be validated and added to your local library
 
 ## Commands
@@ -67,7 +72,11 @@ You can import your own GGUF models directly through the Model Manager:
 - `Inline: Toggle Offline Mode` - Switch between online/offline
 - `Inline: Clear Cache` - Clear completion cache
 - `Inline: Download Model` - Quick model download
+- `Inline: Download Model from URL` - Download directly from a URL
+- `Inline: Open Models Folder` - Open the local models directory
+- `Inline: Check for Model Updates` - Check for updates
 - `Inline: Settings` - Open extension settings
+- `Inline: Show Logs` - Show extension logs
 
 ## Settings
 

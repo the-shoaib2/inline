@@ -68,7 +68,8 @@ export class ModelDownloader {
                 size: 3.8 * 1024 * 1024 * 1024, // 3.8GB
                 languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go'],
                 requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false
+                isDownloaded: false,
+                downloadUrl: 'https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF/resolve/main/deepseek-coder-6.7b-instruct.Q4_K_M.gguf'
             },
             {
                 id: 'starcoder2-3b',
@@ -77,7 +78,8 @@ export class ModelDownloader {
                 size: 1.7 * 1024 * 1024 * 1024, // 1.7GB
                 languages: ['python', 'javascript', 'typescript', 'java', 'cpp'],
                 requirements: { vram: 4, ram: 8, cpu: true, gpu: false },
-                isDownloaded: false
+                isDownloaded: false,
+                downloadUrl: 'https://huggingface.co/TheBloke/starcoder2-3b-GGUF/resolve/main/starcoder2-3b.Q4_K_M.gguf'
             },
             {
                 id: 'codellama-7b',
@@ -86,7 +88,8 @@ export class ModelDownloader {
                 size: 4.1 * 1024 * 1024 * 1024, // 4.1GB
                 languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
                 requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false
+                isDownloaded: false,
+                downloadUrl: 'https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q4_K_M.gguf'
             }
         ];
     }
@@ -146,6 +149,11 @@ export class ModelDownloader {
                 return;
             }
 
+            // Check if download URL is available
+            if (!task.model.downloadUrl) {
+                throw new Error('No download URL available for this model');
+            }
+
             // Initialize progress tracking
             const progress: DownloadProgress = {
                 modelId: task.model.id,
@@ -157,8 +165,19 @@ export class ModelDownloader {
             };
             this.activeDownloads.set(task.model.id, progress);
 
-            // Simulate download with progress for demo purposes
-            await this.simulateDownload(task.progressCallback, task.cancellationToken, progress);
+            // Real HTTP download
+            await this.downloadFile(
+                task.model.downloadUrl,
+                filePath,
+                (progressPercent) => {
+                    if (task.progressCallback) {
+                        task.progressCallback(progressPercent);
+                    }
+                },
+                task.cancellationToken,
+                progress
+            );
+
             this.logger.info(`Model downloaded successfully: ${task.model.name}`);
             task.resolve(filePath);
         } catch (error: unknown) {
@@ -363,10 +382,10 @@ export class ModelDownloader {
 
                 const modelInfo: ModelInfo = {
                     id: modelId,
-                    
+
                     name: path.basename(destPath, '.gguf').replace(/_/g, ' '),
                     description: `Imported model (${this.formatFileSize(stats.size)})`,
-                    languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust', 'shellscript', 'c' ,'shell'], // Assumed general purpose
+                    languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust', 'shellscript', 'c', 'shell'], // Assumed general purpose
                     requirements: {
                         vram: 8, // Default VRAM requirement
                         ram: 12,

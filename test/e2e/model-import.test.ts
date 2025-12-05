@@ -20,32 +20,38 @@ suite('Model Import E2E Test', () => {
             fs.mkdirSync(tempDir);
         }
 
-        const dummyModelPath = path.join(tempDir, 'test-model.gguf');
-        const magic = Buffer.from('GGUF');
+        const dummyModelPath = path.join(tempDir, 'imported_test-model.gguf'); // Use imported_ prefix
+        const magic = Buffer.from('GGUF'); // Magic header
         fs.writeFileSync(dummyModelPath, magic);
 
-        // Execute import command (mocking the file picker if possible, or calling the internal method via API)
-        // Since we can't easily mock the native file picker in E2E, we'll use the exposed API if available
-        // or simulate the command with arguments if the extension supports it.
-
-        // For this test, we'll access the model manager directly through the extension exports
         const api = extension.exports;
         const modelManager = api.modelManager;
-        const modelDownloader = api.webviewProvider['_modelDownloader']; // Accessing private property for testing
+        // Accessing private property for testing via type casting
+        const modelDownloader = (api.webviewProvider as any)['_modelDownloader'];
 
         assert.ok(modelManager, 'ModelManager should be available');
         assert.ok(modelDownloader, 'ModelDownloader should be available');
 
         try {
+            // 1. Import using the downloader (physically copies file)
             const importedModel = await modelDownloader.importModel(dummyModelPath);
             assert.ok(importedModel, 'Should return imported model info');
             assert.strictEqual(importedModel.id.startsWith('imported_'), true, 'ID should start with imported_');
 
-            // Verify it's in the model manager
-            await modelManager.downloadModel(importedModel.id);
-            const models = modelManager.getDownloadedModels();
+            // 2. Refresh models (The Fix)
+            modelManager.refreshModels();
+
+            // 3. Verify it's in the available models
+            const models = modelManager.getAllModels(); // Should include it now
             const found = models.find((m: any) => m.id === importedModel.id);
-            assert.ok(found, 'Imported model should be in downloaded models list');
+            assert.ok(found, 'Imported model should be in model list after refresh');
+            assert.strictEqual(found.isDownloaded, true, 'Model should be marked as downloaded');
+
+            // 4. Try to "download" (activate) it
+            await modelManager.downloadModel(importedModel.id);
+            const downloadedModels = modelManager.getDownloadedModels();
+            const foundDownloaded = downloadedModels.find((m: any) => m.id === importedModel.id);
+            assert.ok(foundDownloaded, 'Model should be in downloaded list');
 
             // Cleanup
             await modelManager.removeModel(importedModel.id);

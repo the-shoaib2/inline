@@ -44,7 +44,7 @@ export class ModelManager {
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.logger = new Logger('ModelManager');
-        this.modelsDirectory = path.join(context.globalStorageUri.fsPath, 'models');
+        this.modelsDirectory = path.join(os.homedir(), '.inline', 'models');
         this.inferenceEngine = new LlamaInference();
         this.initializeModelsDirectory();
         this.loadAvailableModels();
@@ -123,6 +123,10 @@ export class ModelManager {
             this.availableModels.set(model.id, model);
         });
 
+        this.checkDownloadedModels();
+    }
+
+    public refreshModels(): void {
         this.checkDownloadedModels();
     }
 
