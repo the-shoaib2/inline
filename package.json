@@ -142,6 +142,16 @@
         "command": "inline.suggestRefactorings",
         "title": "Inline: Suggest Refactorings",
         "category": "Inline"
+      },
+      {
+        "command": "inline.showEventStats",
+        "title": "Inline: Show Event Tracking Statistics",
+        "category": "Inline"
+      },
+      {
+        "command": "inline.clearEventHistory",
+        "title": "Inline: Clear Event History",
+        "category": "Inline"
       }
     ],
     "views": {
@@ -233,8 +243,8 @@
         },
         "inline.contextWindow": {
           "type": "number",
-          "default": 4096,
-          "description": "Context window size for code analysis"
+          "default": 16384,
+          "description": "Context window size for code analysis (Set to 16k for maximum file fidelity)"
         },
         "inline.suggestionDelay": {
           "type": "number",
@@ -307,6 +317,192 @@
           "minimum": 1,
           "maximum": 10,
           "description": "Number of retry attempts for failed downloads"
+        },
+        "inline.debounce.min": {
+          "type": "number",
+          "default": 25,
+          "minimum": 0,
+          "maximum": 500,
+          "description": "Minimum debounce delay in milliseconds before triggering suggestions (0 for errors, 25 for functions)"
+        },
+        "inline.inference.threads": {
+          "type": "number",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 16,
+          "description": "Number of CPU threads for inference (0 = auto-detect)"
+        },
+        "inline.inference.gpuLayers": {
+          "type": "number",
+          "description": "Number of layers to offload to GPU (undefined = auto-detect, 0 = CPU only)"
+        },
+        "inline.streaming.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable streaming token generation for faster perceived latency"
+        },
+        "inline.streaming.showPartial": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show partial completions as tokens are generated (ghost text)"
+        },
+        "inline.completion.speculativeDecoding": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable speculative decoding for faster multi-line completions"
+        },
+        "inline.completion.maxCandidates": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Number of completion candidates to generate in parallel"
+        },
+        "inline.kvCache.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable KV cache for faster repeated inferences"
+        },
+        "inline.performance.monitoring": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable performance monitoring and metrics collection"
+        },
+        "inline.resourceMonitoring.memoryThreshold": {
+          "type": "number",
+          "default": 0.98,
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "description": "Memory usage threshold (0-1) before warnings are logged. Uses process heap ratio, not system memory."
+        },
+        "inline.deduplication.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable smart code deduplication to prevent repetitive code generation"
+        },
+        "inline.deduplication.similarityThreshold": {
+          "type": "number",
+          "default": 0.8,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Similarity threshold for duplicate detection (0.0-1.0). Higher values are more strict."
+        },
+        "inline.deduplication.minBlockSize": {
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 100,
+          "description": "Minimum characters for a code block to be considered for deduplication"
+        },
+        "inline.deduplication.detectDistributedRepetition": {
+          "type": "boolean",
+          "default": true,
+          "description": "Detect A-B-A-B style distributed repetition patterns"
+        },
+        "inline.deduplication.useAST": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use AST-based analysis for structural duplicate detection (more accurate but slightly slower)"
+        },
+        "inline.context.enableMultiFileAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable multi-file context analysis for better code understanding"
+        },
+        "inline.context.maxDepth": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Maximum depth for analyzing related files through imports"
+        },
+        "inline.context.includeTypes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include type definitions in context for type-aware completions"
+        },
+        "inline.context.includeSimilarCode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include similar code examples from project"
+        },
+        "inline.context.maxRelatedFiles": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of related files to analyze"
+        },
+        "inline.context.adaptiveRatio": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use adaptive prefix/suffix ratio based on cursor position"
+        },
+        "inline.context.symbolCacheSize": {
+          "type": "number",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 2000,
+          "description": "Maximum number of files to cache symbols for"
+        },
+        "inline.fim": {
+          "type": "object",
+          "description": "Custom FIM (Fill-In-The-Middle) tokens for unknown models. Overrides auto-detection.",
+          "properties": {
+            "prefix": {
+              "type": "string",
+              "description": "Prefix token, e.g. <PRE>"
+            },
+            "suffix": {
+              "type": "string",
+              "description": "Suffix token, e.g. <SUF>"
+            },
+            "middle": {
+              "type": "string",
+              "description": "Middle token, e.g. <MID>"
+            }
+          }
+        },
+        "inline.events.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable event tracking system for enhanced context awareness"
+        },
+        "inline.events.throttleMs": {
+          "type": "number",
+          "default": 100,
+          "minimum": 50,
+          "maximum": 1000,
+          "description": "Event throttling delay in milliseconds"
+        },
+        "inline.events.bufferSize": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "Maximum number of events to keep in buffer"
+        },
+        "inline.events.trackMouse": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable mouse tracking (privacy-aware, opt-in)"
+        },
+        "inline.events.trackKeystrokes": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable keystroke pattern tracking (privacy-aware, opt-in, only timing)"
+        },
+        "inline.events.storageEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable event storage for analytics"
+        },
+        "inline.events.maxStorageSize": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 1000,
+          "maximum": 100000,
+          "description": "Maximum number of events to store"
         }
       }
     }

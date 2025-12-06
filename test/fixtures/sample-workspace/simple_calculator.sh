@@ -1,6 +1,0 @@
-# Simple Calculator in Shell
-
-
-
-
-

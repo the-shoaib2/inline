@@ -1,17 +1,174 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { SemanticAnalyzer } from '../utils/semantic-analyzer';
+import { ContextAnalyzer } from '../utils/context-analyzer';
 
+// Enhanced type information interfaces
+export interface ImportInfo {
+    module: string;
+    imports: string[];
+    isDefault: boolean;
+    alias?: string;
+    resolvedPath?: string;
+    lineNumber: number;
+}
+
+export interface ParameterInfo {
+    name: string;
+    type?: string;
+    optional: boolean;
+    defaultValue?: string;
+}
+
+export interface FunctionInfo {
+    name: string;
+    signature: string;
+    parameters: ParameterInfo[];
+    returnType?: string;
+    docstring?: string;
+    lineNumber: number;
+    isAsync: boolean;
+    isExported: boolean;
+}
+
+export interface PropertyInfo {
+    name: string;
+    type?: string;
+    visibility?: 'public' | 'private' | 'protected';
+    isStatic: boolean;
+    isReadonly: boolean;
+}
+
+export interface ClassInfo {
+    name: string;
+    extends?: string;
+    implements?: string[];
+    methods: FunctionInfo[];
+    properties: PropertyInfo[];
+    lineNumber: number;
+    isExported: boolean;
+}
+
+export interface InterfaceInfo {
+    name: string;
+    extends?: string[];
+    properties: PropertyInfo[];
+    methods: FunctionInfo[];
+    lineNumber: number;
+}
+
+export interface TypeInfo {
+    name: string;
+    definition: string;
+    lineNumber: number;
+}
+
+export interface VariableInfo {
+    name: string;
+    type?: string;
+    value?: string;
+    isConst: boolean;
+    lineNumber: number;
+}
+
+export interface SymbolInfo {
+    name: string;
+    kind: vscode.SymbolKind;
+    type?: string;
+    location: vscode.Location;
+    documentation?: string;
+}
+
+export interface ScopeInfo {
+    type: 'global' | 'class' | 'function' | 'block';
+    name?: string;
+    variables: Map<string, TypeInfo>;
+    parent?: ScopeInfo;
+    lineRange: { start: number; end: number };
+}
+
+export interface DependencyInfo {
+    filePath: string;
+    symbols: string[];
+    isExternal: boolean;
+}
+
+export interface RelatedCodeBlock {
+    code: string;
+    filePath: string;
+    similarity: number;
+    context: string;
+}
+
+export interface EditHistory {
+    timestamp: number;
+    file: string;
+    changes: string;
+}
+
+export interface CursorIntent {
+    type: 'function_call' | 'variable_declaration' | 'class_method' | 'import' | 'comment_to_code' | 'type_annotation' | 'unknown';
+    confidence: number;
+    suggestedContext: string[];
+    detectedPatterns: string[];
+}
+
+export interface ProjectConfig {
+    hasTypeScript: boolean;
+    hasJavaScript: boolean;
+    packageManager?: 'npm' | 'yarn' | 'pnpm';
+    framework?: string;
+    dependencies: string[];
+}
+
+export interface CodingPattern {
+    pattern: string;
+    frequency: number;
+    examples: string[];
+}
+
+export interface StyleGuide {
+    indentation: 'tabs' | 'spaces';
+    indentSize: number;
+    quotes: 'single' | 'double';
+    semicolons: boolean;
+    trailingComma: boolean;
+}
+
+// Enhanced CodeContext with comprehensive semantic information
 export interface CodeContext {
+    // Basic context (existing)
     prefix: string;
     suffix: string;
     language: string;
     filename: string;
     project: string;
-    imports: string[];
-    functions: string[];
-    classes: string[];
+    
+    // Enhanced semantic context
+    imports: ImportInfo[];
+    functions: FunctionInfo[];
+    classes: ClassInfo[];
+    interfaces: InterfaceInfo[];
+    types: TypeInfo[];
+    variables: VariableInfo[];
+    
+    // Scope and symbol information
+    currentScope: ScopeInfo | null;
+    symbolTable: Map<string, SymbolInfo>;
+    dependencies: DependencyInfo[];
+    
+    // Project-wide context
+    projectConfig: ProjectConfig | null;
+    codingPatterns: CodingPattern[];
+    styleGuide: StyleGuide | null;
+    
+    // Intelligent context
+    relatedCode: RelatedCodeBlock[];
+    recentEdits: EditHistory[];
+    cursorIntent: CursorIntent | null;
+    
+    // Legacy fields
     comments: string[];
-    recentEdits: string[];
     cursorRules?: string;
 }
 
@@ -22,12 +179,49 @@ export interface ProjectPatterns {
     frequentPatterns: string[];
 }
 
+export interface FIMTemplate {
+    prefix: string;
+    suffix: string;
+    middle: string;
+    eos?: string;
+}
+
+export const FIM_TEMPLATES: Record<string, FIMTemplate> = {
+    // Standard (StarCoder, StableCode, etc.)
+    'starcoder': { prefix: '<fim_prefix>', suffix: '<fim_suffix>', middle: '<fim_middle>' },
+    
+    // DeepSeek
+    'deepseek': { prefix: '<｜fim begin｜>', suffix: '<｜fim hole｜>', middle: '<｜fim end｜>' },
+    
+    // CodeLlama
+    'codellama': { prefix: '<PRE> ', suffix: ' <SUF> ', middle: ' <MID>' },
+    
+    // CodeGemma (Google)
+    'codegemma': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' },
+    
+    // Qwen (Alibaba) - Often follows StarCoder style but sometimes uses specialized tokens
+    'qwen': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' },
+
+    // Yi-Coder (01.AI)
+    'yi': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' },
+    
+    // Codestral (Mistral)
+    'codestral': { prefix: '[SUFFIX]', suffix: '[PREFIX]', middle: '' }, // Mistral is weird: [SUFFIX]suffix[PREFIX]prefix
+    
+    // Fallback
+    'default': { prefix: '<PRE>', suffix: '<SUF>', middle: '<MID>' }
+};
+
 export class ContextEngine {
     private maxContextLength: number = 4000;
     private projectPatterns: Map<string, ProjectPatterns> = new Map();
+    private semanticAnalyzer: SemanticAnalyzer;
+    private contextAnalyzer: ContextAnalyzer;
 
     constructor() {
         this.loadProjectPatterns();
+        this.semanticAnalyzer = new SemanticAnalyzer();
+        this.contextAnalyzer = new ContextAnalyzer();
     }
 
     async buildContext(document: vscode.TextDocument, position: vscode.Position): Promise<CodeContext> {
@@ -38,24 +232,159 @@ export class ContextEngine {
         const prefixLength = Math.floor(this.maxContextLength * 0.75);
         const suffixLength = Math.floor(this.maxContextLength * 0.25);
 
-        const prefix = text.substring(Math.max(0, offset - prefixLength), offset);
-        const suffix = text.substring(offset, Math.min(text.length, offset + suffixLength));
+        // Smart truncation: Try to cut at line boundaries to preserve semantic integrity
+        const prefix = this.smartTruncate(text.substring(Math.max(0, offset - prefixLength), offset), 'prefix');
+        const suffix = this.smartTruncate(text.substring(offset, Math.min(text.length, offset + suffixLength)), 'suffix');
+
+        // Run async context gathering in parallel with 100ms timeout
+        const [recentEdits, cursorRules] = await Promise.all([
+            this.withTimeout(this.semanticAnalyzer.getRecentEditsEnhanced(document.uri), 50, []),
+            this.withTimeout(this.loadCursorRules(document.uri), 50, undefined)
+        ]);
+
+        // 5. Heuristic Size Limit: Skip deep analysis for large files (>100KB)
+        const isLargeFile = text.length > 100 * 1024;
+        
+        let imports: ImportInfo[] = [];
+        let functions: FunctionInfo[] = [];
+        let classes: ClassInfo[] = [];
+        let interfaces: InterfaceInfo[] = [];
+        let types: TypeInfo[] = [];
+        let variables: VariableInfo[] = [];
+        let comments: string[] = [];
+
+        if (!isLargeFile) {
+            // Run enhanced extractions in parallel using semanticAnalyzer
+            [imports, functions, classes, interfaces, types, variables, comments] = await Promise.all([
+                this.semanticAnalyzer.extractImportsEnhanced(document),
+                this.semanticAnalyzer.extractFunctionsEnhanced(document),
+                this.semanticAnalyzer.extractClassesEnhanced(document),
+                this.semanticAnalyzer.extractInterfacesEnhanced(document),
+                this.semanticAnalyzer.extractTypesEnhanced(document),
+                this.semanticAnalyzer.extractVariablesEnhanced(document),
+                this.extractComments(document)
+            ]);
+        } else {
+            console.log(`[ContextEngine] ⚠️ Large file detected (${(text.length/1024).toFixed(1)}KB), skipping deep analysis`);
+        }
+
+        // Build symbol table using VS Code's symbol provider
+        const symbolTable = await this.semanticAnalyzer.buildSymbolTable(document);
+
+        // Detect cursor intent
+        const cursorIntent = this.semanticAnalyzer.detectCursorIntent(document, position, prefix, suffix);
+
+        // Analyze current scope
+        const currentScope = this.semanticAnalyzer.analyzeCurrentScope(document, position, functions, classes);
+
+        // Get project configuration
+        const projectConfig = await this.semanticAnalyzer.getProjectConfig(document.uri);
+
+        // Detect coding patterns and style
+        const styleGuide = this.semanticAnalyzer.detectStyleGuide(text);
+
+        // Multi-file context analysis (only if enabled and not a large file)
+        let dependencies: DependencyInfo[] = [];
+        let relatedCode: RelatedCodeBlock[] = [];
+        let codingPatterns: CodingPattern[] = [];
+
+        const config = vscode.workspace.getConfiguration('inline');
+        const enableMultiFileAnalysis = config.get<boolean>('context.enableMultiFileAnalysis', true);
+
+        if (enableMultiFileAnalysis && !isLargeFile && imports.length > 0) {
+            try {
+                // Build dependency graph
+                dependencies = await this.withTimeout(
+                    this.contextAnalyzer.buildDependencyGraph(document.uri, imports),
+                    100,
+                    []
+                );
+
+                // Find similar code (based on cursor intent)
+                if (cursorIntent && cursorIntent.type === 'comment_to_code') {
+                    const codeContext = prefix.substring(Math.max(0, prefix.length - 200));
+                    relatedCode = await this.withTimeout(
+                        this.contextAnalyzer.findSimilarCode(
+                            codeContext,
+                            document.languageId,
+                            vscode.workspace.getWorkspaceFolder(document.uri)!
+                        ),
+                        150,
+                        []
+                    );
+                }
+
+                // Detect coding patterns (cache for project)
+                const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+                if (workspaceFolder && !this.projectPatterns.has(workspaceFolder.name)) {
+                    const files = await vscode.workspace.findFiles(
+                        new vscode.RelativePattern(workspaceFolder, '**/*.{ts,tsx,js,jsx}'),
+                        '**/node_modules/**',
+                        50
+                    );
+                    
+                    codingPatterns = await this.withTimeout(
+                        this.contextAnalyzer.detectCodingPatterns(files),
+                        200,
+                        []
+                    );
+                }
+            } catch (error) {
+                console.warn('[ContextEngine] Multi-file analysis failed:', error);
+            }
+        }
 
         const context: CodeContext = {
+            // Basic context
             prefix,
             suffix,
             language: document.languageId,
             filename: path.basename(document.uri.fsPath),
             project: this.getProjectName(document.uri),
-            imports: this.extractImports(document),
-            functions: this.extractFunctions(document),
-            classes: this.extractClasses(document),
-            comments: this.extractComments(document),
-            recentEdits: await this.getRecentEdits(document.uri),
-            cursorRules: await this.loadCursorRules(document.uri)
+            
+            // Enhanced semantic context
+            imports,
+            functions,
+            classes,
+            interfaces,
+            types,
+            variables,
+            
+            // Scope and symbol information
+            currentScope,
+            symbolTable,
+            dependencies,
+            
+            // Project-wide context
+            projectConfig,
+            codingPatterns,
+            styleGuide,
+            
+            // Intelligent context
+            relatedCode,
+            recentEdits,
+            cursorIntent,
+            
+            // Legacy fields
+            comments,
+            cursorRules
         };
 
         return context;
+    }
+    extractImportsEnhanced(document: vscode.TextDocument): any {
+        throw new Error('Method not implemented.');
+    }
+
+    private async withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+        let timer: NodeJS.Timeout;
+        const timeout = new Promise<T>(resolve => {
+            timer = setTimeout(() => resolve(fallback), ms);
+        });
+        return Promise.race([
+            promise.then(val => { clearTimeout(timer); return val; }),
+            timeout
+        ]);
     }
 
     private async loadCursorRules(uri: vscode.Uri): Promise<string | undefined> {
@@ -186,45 +515,279 @@ export class ContextEngine {
         return comments;
     }
 
-    private async getRecentEdits(_uri: vscode.Uri): Promise<string[]> {
-        // TODO: Implement recent edits tracking
-        return [];
+    private async getRecentEdits(currentUri: vscode.Uri): Promise<string[]> {
+        const edits: string[] = [];
+        // Get visible text editors (other tabs)
+        for (const editor of vscode.window.visibleTextEditors) {
+            if (editor.document.uri.toString() !== currentUri.toString()) {
+                // Get a small chunk of relevant code (e.g., top 20 lines or around cursor)
+                const text = editor.document.getText();
+                // Simple heuristic: Take first 500 chars as context overlap
+                if (text.length > 0) {
+                     edits.push(`// File: ${path.basename(editor.document.fileName)}\n${text.substring(0, 500)}...`);
+                }
+            }
+        }
+        return edits.slice(0, 3); // Limit to top 3 files
     }
 
-    async generatePrompt(context: CodeContext): Promise<string> {
-        // Use Fill-In-The-Middle (FIM) format which is standard for code completion models
-        // <PRE> prefix <SUF> suffix <MID>
+    async generatePrompt(context: CodeContext, templateId: string = 'default'): Promise<string> {
+        let template: FIMTemplate;
 
-        const fimPrefix = '<PRE>';
-        const fimSuffix = '<SUF>';
-        const fimMiddle = '<MID>';
+        // "Universal" Support: Allow user to define custom tokens
+        if (templateId === 'custom') {
+            const config = vscode.workspace.getConfiguration('inline');
+            const customFim = config.get<{prefix: string, suffix: string, middle: string}>('fim');
+            if (customFim && customFim.prefix) {
+                template = customFim;
+            } else {
+                template = FIM_TEMPLATES['default'];
+            }
+        } else {
+            // Get FIM template based on ID or fallback to default
+            template = FIM_TEMPLATES[templateId] || FIM_TEMPLATES['default'];
+        }
 
-        // Construct the prompt
-        // We can inject some context before the prefix if needed (like file name, imports)
+        // Mistral / Codestral Special Case
+        // Format: [SUFFIX]suffix[PREFIX]prefix
+        if (templateId === 'codestral') {
+             return `${template.prefix}${context.suffix}${template.suffix}${context.prefix}`;
+        }
 
+        const fimPrefix = template.prefix;
+        const fimSuffix = template.suffix;
+        const fimMiddle = template.middle;
+
+        // Build intelligent, structured header
+        const header = this.buildIntelligentHeader(context);
+
+        // Construct FIM prompt
+        return `${fimPrefix}${header}${fimSuffix}${context.suffix}${fimMiddle}`;
+    }
+
+    /**
+     * Build intelligent header with type context, examples, and scope information
+     */
+    private buildIntelligentHeader(context: CodeContext): string {
+        const commentPrefix = this.getCommentPrefix(context.language);
         let header = '';
-        if (context.filename) {
-            header += `// File: ${context.filename}\n`;
+
+        // === SECTION 1: File Metadata ===
+        header += this.buildFileMetadata(context, commentPrefix);
+
+        // === SECTION 2: Type Definitions ===
+        if (context.cursorIntent?.type === 'type_annotation' || 
+            context.cursorIntent?.type === 'variable_declaration' ||
+            context.types.length > 0 || context.interfaces.length > 0) {
+            header += this.buildTypeContext(context, commentPrefix);
         }
-        if (context.language) {
-            header += `// Language: ${context.language}\n`;
+
+        // === SECTION 3: Function Signatures ===
+        if (context.cursorIntent?.type === 'function_call' || context.functions.length > 0) {
+            header += this.buildFunctionContext(context, commentPrefix);
         }
+
+        // === SECTION 4: Similar Code Examples ===
+        if (context.cursorIntent?.type === 'comment_to_code' && context.relatedCode.length > 0) {
+            header += this.buildExampleContext(context, commentPrefix);
+        }
+
+        // === SECTION 5: Scope Context ===
+        if (context.currentScope && context.currentScope.type !== 'global') {
+            header += this.buildScopeContext(context, commentPrefix);
+        }
+
+        // === SECTION 6: Project Rules ===
+        if (context.cursorRules && context.cursorRules.length > 0) {
+            header += this.buildProjectRules(context, commentPrefix);
+        }
+
+        // === SECTION 7: Related Files Context ===
+        if (context.recentEdits.length > 0) {
+            header += this.buildRelatedFilesContext(context, commentPrefix);
+        }
+
+        // === SECTION 8: Main Code Context ===
+        header += '\n' + context.prefix;
+
+        return header;
+    }
+
+    /**
+     * Build file metadata section
+     */
+    private buildFileMetadata(context: CodeContext, commentPrefix: string): string {
+        let section = `${commentPrefix} ═══ FILE METADATA ═══\n`;
+        section += `${commentPrefix} File: ${context.filename}\n`;
+        section += `${commentPrefix} Language: ${context.language}\n`;
         
-        // Inject System Prompts / Rules
-        if (context.cursorRules) {
-            header += `\n/* INSTRUCTIONS:\n${context.cursorRules}\n*/\n`;
+        if (context.projectConfig) {
+            if (context.projectConfig.framework) {
+                section += `${commentPrefix} Framework: ${context.projectConfig.framework}\n`;
+            }
         }
 
-        if (context.imports && context.imports.length > 0) {
-            header += `// Imports:\n${context.imports.join('\n')}\n`;
+        if (context.styleGuide) {
+            section += `${commentPrefix} Style: ${context.styleGuide.indentation === 'spaces' ? context.styleGuide.indentSize + ' spaces' : 'tabs'}, `;
+            section += `${context.styleGuide.quotes} quotes, `;
+            section += `${context.styleGuide.semicolons ? 'semicolons' : 'no semicolons'}\n`;
         }
 
-        // Add imports if they are not in the prefix (e.g. from other files)
-        // For now, we assume imports are in the file content
+        section += '\n';
+        return section;
+    }
 
-        const fullPrefix = header + context.prefix;
+    /**
+     * Build type context section
+     */
+    private buildTypeContext(context: CodeContext, commentPrefix: string): string {
+        let section = `${commentPrefix} ═══ TYPE DEFINITIONS ═══\n`;
 
-        return `${fimPrefix} ${fullPrefix} ${fimSuffix} ${context.suffix} ${fimMiddle}`;
+        // Add interfaces (top 3)
+        const topInterfaces = context.interfaces.slice(0, 3);
+        if (topInterfaces.length > 0) {
+            section += `${commentPrefix} Interfaces:\n`;
+            topInterfaces.forEach(iface => {
+                section += `interface ${iface.name}`;
+                if (iface.extends && iface.extends.length > 0) {
+                    section += ` extends ${iface.extends.join(', ')}`;
+                }
+                section += ' { ... }\n';
+            });
+        }
+
+        // Add type aliases (top 5)
+        const topTypes = context.types.slice(0, 5);
+        if (topTypes.length > 0) {
+            section += `${commentPrefix} Types:\n`;
+            topTypes.forEach(type => {
+                section += `type ${type.name} = ${type.definition.substring(0, 100)}${type.definition.length > 100 ? '...' : ''}\n`;
+            });
+        }
+
+        section += '\n';
+        return section;
+    }
+
+    /**
+     * Build function context section
+     */
+    private buildFunctionContext(context: CodeContext, commentPrefix: string): string {
+        let section = `${commentPrefix} ═══ AVAILABLE FUNCTIONS ═══\n`;
+
+        // Add function signatures (top 5)
+        const topFunctions = context.functions.slice(0, 5);
+        topFunctions.forEach(func => {
+            section += `${func.isAsync ? 'async ' : ''}function ${func.name}(`;
+            section += func.parameters.map(p => 
+                `${p.name}${p.optional ? '?' : ''}${p.type ? ': ' + p.type : ''}`
+            ).join(', ');
+            section += `)${func.returnType ? ': ' + func.returnType : ''}\n`;
+            
+            if (func.docstring) {
+                section += `${commentPrefix}   ${func.docstring.substring(0, 80)}\n`;
+            }
+        });
+
+        section += '\n';
+        return section;
+    }
+
+    /**
+     * Build example context section
+     */
+    private buildExampleContext(context: CodeContext, commentPrefix: string): string {
+        let section = `${commentPrefix} ═══ SIMILAR CODE EXAMPLES ═══\n`;
+
+        // Add similar code (top 2)
+        const topExamples = context.relatedCode.slice(0, 2);
+        topExamples.forEach((example, index) => {
+            section += `${commentPrefix} Example ${index + 1} (${Math.round(example.similarity * 100)}% similar):\n`;
+            section += `${commentPrefix} From: ${path.basename(example.filePath)}\n`;
+            
+            // Add code snippet (limit to 10 lines)
+            const lines = example.code.split('\n').slice(0, 10);
+            lines.forEach(line => {
+                section += `${commentPrefix} ${line}\n`;
+            });
+            
+            section += '\n';
+        });
+
+        return section;
+    }
+
+    /**
+     * Build scope context section
+     */
+    private buildScopeContext(context: CodeContext, commentPrefix: string): string {
+        if (!context.currentScope) return '';
+
+        let section = `${commentPrefix} ═══ CURRENT SCOPE ═══\n`;
+        section += `${commentPrefix} Scope: ${context.currentScope.type}`;
+        
+        if (context.currentScope.name) {
+            section += ` (${context.currentScope.name})`;
+        }
+        section += '\n';
+
+        // Add variables in scope
+        if (context.currentScope.variables.size > 0) {
+            section += `${commentPrefix} Variables in scope:\n`;
+            let count = 0;
+            for (const [name, type] of context.currentScope.variables) {
+                if (count++ >= 5) break; // Limit to 5 variables
+                section += `${commentPrefix}   ${name}: ${type.definition}\n`;
+            }
+        }
+
+        section += '\n';
+        return section;
+    }
+
+    /**
+     * Build project rules section
+     */
+    private buildProjectRules(context: CodeContext, commentPrefix: string): string {
+        let section = `${commentPrefix} ═══ PROJECT RULES ═══\n`;
+        
+        // Add cursor rules (limit to 500 chars)
+        const rules = context.cursorRules!.substring(0, 500);
+        const ruleLines = rules.split('\n');
+        
+        ruleLines.forEach(line => {
+            section += `${commentPrefix} ${line}\n`;
+        });
+
+        if (context.cursorRules!.length > 500) {
+            section += `${commentPrefix} ...\n`;
+        }
+
+        section += '\n';
+        return section;
+    }
+
+    /**
+     * Build related files context section
+     */
+    private buildRelatedFilesContext(context: CodeContext, commentPrefix: string): string {
+        let section = `${commentPrefix} ═══ RELATED FILES ═══\n`;
+
+        // Add recent edits (top 2)
+        const topEdits = context.recentEdits.slice(0, 2);
+        topEdits.forEach(edit => {
+            section += `${commentPrefix} From: ${path.basename(edit.file)}\n`;
+            
+            // Add snippet (limit to 5 lines)
+            const lines = edit.changes.split('\n').slice(0, 5);
+            lines.forEach(line => {
+                section += `${commentPrefix} ${line}\n`;
+            });
+            
+            section += '\n';
+        });
+
+        return section;
     }
 
     private loadProjectPatterns(): void {
@@ -317,5 +880,45 @@ export class ContextEngine {
         });
 
         return requirements;
+    }
+
+    private getCommentPrefix(language: string): string {
+        const commentStarts: Record<string, string> = {
+            'python': '#',
+            'shellscript': '#',
+            'ruby': '#',
+            'perl': '#',
+            'yaml': '#',
+            'makefile': '#',
+            'javascript': '//',
+            'typescript': '//',
+            'java': '//',
+            'c': '//',
+            'cpp': '//',
+            'go': '//',
+            'rust': '//',
+            'php': '//',
+            'html': '<!--',
+            'css': '/*',
+            'xml': '<!--'
+        };
+        return commentStarts[language] || '//';
+    }
+
+    private smartTruncate(text: string, type: 'prefix' | 'suffix'): string {
+        if (text.length === 0) return text;
+
+        if (type === 'prefix') {
+            const firstNewline = text.indexOf('\n');
+            if (firstNewline !== -1 && firstNewline < 100) { 
+                return text.substring(firstNewline + 1);
+            }
+        } else {
+            const lastNewline = text.lastIndexOf('\n');
+            if (lastNewline !== -1 && text.length - lastNewline < 100) {
+                 return text.substring(0, lastNewline);
+            }
+        }
+        return text;
     }
 }

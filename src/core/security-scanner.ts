@@ -23,7 +23,7 @@ export class SecurityScanner {
 
     // Common vulnerability patterns
     private static readonly PATTERNS = {
-        sqlInjection: /(?:execute|query|exec)\s*\([^)]*\+[^)]*\)/gi,
+        sqlInjection: /(?:execute|query|exec)\s*\([^)]*\+[^)]*\)|(?:["'](?:SELECT|INSERT|UPDATE|DELETE|FROM)\b[^"']*\s*["']\s*\+)/gi,
         xss: /<script|javascript:|onerror=|onload=/gi,
         hardcodedSecrets: /(?:password|api_key|secret|token)\s*=\s*["'][^"']+["']/gi,
         pathTraversal: /\.\.[\/\\]/g,

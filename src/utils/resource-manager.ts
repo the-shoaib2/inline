@@ -18,7 +18,7 @@ export interface ResourceThresholds {
 export class ResourceManager {
     private thresholds: ResourceThresholds = {
         maxCPU: 0.8,
-        maxMemory: 0.9,
+        maxMemory: 0.95,  // Increased from 0.9 - use 95% of available memory
         maxVRAM: 0.9,
         maxDisk: 0.95
     };
@@ -55,9 +55,14 @@ export class ResourceManager {
     }
 
     getCurrentUsage(): ResourceUsage {
+        // Use process-specific memory instead of system-wide
+        const processMemory = process.memoryUsage();
         const totalMemory = os.totalmem();
-        const freeMemory = os.freemem();
-        const usedMemory = totalMemory - freeMemory;
+        
+        // Calculate process memory usage as percentage of total system memory
+        const heapUsed = processMemory.heapUsed;
+        const heapTotal = processMemory.heapTotal;
+        const memoryUsageRatio = heapUsed / heapTotal;  // Process heap usage ratio
         
         const cpus = os.cpus();
         const loadAvg = os.loadavg();
@@ -65,7 +70,7 @@ export class ResourceManager {
 
         return {
             cpu: cpuUsage,
-            memory: usedMemory / totalMemory,
+            memory: memoryUsageRatio,  // Use process heap ratio instead of system memory
             disk: 0, // TODO: Implement disk usage monitoring
             vram: 0  // TODO: Implement VRAM monitoring
         };

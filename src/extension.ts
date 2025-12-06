@@ -18,6 +18,7 @@ import { NetworkConfig } from './utils/network-config';
 import { ProcessInfoDisplay } from './utils/process-info-display';
 import { PerformanceTuner } from './utils/performance-tuner';
 import { AICommandsProvider } from './ui/ai-commands-provider';
+import { EventTrackingManager, createEventTrackingManager } from './events/event-tracking-manager';
 
 let completionProvider: InlineCompletionProvider;
 let modelManager: ModelManager;
@@ -31,6 +32,7 @@ let configManager: ConfigManager;
 let errorHandler: ErrorHandler;
 let telemetryManager: TelemetryManager;
 let aiCommandsProvider: AICommandsProvider;
+let eventTrackingManager: EventTrackingManager;
 
 export async function activate(context: vscode.ExtensionContext) {
     try {
@@ -52,8 +54,10 @@ export async function activate(context: vscode.ExtensionContext) {
         configManager = new ConfigManager();
         logger.info('Configuration loaded', configManager.getAll());
 
-        // Run performance auto-tuning (fire and forget)
-        PerformanceTuner.tune().catch(err => console.error('Tuning failed:', err));
+        // Run performance auto-tuning (deferred to avoid blocking startup)
+        setTimeout(() => {
+            PerformanceTuner.tune().catch(err => console.error('Tuning failed:', err));
+        }, 5000);
         
         // Initialize core components
         cacheManager = new CacheManager(context);
@@ -119,6 +123,16 @@ export async function activate(context: vscode.ExtensionContext) {
         // Register AI commands provider (NEW)
         aiCommandsProvider = new AICommandsProvider(modelManager);
         aiCommandsProvider.registerCommands(context);
+
+        // Initialize event tracking system (NEW)
+        const contextEngine = completionProvider.getContextEngine();
+        eventTrackingManager = createEventTrackingManager(context, contextEngine);
+        eventTrackingManager.start();
+        logger.info('Event tracking system initialized');
+
+        // Integrate AI context tracker with completion provider
+        const aiTracker = eventTrackingManager.getAIContextTracker();
+        completionProvider.setAIContextTracker(aiTracker);
 
         // Register commands
         registerCommands(context, modelManager);
@@ -193,7 +207,8 @@ export async function activate(context: vscode.ExtensionContext) {
             statusBarManager,
             networkDetector,
             resourceManager,
-            webviewProvider
+            webviewProvider,
+            eventTrackingManager
         };
 
     } catch (error) {
@@ -253,6 +268,45 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
         vscode.commands.registerCommand('inline.showProcessInfo', async () => {
             await ProcessInfoDisplay.showProcessInfo();
             telemetryManager.trackEvent('process_info_opened');
+        }),
+
+        vscode.commands.registerCommand('inline.showMetrics', async () => {
+             const report = completionProvider.getPerformanceReport();
+             const doc = await vscode.workspace.openTextDocument({ content: report, language: 'markdown' });
+             await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
+             telemetryManager.trackEvent('metrics_viewed');
+        }),
+
+        vscode.commands.registerCommand('inline.showEventStats', async () => {
+            if (eventTrackingManager) {
+                const stats = eventTrackingManager.getStatistics();
+                const report = `# Event Tracking Statistics\n\n` +
+                    `## Event Bus\n` +
+                    `- Buffer Size: ${stats.eventBusStats.bufferSize}/${stats.eventBusStats.maxSize}\n` +
+                    `- Subscriptions: ${stats.eventBusStats.subscriptionCount}\n\n` +
+                    `## AI Metrics\n` +
+                    `- Total Inferences: ${stats.aiMetrics.totalInferences}\n` +
+                    `- Total Suggestions: ${stats.aiMetrics.totalSuggestions}\n` +
+                    `- Accepted: ${stats.aiMetrics.acceptedSuggestions}\n` +
+                    `- Rejected: ${stats.aiMetrics.rejectedSuggestions}\n` +
+                    `- Acceptance Rate: ${(stats.aiMetrics.acceptanceRate * 100).toFixed(1)}%\n` +
+                    `- Avg Inference Time: ${stats.aiMetrics.averageInferenceTime.toFixed(0)}ms\n` +
+                    `- Avg Confidence: ${(stats.aiMetrics.averageConfidence * 100).toFixed(1)}%\n\n` +
+                    `## State Info\n` +
+                    `- Open Documents: ${stats.stateInfo.openDocuments}\n` +
+                    `- Cursor History: ${stats.stateInfo.cursorHistorySize}\n` +
+                    `- Recent Edits: ${stats.stateInfo.recentEditsSize}\n`;
+                
+                const doc = await vscode.workspace.openTextDocument({ content: report, language: 'markdown' });
+                await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
+            }
+        }),
+
+        vscode.commands.registerCommand('inline.clearEventHistory', async () => {
+            if (eventTrackingManager) {
+                eventTrackingManager.clearHistory();
+                vscode.window.showInformationMessage('Event history cleared!');
+            }
         }),
 
         vscode.commands.registerCommand('inline.downloadFromUrl', async () => {
@@ -451,6 +505,15 @@ export async function deactivate(): Promise<void> {
                 statusBarManager.dispose();
             } catch (error) {
                 console.warn('Error disposing status bar:', error);
+            }
+        }
+
+        // Dispose event tracking manager
+        if (eventTrackingManager) {
+            try {
+                eventTrackingManager.dispose();
+            } catch (error) {
+                console.warn('Error disposing event tracking manager:', error);
             }
         }
 

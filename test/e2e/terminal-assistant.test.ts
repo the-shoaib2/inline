@@ -33,7 +33,7 @@ suite('Terminal Assistant E2E Tests', () => {
         const pnpmCommands = assistant.getPackageManagerCommands('pnpm');
         
         assert.ok(pnpmCommands.every(cmd => cmd.command.includes('pnpm')));
-        assert.ok(!pnpmCommands.some(cmd => cmd.command.includes('npm')));
+        assert.ok(!pnpmCommands.some(cmd => /\bnpm\b/.test(cmd.command)));
     });
 
     test('Should provide Docker commands', () => {

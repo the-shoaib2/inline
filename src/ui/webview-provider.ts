@@ -333,6 +333,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     // Import the downloaded model
                     try {
                         const importedModel = await this._modelDownloader.importModel(filePath);
+                        
+                        // Refresh to recognize the new model
+                        await this.modelManager.refreshModels();
+                        
                         await this.modelManager.downloadModel(importedModel.id);
 
                         this._view?.webview.postMessage({
@@ -340,8 +344,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                             modelId: importedModel.id
                         });
 
+                        // Force UI refresh
                         this.sendData();
                     } catch (error) {
+                        // Refresh UI even on error
+                        this.sendData();
+                        
                         this._view?.webview.postMessage({
                             command: 'notification',
                             message: `Failed to import downloaded model: ${error}`,
@@ -492,17 +500,23 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     private async pickAndImportModel() {
         try {
             const fileUri = await vscode.window.showOpenDialog({
-                canSelectMany: false,
-                openLabel: 'Import Model',
+                canSelectMany: true,  // Allow multiple files
+                openLabel: 'Import Model(s)',
                 filters: {
                     'Model Files': ['gguf', 'tar.gz', 'tgz'],
                     'All Files': ['*']
                 },
-                title: 'Select a model file to import'
+                title: 'Select model file(s) to import'
             });
 
-            if (fileUri && fileUri[0]) {
-                await this.importModel(fileUri[0].fsPath);
+            if (fileUri && fileUri.length > 0) {
+                if (fileUri.length === 1) {
+                    // Single import
+                    await this.importModel(fileUri[0].fsPath);
+                } else {
+                    // Batch import
+                    await this.importMultipleModels(fileUri.map(uri => uri.fsPath));
+                }
             }
         } catch (error) {
             this._view?.webview.postMessage({
@@ -513,30 +527,106 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    /**
+     * Import multiple models with progress tracking
+     */
+    private async importMultipleModels(filePaths: string[]) {
+        const total = filePaths.length;
+        let succeeded = 0;
+        let failed = 0;
+
+        this._view?.webview.postMessage({
+            command: 'notification',
+            message: `Importing ${total} model(s)...`,
+            type: 'info'
+        });
+
+        for (let i = 0; i < filePaths.length; i++) {
+            const filePath = filePaths[i];
+            const fileName = filePath.split('/').pop() || filePath;
+            
+            try {
+                this._view?.webview.postMessage({
+                    command: 'notification',
+                    message: `[${i + 1}/${total}] Importing ${fileName}...`,
+                    type: 'info'
+                });
+
+                const importedModel = await this._modelDownloader.importModel(filePath);
+                await this.modelManager.refreshModels();
+                await this.modelManager.downloadModel(importedModel.id);
+                
+                // Update UI after each import
+                this.sendData();
+                succeeded++;
+
+            } catch (error) {
+                failed++;
+                console.error(`Failed to import ${fileName}:`, error);
+            }
+        }
+
+        // Final refresh
+        await this.modelManager.refreshModels();
+        this.sendData();
+
+        // Summary notification
+        const message = `Import complete: ${succeeded} succeeded, ${failed} failed`;
+        this._view?.webview.postMessage({
+            command: 'notification',
+            message: failed > 0 ? `⚠️ ${message}` : `✅ ${message}`,
+            type: failed > 0 ? 'warning' : 'success'
+        });
+    }
+
     private async importModel(filePath: string) {
+        const startTime = Date.now();
+        const fileName = filePath.split('/').pop() || filePath;
+        
         try {
-            const importedModel = await this._modelDownloader.importModel(filePath);
-
-            // Refresh backend to recognize new model
-            this.modelManager.refreshModels();
-
-            // Add to model manager (this just marks it downloaded if found)
-            await this.modelManager.downloadModel(importedModel.id);
-
-            // Auto-activate the imported model
-            await this.modelManager.setCurrentModel(importedModel.id);
-
-            this.sendData();
-
+            // Immediate feedback
             this._view?.webview.postMessage({
                 command: 'notification',
-                message: `Model imported and activated: ${importedModel.name || importedModel.id}`,
+                message: `Importing ${fileName}...`,
+                type: 'info'
+            });
+
+            const importedModel = await this._modelDownloader.importModel(filePath);
+
+            // Refresh and show immediately
+            await this.modelManager.refreshModels();
+            this.sendData();  // Show model in UI right away
+
+            // Progress update
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Activating ${importedModel.name || importedModel.id}...`,
+                type: 'info'
+            });
+
+            // Add to model manager
+            await this.modelManager.downloadModel(importedModel.id);
+
+            // Auto-activate
+            await this.modelManager.setCurrentModel(importedModel.id);
+
+            // Final UI refresh
+            this.sendData();
+
+            const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+            this._view?.webview.postMessage({
+                command: 'notification',
+                message: `Imported and activated in ${duration}s: ${importedModel.name || importedModel.id}`,
                 type: 'success'
             });
         } catch (error) {
+            // Refresh UI even on error
+            await this.modelManager.refreshModels();
+            this.sendData();
+            
             this._view?.webview.postMessage({
                 command: 'notification',
-                message: `Failed to import model: ${error}`,
+                message: `Failed to import ${fileName}: ${error instanceof Error ? error.message : String(error)}`,
                 type: 'error'
             });
         }

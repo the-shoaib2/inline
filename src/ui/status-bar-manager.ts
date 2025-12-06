@@ -6,6 +6,7 @@ export class StatusBarManager {
     private isOffline: boolean = false;
     private currentModel: string = 'No model';
     private isLoading: boolean = false;
+    private loadingText: string = 'Loading...';
     private cacheSize: string = '0MB';
     private memoryUsage: number = 0;
     private cpuUsage: number = 0;
@@ -57,8 +58,13 @@ export class StatusBarManager {
         this.updateDisplay();
     }
 
-    public setLoading(loading: boolean): void {
+    public setLoading(loading: boolean, text?: string): void {
         this.isLoading = loading;
+        if (text) {
+            this.loadingText = text;
+        } else {
+            this.loadingText = 'Loading...';
+        }
         this.updateDisplay();
     }
 
@@ -85,8 +91,8 @@ export class StatusBarManager {
         }
 
         if (this.isLoading) {
-            this.statusBarItem.text = '$(sync~spin) Inline: Loading...';
-            this.statusBarItem.tooltip = 'Inline is loading model...';
+            this.statusBarItem.text = `$(sync~spin) Inline: ${this.loadingText}`;
+            this.statusBarItem.tooltip = 'Inline is generating response...';
             this.statusBarItem.backgroundColor = undefined;
             return;
         }

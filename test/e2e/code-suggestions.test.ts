@@ -1,17 +1,17 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import * as path from 'path';
+import { activateExtension, createTestDocument, sleep, getExtension } from '../helpers/test-utils';
 
 suite('Code Suggestions E2E Test', () => {
     const extensionId = 'inline.inline';
     let extension: vscode.Extension<any>;
 
     suiteSetup(async () => {
-        extension = vscode.extensions.getExtension(extensionId)!;
-        await extension.activate();
+        await activateExtension();
+        extension = getExtension()!;
 
         // Wait for model warmup if enabled
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await sleep(3000);
     });
 
     const languages = [
@@ -33,14 +33,18 @@ suite('Code Suggestions E2E Test', () => {
 
             // Move cursor to end
             const position = new vscode.Position(doc.lineCount - 1, lang.trigger.length);
-            editor.selection = new vscode.Selection(position, position);
+            // Trigger completion directly via provider
+            const ext = getExtension();
+            const api = ext?.exports; // specific to how extension exports API
+            const provider = api.completionProvider;
+            
+            const context: vscode.InlineCompletionContext = {
+                triggerKind: vscode.InlineCompletionTriggerKind.Invoke,
+                selectedCompletionInfo: undefined
+            };
+            const token = new vscode.CancellationTokenSource().token;
 
-            // Trigger completion
-            const result = await vscode.commands.executeCommand<vscode.InlineCompletionList>(
-                'vscode.executeInlineCompletionProvider',
-                doc.uri,
-                position
-            );
+            const result = await provider.provideInlineCompletionItems(doc, position, context, token);
 
             // We might not get a result if no model is loaded or if it's too slow,
             // but we should at least verify the provider didn't crash and returned a valid object (or undefined)

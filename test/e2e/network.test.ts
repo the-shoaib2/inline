@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { activateExtension, sleep } from '../helpers/test-utils';
+import { activateExtension, sleep, getExtension } from '../helpers/test-utils';
 
 suite('Network Detection E2E Tests', () => {
   
@@ -71,11 +71,17 @@ suite('Network Detection E2E Tests', () => {
     });
     
     const position = new vscode.Position(1, 0);
-    const completions = await vscode.commands.executeCommand<vscode.InlineCompletionList>(
-      'vscode.executeInlineCompletionItemProvider',
-      document.uri,
-      position
-    );
+    const ext = getExtension();
+    const api = ext?.exports;
+    const provider = api.completionProvider;
+    
+    const context: vscode.InlineCompletionContext = {
+        triggerKind: vscode.InlineCompletionTriggerKind.Invoke,
+        selectedCompletionInfo: undefined
+    };
+    const token = new vscode.CancellationTokenSource().token;
+    
+    const completions = await provider.provideInlineCompletionItems(document, position, context, token);
     
     assert.ok(completions !== undefined, 'Completions work in offline mode');
     
