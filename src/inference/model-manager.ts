@@ -51,10 +51,33 @@ export class ModelManager {
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.logger = new Logger('ModelManager');
-        this.modelsDirectory = path.join(os.homedir(), '.inline', 'models');
+        
+        // Fix: Read modelPath from configuration
+        const config = vscode.workspace.getConfiguration('inline');
+        const customPath = config.get<string>('modelPath');
+        
+        if (customPath && customPath.trim().length > 0) {
+            this.modelsDirectory = customPath;
+        } else {
+            this.modelsDirectory = path.join(os.homedir(), '.inline', 'models');
+        }
+        
         this.inferenceEngine = new LlamaInference();
         this.initializeModelsDirectory();
         this.loadAvailableModels();
+        
+        // Listen for configuration changes
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('inline.modelPath')) {
+                const newConfig = vscode.workspace.getConfiguration('inline');
+                const newPath = newConfig.get<string>('modelPath');
+                if (newPath && newPath !== this.modelsDirectory) {
+                    this.modelsDirectory = newPath;
+                    this.initializeModelsDirectory();
+                    this.refreshModels();
+                }
+            }
+        });
     }
 
     private async initializeModelsDirectory(): Promise<void> {
@@ -68,67 +91,24 @@ export class ModelManager {
     }
 
     private async loadAvailableModels(): Promise<void> {
-        const models: ModelInfo[] = [
-            {
-                id: 'codegemma:2b',
-                name: 'CodeGemma 2B',
-                size: 1.6 * 1024 * 1024 * 1024, // 1.6GB
-                description: 'Fast and efficient model for Python/JavaScript',
-                languages: ['python', 'javascript', 'typescript'],
-                requirements: { vram: 2, ram: 4, cpu: true, gpu: false },
-                isDownloaded: false,
-                architecture: 'gemma',
-                contextWindow: 8192
-            },
-            {
-                id: 'stablecode:3b',
-                name: 'StableCode 3B',
-                size: 3.0 * 1024 * 1024 * 1024, // 3GB
-                description: 'Multi-language support with good performance',
-                languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go'],
-                requirements: { vram: 4, ram: 6, cpu: true, gpu: false },
-                isDownloaded: false,
-                architecture: 'stablelm',
-                contextWindow: 16384
-            },
-            {
-                id: 'deepseek-coder:6.7b',
-                name: 'DeepSeek Coder 6.7B',
-                size: 6.7 * 1024 * 1024 * 1024, // 6.7GB
-                description: 'Excellent for complex patterns and scientific computing',
-                languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go', 'rust'],
-                requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false,
-                architecture: 'llama',
-                contextWindow: 16384
-            },
-            {
-                id: 'starcoder2:7b',
-                name: 'StarCoder2 7B',
-                size: 7.0 * 1024 * 1024 * 1024, // 7GB
-                description: 'Strong across multiple programming languages',
-                languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go', 'rust', 'php'],
-                requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false,
-                architecture: 'starcoder2',
-                contextWindow: 16384
-            },
-            {
-                id: 'codellama:7b',
-                name: 'CodeLlama 7B',
-                size: 7.0 * 1024 * 1024 * 1024, // 7GB
-                description: 'Meta\'s proven model for enterprise patterns',
-                languages: ['python', 'javascript', 'typescript', 'cpp', 'java', 'go'],
-                requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
-                isDownloaded: false,
-                architecture: 'llama',
-                contextWindow: 16384
+        try {
+            // Load from external JSON registry
+            const registryPath = path.join(this.context.extensionPath, 'src', 'resources', 'models.json');
+            
+            if (fs.existsSync(registryPath)) {
+                const content = fs.readFileSync(registryPath, 'utf8');
+                const models = JSON.parse(content) as ModelInfo[];
+                
+                models.forEach(model => {
+                    this.availableModels.set(model.id, model);
+                });
+            } else {
+                this.logger.warn(`Models registry not found at ${registryPath}`);
+                // Fallback models could be defined here if critical
             }
-        ];
-
-        models.forEach(model => {
-            this.availableModels.set(model.id, model);
-        });
+        } catch (error) {
+            this.logger.error(`Failed to load model registry: ${error}`);
+        }
 
         // Await the check so imported models are registered before we try to restore one
         await this.checkDownloadedModels();

@@ -1,0 +1,117 @@
+[
+    {
+        "id": "codegemma:2b",
+        "name": "CodeGemma 2B",
+        "size": 1717986918,
+        "description": "Fast and efficient model for Python/JavaScript",
+        "languages": [
+            "python",
+            "javascript",
+            "typescript"
+        ],
+        "requirements": {
+            "vram": 2,
+            "ram": 4,
+            "cpu": true,
+            "gpu": false
+        },
+        "isDownloaded": false,
+        "architecture": "gemma",
+        "contextWindow": 8192
+    },
+    {
+        "id": "stablecode:3b",
+        "name": "StableCode 3B",
+        "size": 3221225472,
+        "description": "Multi-language support with good performance",
+        "languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "cpp",
+            "java",
+            "go"
+        ],
+        "requirements": {
+            "vram": 4,
+            "ram": 6,
+            "cpu": true,
+            "gpu": false
+        },
+        "isDownloaded": false,
+        "architecture": "stablelm",
+        "contextWindow": 16384
+    },
+    {
+        "id": "deepseek-coder:6.7b",
+        "name": "DeepSeek Coder 6.7B",
+        "size": 7194070220,
+        "description": "Excellent for complex patterns and scientific computing",
+        "languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "cpp",
+            "java",
+            "go",
+            "rust"
+        ],
+        "requirements": {
+            "vram": 8,
+            "ram": 12,
+            "cpu": true,
+            "gpu": true
+        },
+        "isDownloaded": false,
+        "architecture": "llama",
+        "contextWindow": 16384
+    },
+    {
+        "id": "starcoder2:7b",
+        "name": "StarCoder2 7B",
+        "size": 7516192768,
+        "description": "Strong across multiple programming languages",
+        "languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "cpp",
+            "java",
+            "go",
+            "rust",
+            "php"
+        ],
+        "requirements": {
+            "vram": 8,
+            "ram": 12,
+            "cpu": true,
+            "gpu": true
+        },
+        "isDownloaded": false,
+        "architecture": "starcoder2",
+        "contextWindow": 16384
+    },
+    {
+        "id": "codellama:7b",
+        "name": "CodeLlama 7B",
+        "size": 7516192768,
+        "description": "Meta's proven model for enterprise patterns",
+        "languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "cpp",
+            "java",
+            "go"
+        ],
+        "requirements": {
+            "vram": 8,
+            "ram": 12,
+            "cpu": true,
+            "gpu": true
+        },
+        "isDownloaded": false,
+        "architecture": "llama",
+        "contextWindow": 16384
+    }
+]

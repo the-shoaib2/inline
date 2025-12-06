@@ -138,9 +138,9 @@ describe('ContextEngine Unit Tests', () => {
             cursorRules: undefined
         };
         const prompt = await engine.generatePrompt(context as CodeContext);
-        expect(prompt).to.include('<PRE>');
+        expect(prompt).to.include('<|fim_prefix|>');
         expect(prompt).to.include('prefix');
-        expect(prompt).to.include('<SUF>suffix<MID>');
+        expect(prompt).to.include('<|fim_suffix|>suffix<|fim_middle|>');
     });
 
     it('should use StarCoder FIM template', async () => {

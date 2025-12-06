@@ -125,7 +125,10 @@ export enum UserInteractionEventType {
     FOCUS_LOST = 'user.focus.lost',
     SHORTCUT_USED = 'user.shortcut',
     CONTEXT_MENU = 'user.contextmenu',
-    COMMAND_EXECUTED = 'user.command'
+    COMMAND_EXECUTED = 'user.command',
+    TERMINAL_COMMAND_EXECUTED = 'user.terminal.command',
+    TERMINAL_SESSION_STARTED = 'user.terminal.started',
+    TERMINAL_SESSION_ENDED = 'user.terminal.ended'
 }
 
 export interface KeystrokePattern {

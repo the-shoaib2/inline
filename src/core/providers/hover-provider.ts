@@ -27,7 +27,11 @@ export class InlineHoverProvider implements vscode.HoverProvider {
         markdown.isTrusted = true;
         
         // Command link
-        markdown.appendMarkdown('[✨ AI Options...](command:inline.showOptions "Fix, Optimize, or Explain")');
+        markdown.appendMarkdown('### ✨ AI Smart Actions\n\n');
+        markdown.appendMarkdown('[⚡ Optimize](command:inline.optimizeCode "Optimize selected code") | ');
+        markdown.appendMarkdown('[🛠️ Refactor](command:inline.refactorCode "Refactor selected code") | ');
+        markdown.appendMarkdown('[📝 Format](command:inline.formatCode "Format selected code") | ');
+        markdown.appendMarkdown('[💡 Explain](command:inline.explainCode "Explain selected code")');
 
         return new vscode.Hover(markdown);
     }

@@ -8,6 +8,7 @@ import { ModelManager } from '../../inference/model-manager';
 import { Logger } from '../../system/logger';
 import { TerminalAssistant } from '../../features/terminal/terminal-assistant';
 import { RefactoringEngine } from '../../features/code-analysis/refactoring-engine';
+import { ContextEngine } from '../context/context-engine';
 
 export class AICommandsProvider {
     private testGenerator: TestGenerator;
@@ -19,11 +20,13 @@ export class AICommandsProvider {
     private refactoringEngine: RefactoringEngine;
     private logger: Logger;
     private modelManager: ModelManager;
+    private contextEngine?: ContextEngine;
 
-    constructor(modelManager: ModelManager) {
+    constructor(modelManager: ModelManager, contextEngine?: ContextEngine) {
         const inference = modelManager.getInferenceEngine();
         
         this.modelManager = modelManager;
+        this.contextEngine = contextEngine;
         this.testGenerator = new TestGenerator(inference);
         this.docGenerator = new DocGenerator(inference);
         this.errorExplainer = new ErrorExplainer(inference);
@@ -54,6 +57,13 @@ export class AICommandsProvider {
         }
         
         return true;
+    }
+
+    /**
+     * Set Context Engine
+     */
+    public setContextEngine(contextEngine: ContextEngine): void {
+        this.contextEngine = contextEngine;
     }
 
     /**
@@ -128,16 +138,134 @@ export class AICommandsProvider {
 
         // Refactoring Commands
         context.subscriptions.push(
-            vscode.commands.registerCommand('inline.refactorCode', async () => {
-                await this.handleRefactorCode();
-            })
-        );
-
-        context.subscriptions.push(
             vscode.commands.registerCommand('inline.suggestRefactorings', async () => {
                 await this.handleSuggestRefactorings();
             })
         );
+
+        // NEW: Smart Code Actions (Fixing, Optimizing, Refactoring, Formatting, Explaining)
+        context.subscriptions.push(
+            vscode.commands.registerCommand('inline.fixCode', async (document, range, diagnostics) => {
+                await this.handleSmartAction(document, range, 'fix', diagnostics);
+            }),
+            vscode.commands.registerCommand('inline.optimizeCode', async (document, range) => {
+                await this.handleSmartAction(document, range, 'optimize');
+            }),
+            vscode.commands.registerCommand('inline.refactorCode', async (document, range) => {
+                await this.handleSmartAction(document, range, 'refactor');
+            }),
+             vscode.commands.registerCommand('inline.formatCode', async (document, range) => {
+                await this.handleSmartAction(document, range, 'format');
+            }),
+             vscode.commands.registerCommand('inline.explainCode', async (document, range) => {
+                await this.handleExplainCode(document, range);
+            })
+        );
+    }
+
+    /**
+     * Handle Smart Actions (Fix, Optimize, Refactor, Format)
+     */
+    private async handleSmartAction(
+        document: vscode.TextDocument, 
+        range: vscode.Range, 
+        type: 'fix' | 'optimize' | 'refactor' | 'format', 
+        diagnostics?: vscode.Diagnostic[]
+    ): Promise<void> {
+        if (!this.checkModelStatus()) return;
+
+        try {
+            const selectedCode = document.getText(range);
+            let instruction = '';
+            let title = '';
+            
+            // Build Context Actions
+            let contextContext = '';
+            if (this.contextEngine) {
+                const context = await this.contextEngine.buildContext(document, range.start);
+                // We create a lightweight context summary
+                 contextContext = `
+Context:
+- Language: ${context.language}
+- Project: ${context.project}
+${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i => i.module).join(', ') : ''}
+`;
+            }
+
+            switch (type) {
+                case 'fix':
+                    const errorMessages = diagnostics?.map(d => d.message).join('\n') || 'Unknown error';
+                    instruction = `Fix the following code which has these errors:\n${errorMessages}\n\n${contextContext}\nProvide only the fixed code, no explanation.`;
+                    title = 'Fixing code...';
+                    break;
+                case 'optimize':
+                    instruction = `Optimize this code for performance and readability.\n${contextContext}\nProvide only the optimized code, no explanation.`;
+                    title = 'Optimizing code...';
+                    break;
+                case 'refactor':
+                    instruction = `Refactor this code to improve structure and maintainability without changing behavior.\n${contextContext}\nProvide only the refactored code, no explanation.`;
+                    title = 'Refactoring code...';
+                    break;
+                case 'format':
+                    instruction = `Format this code to follow standard coding conventions (indentation, spacing, etc.).\n${contextContext}\nProvide only the formatted code, no explanation.`;
+                    title = 'Formatting code...';
+                    break;
+            }
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: title,
+                cancellable: false
+            }, async () => {
+                const inference = this.modelManager.getInferenceEngine();
+                const result = await inference.generateImprovement(selectedCode, instruction);
+                
+                // Clean result
+                let cleanResult = result.replace(/```[\w]*\n?|```$/g, '').trim();
+                
+                if (cleanResult) {
+                    const edit = new vscode.WorkspaceEdit();
+                    edit.replace(document.uri, range, cleanResult);
+                    await vscode.workspace.applyEdit(edit);
+                }
+            });
+        } catch (error: any) {
+             vscode.window.showErrorMessage(`Failed to ${type} code: ${error.message}`);
+             this.logger.error(`Smart action ${type} failed: ${error}`);
+        }
+    }
+
+      /**
+     * Explain Code
+     */
+    private async handleExplainCode(document: vscode.TextDocument, range: vscode.Range): Promise<void> {
+         if (!this.checkModelStatus()) return;
+
+         try {
+            const selectedCode = document.getText(range);
+            let contextContext = '';
+            
+            if (this.contextEngine) {
+                 const context = await this.contextEngine.buildContext(document, range.start);
+                 contextContext = `\nContext:\n- Variables in scope: ${context.variables.map(v => v.name).join(', ')}`;
+            }
+
+            const instruction = `Explain what this code does in simple terms.${contextContext}`;
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Explaining code...',
+                cancellable: false
+            }, async () => {
+                const inference = this.modelManager.getInferenceEngine();
+                const result = await inference.generateImprovement(selectedCode, instruction, { maxTokens: 512 });
+                
+                const doc = await vscode.workspace.openTextDocument({ content: result, language: 'markdown' });
+                await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
+            });
+        } catch (error: any) {
+            vscode.window.showErrorMessage(`Failed to explain code: ${error.message}`);
+        }
     }
 
     /**

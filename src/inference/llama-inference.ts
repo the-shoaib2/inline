@@ -46,67 +46,79 @@ export class LlamaInference {
     }
 
     // Comprehensive FIM token patterns for filtering
-    private static readonly FIM_TOKEN_PATTERNS = [
-        // Standard angle bracket formats
-        /\u003c\|?fim_prefix\|?\u003e/gi,
-        /\u003c\|?fim_suffix\|?\u003e/gi,
-        /\u003c\|?fim_middle\|?\u003e/gi,
-        /\u003c\|?fim_end\|?\u003e/gi,
-        /\u003c\|?fim_begin\|?\u003e/gi,
-        /\u003c\|?fim_hole\|?\u003e/gi,
-        /\u003c\|?file_separator\|?\u003e/gi,
-        /\u003c\|?endoftext\|?\u003e/gi,
+    // Optimized single regex for performance
+    public static readonly FIM_TOKEN_REGEX = new RegExp([
+        // Standard angle bracket formats with optional spaces
+        '\\u003c\\s*\\|?\\s*fim_prefix\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*fim_suffix\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*fim_middle\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*fim_end\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*fim_begin\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*fim_hole\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*file_separator\\s*\\|?\\s*\\u003e',
+        '\\u003c\\s*\\|?\\s*endoftext\\s*\\|?\\s*\\u003e',
         
         // CodeLlama style
-        /\u003cPRE\u003e/gi,
-        /\u003cSUF\u003e/gi,
-        /\u003cMID\u003e/gi,
-        /\u003cEND\u003e/gi,
-        /\u003cEOT\u003e/gi,
-        
-        // With spaces
-        /\u003c\s*PRE\s*\u003e/gi,
-        /\u003c\s*SUF\s*\u003e/gi,
-        /\u003c\s*MID\s*\u003e/gi,
-        /\u003c\s*END\s*\u003e/gi,
+        '\\u003c\\s*PRE\\s*\\u003e',
+        '\\u003c\\s*SUF\\s*\\u003e',
+        '\\u003c\\s*MID\\s*\\u003e',
+        '\\u003c\\s*END\\s*\\u003e',
+        '\\u003c\\s*EOT\\s*\\u003e',
         
         // Mistral/Codestral style
-        /\[PREFIX\]/gi,
-        /\[SUFFIX\]/gi,
-        /\[MIDDLE\]/gi,
+        '\\[\\s*PREFIX\\s*\\]',
+        '\\[\\s*SUFFIX\\s*\\]',
+        '\\[\\s*MIDDLE\\s*\\]',
         
-        // Escaped versions (backslash before \u003c)
-        /\\\u003c\|?fim_prefix\|?\u003e/gi,
-        /\\\u003c\|?fim_suffix\|?\u003e/gi,
-        /\\\u003c\|?fim_middle\|?\u003e/gi,
-        /\\\u003cPRE\u003e/gi,
-        /\\\u003cSUF\u003e/gi,
-        /\\\u003cMID\u003e/gi,
+        // CRITICAL: Curly brace pipe format (DeepSeek, Qwen, etc.)
+        '\\{\\s*\\|\\s*\\}',                          // {|}
+        '\\{\\s*\\|\\s*fim\\s*\\|\\s*\\}',            // {|fim|}  ← THE BUG!
+        '\\{\\s*\\|\\s*fim_prefix\\s*\\|\\s*\\}',     // {|fim_prefix|}
+        '\\{\\s*\\|\\s*fim_suffix\\s*\\|\\s*\\}',     // {|fim_suffix|}
+        '\\{\\s*\\|\\s*fim_middle\\s*\\|\\s*\\}',     // {|fim_middle|}
+        '\\{\\s*\\|\\s*fim_end\\s*\\|\\s*\\}',        // {|fim_end|}
+        '\\{\\s*\\|\\s*fim_begin\\s*\\|\\s*\\}',      // {|fim_begin|}
+        '\\{\\s*\\|\\s*fim_hole\\s*\\|\\s*\\}',       // {|fim_hole|}
         
-        // Any remaining FIM-like patterns
-        /\u003c[^\u003e]*fim[^\u003e]*\u003e/gi,
-        /\u003c[^\u003e]*PRE[^\u003e]*\u003e/gi,
-        /\u003c[^\u003e]*SUF[^\u003e]*\u003e/gi,
-        /\u003c[^\u003e]*MID[^\u003e]*\u003e/gi,
+        // Catch-all for any {|...|} pattern
+        '\\{\\s*\\|[^}]*\\|\\s*\\}',                 // {|anything|}
         
-        // AGGRESSIVE: Partial/malformed tokens (NEW)
-        /\u003c\|?fim_/gi,  // Catches incomplete tokens like "\u003c|fim_"
-        /\|?fim_prefix/gi,  // Catches tokens without closing
-        /\|?fim_suffix/gi,
-        /\|?fim_middle/gi,
-        /\u003c\|[^\u003e]*/gi,  // Catches any "\u003c|" pattern without proper closing
-        /\|\u003e/gi,  // Catches orphaned closing pipes
+        // Standalone FIM keywords with pipes (simpler patterns without lookbehind/lookahead)
+        '\\bprefix\\s*\\|',                          // "prefix|" or "prefix |"
+        '\\bsuffix\\s*\\|',                          // "suffix|" or "suffix |"
+        '\\bmiddle\\s*\\|',                          // "middle|" or "middle |"
+        '\\|\\s*prefix\\b',                          // "|prefix" or "| prefix"
+        '\\|\\s*suffix\\b',                          // "|suffix" or "| suffix"
+        '\\|\\s*middle\\b',                          // "|middle" or "| middle"
         
-        // Comment-style FIM tokens (sometimes models output these)
-        /\/\/\s*\u003c\|?fim_/gi,
-        /#\s*\u003c\|?fim_/gi,
+        // Orphaned pipes (aggressive cleanup)
+        '\\|\\s*\\|',                                // "||"
         
-        // Repeated patterns (NEW - catches your specific case)
-        /(\u003c\|?fim_prefix\|?\u003e){2,}/gi,  // Multiple consecutive fim_prefix
-        /(\u003cPRE\u003e){2,}/gi,  // Multiple consecutive PRE
-        /(\u003cSUF\u003e){2,}/gi,
-        /(\u003cMID\u003e){2,}/gi
-    ];
+        // Escaped versions
+        '\\\\\\u003c\\s*\\|?\\s*fim_prefix\\s*\\|?\\s*\\u003e',
+        '\\\\\\u003c\\s*\\|?\\s*fim_suffix\\s*\\|?\\s*\\u003e',
+        '\\\\\\u003c\\s*\\|?\\s*fim_middle\\s*\\|?\\s*\\u003e',
+        '\\\\\\u003c\\s*PRE\\s*\\u003e',
+        '\\\\\\u003c\\s*SUF\\s*\\u003e',
+        '\\\\\\u003c\\s*MID\\s*\\u003e',
+        
+        // Partial/malformed tokens (Aggressive)
+        '\\u003c\\s*\\|?\\s*fim_',
+        '\\|?\\s*fim_prefix',
+        '\\|?\\s*fim_suffix',
+        '\\|?\\s*fim_middle',
+        '\\u003c\\s*\\|[^\\u003e]*',
+        '\\|\\s*\\u003e',
+        
+        // Comment-style
+        '\\/\\/\\s*\\u003c\\s*\\|?\\s*fim_',
+        '#\\s*\\u003c\\s*\\|?\\s*fim_',
+        
+        // Curly brace variations in comments
+        '\\/\\/\\s*\\{\\s*\\|',
+        '#\\s*\\{\\s*\\|'
+    ].join('|'), 'gi');
+
 
     private static _llamaInstance: any = null;
 
@@ -332,17 +344,16 @@ export class LlamaInference {
             const maxRepeatWindow = 20; // Increased window for better pattern detection
             const lineFingerprints = new Map<number, string>(); // Track line fingerprints
 
-            // Helper function to check if text contains FIM tokens
-            const containsFIMToken = (text: string): boolean => {
-                return LlamaInference.FIM_TOKEN_PATTERNS.some(pattern => {
-                    // Reset regex lastIndex to avoid state issues
-                    pattern.lastIndex = 0;
-                    return pattern.test(text);
-                });
-            };
-
             // Stream tokens and build completion
+            this.logger.info('Entering token generation loop...');
+            let loopIterations = 0;
+            
             for await (const token of stream) {
+                loopIterations++;
+                if (loopIterations === 1) {
+                    this.logger.info('First token received from stream');
+                }
+                
                 // Check for cancellation
                 if (cancellationToken?.isCancellationRequested) {
                     this.logger.info('Completion cancelled by user');
@@ -350,17 +361,15 @@ export class LlamaInference {
                 }
 
                 if (tokensGenerated >= maxTokens) {
+                    this.logger.info(`Max tokens reached: ${maxTokens}`);
                     break;
                 }
 
                 const text = this.model.detokenize([token]);
                 
-                // Filter out FIM special tokens
-                const trimmedText = text.trim();
-                if (containsFIMToken(trimmedText)) {
-                    this.logger.info(`Filtered out FIM token: ${trimmedText}`);
-                    continue;
-                }
+                // IMPORTANT: Do NOT filter FIM tokens here at token level!
+                // They will be filtered in post-processing after generation completes.
+                // Filtering individual tokens can break the generation flow.
                 
                 completion += text;
                 tokensGenerated++;
@@ -463,6 +472,128 @@ export class LlamaInference {
                     }
                 }
 
+                // METADATA REPETITION CHECK (Phase 12)
+                // If the model starts repeating the same metadata (e.g., "File: test.ts\nFile: test.ts"), stop
+                if (completion.includes('File:') && completion.split('File:').length > 3) {
+                    this.logger.warn('Metadata repetition detected. Stopping generation.');
+                    break;
+                }
+
+                // EXACT DUPLICATE DETECTION (Phase 12)
+                // Track last N lines to detect exact duplicates
+                if (text === '\n') {
+                    const currentLine = completion.split('\n').pop() || '';
+                    if (currentLine.trim().length > 0) {
+                        recentLines.push(currentLine);
+                        if (recentLines.length > maxRepeatWindow) {
+                            recentLines.shift();
+                        }
+
+                        // Check for exact duplicates
+                        const lineCount = recentLines.filter(l => l === currentLine).length;
+                        if (lineCount >= 3) {
+                            this.logger.warn(`Exact duplicate line detected (${lineCount} times): "${currentLine.substring(0, 50)}..."`);
+                            break;
+                        }
+                    }
+                }
+
+                // NEAR-DUPLICATE DETECTION (Phase 12)
+                // Detect lines that are very similar (e.g., only differ by whitespace or minor chars)
+                if (text === '\n' && recentLines.length > 2) {
+                    const lastLine = recentLines[recentLines.length - 1];
+                    const secondLastLine = recentLines[recentLines.length - 2];
+                    
+                    if (lastLine && secondLastLine) {
+                        const similarity = this.duplicationDetector.calculateSimilarity(lastLine, secondLastLine);
+                        if (similarity > 0.9) {
+                            this.logger.warn(`Near-duplicate lines detected (${(similarity * 100).toFixed(0)}% similar)`);
+                            break;
+                        }
+                    }
+                }
+
+                // DISTRIBUTED PATTERN DETECTION (Phase 12)
+                // Detect patterns like "A\nB\nA\nB\nA\nB"
+                if (recentLines.length >= 6) {
+                    const last6 = recentLines.slice(-6);
+                    if (last6[0] === last6[2] && last6[2] === last6[4] &&
+                        last6[1] === last6[3] && last6[3] === last6[5]) {
+                        this.logger.warn('Distributed pattern repetition detected (A-B-A-B-A-B)');
+                        break;
+                    }
+                }
+
+                // BLOCK-LEVEL DEDUPLICATION (Phase 12)
+                // Detect when the same block of code repeats
+                if (completion.length > 200) {
+                    const last100 = completion.slice(-100);
+                    const before100 = completion.slice(-200, -100);
+                    
+                    if (last100.trim() === before100.trim() && last100.trim().length > 20) {
+                        this.logger.warn('Block-level repetition detected');
+                        break;
+                    }
+                }
+
+                // CRITICAL: AGGRESSIVE WORD-LEVEL REPETITION DETECTION
+                // Detect patterns like "prefixprefix|prefixprefix|prefix..."
+                if (completion.length > 50) {
+                    const last50 = completion.slice(-50);
+                    
+                    // Check for immediate word repetition (e.g., "prefixprefix", "suffixsuffix")
+                    // RELAXED: Only trigger on 5+ repetitions to avoid false positives
+                    const wordRepeatPattern = /(\w{4,})\1{4,}/;  // Word repeated 5+ times (was 3+)
+                    if (wordRepeatPattern.test(last50)) {
+                        const match = last50.match(wordRepeatPattern);
+                        this.logger.warn(`Aggressive word repetition detected: "${match?.[0]?.substring(0, 30)}..."`);
+                        break;
+                    }
+                    
+                    // Check for FIM keyword loops specifically
+                    // RELAXED: Only trigger on 3+ matches (was 2+)
+                    const fimKeywordLoop = /(prefix|suffix|middle|fim)(\||>|<|\s){0,2}\1/gi;
+                    const fimMatches = last50.match(fimKeywordLoop);
+                    if (fimMatches && fimMatches.length >= 3) {  // Changed from 2 to 3
+                        this.logger.warn(`FIM keyword loop detected: ${fimMatches.length} repetitions`);
+                        break;
+                    }
+                    
+                    // Check for character-level loops (e.g., ">>>>>>>>")
+                    // RELAXED: Increased threshold from 10 to 15 characters
+                    const charRepeatPattern = /(.)\\1{14,}/;  // Same char 15+ times (was 10+)
+                    if (charRepeatPattern.test(last50)) {
+                        const match = last50.match(charRepeatPattern);
+                        this.logger.warn(`Character repetition loop detected: "${match?.[0]?.substring(0, 20)}..."`);
+                        break;
+                    }
+                }
+
+                // INTRA-LINE LOOP DETECTION (Token Level)
+                // Check for repetitive tokens within the current line (before newline)
+                const currentLineContent = completion.split('\n').pop() || '';
+                // RELAXED: Increased threshold from 30 to 50 characters
+                if (currentLineContent.length > 50) {  // Changed from 30 to 50
+                    // Split into words and check for repetition
+                    const words = currentLineContent.split(/\s+/);
+                    const wordCounts = new Map<string, number>();
+                    
+                    for (const word of words) {
+                        // Only count meaningful words (not single chars or very short)
+                        if (word.trim().length > 2) {  // Changed from >1 to >2
+                            wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+                        }
+                    }
+                    
+                    // RELAXED: If any word appears 5+ times in the same line (was 3+)
+                    for (const [word, count] of wordCounts.entries()) {
+                        if (count >= 5) {  // Changed from 3 to 5
+                            this.logger.warn(`Intra-line loop detected: "${word}" appears ${count} times`);
+                            break;
+                        }
+                    }
+                }
+                
                 // Call streaming callback if provided
                 if (onToken) {
                     onToken(text, tokensGenerated);
@@ -474,7 +605,11 @@ export class LlamaInference {
                 }
             }
 
-            this.logger.info(`Completion generated: ${tokensGenerated} tokens`);
+            this.logger.info(`Token generation loop completed. Iterations: ${loopIterations}, Tokens: ${tokensGenerated}`);
+            
+            if (loopIterations === 0) {
+                this.logger.warn('⚠️  Stream produced NO tokens! Model may not be generating.');
+            }
             
             // Phase 9: DONE - Do NOT dispose sequence here. 
             // Keep it alive for the next request to benefit from KV cache.
@@ -484,14 +619,21 @@ export class LlamaInference {
             // Clean up any remaining FIM tokens from the final completion using comprehensive patterns
             let cleanedCompletion = completion;
             
-            // PASS 1: Apply all FIM token patterns from the static constant
-            for (const pattern of LlamaInference.FIM_TOKEN_PATTERNS) {
-                // Reset regex lastIndex to avoid state issues with global flags
-                pattern.lastIndex = 0;
-                cleanedCompletion = cleanedCompletion.replace(pattern, '');
-            }
+            // PASS 1: Apply all FIM token patterns from the static regex
+            cleanedCompletion = cleanedCompletion.replace(LlamaInference.FIM_TOKEN_REGEX, '');
             
-            // PASS 2: Line-by-line aggressive filtering (catches distributed tokens)
+            // PASS 2: Clean up orphaned pipes and curly braces (artifacts from FIM token removal)
+            cleanedCompletion = cleanedCompletion.replace(/\|\s*\|/g, '');  // Remove ||
+            cleanedCompletion = cleanedCompletion.replace(/\{\s*\}/g, '');  // Remove {}
+            cleanedCompletion = cleanedCompletion.replace(/\{\s*\|/g, '');  // Remove {|
+            cleanedCompletion = cleanedCompletion.replace(/\|\s*\}/g, '');  // Remove |}
+            
+            // PASS 3: Remove standalone orphaned pipes (but preserve valid code)
+            // Only remove pipes that are clearly FIM artifacts (surrounded by whitespace or at line boundaries)
+            cleanedCompletion = cleanedCompletion.replace(/^\s*\|\s*$/gm, '');  // Line with only |
+            cleanedCompletion = cleanedCompletion.replace(/\s+\|\s+/g, ' ');    // Isolated | between spaces
+            
+            // PASS 4: Line-by-line aggressive filtering (catches distributed tokens)
             const lines = cleanedCompletion.split('\n');
             const cleanedLines = lines.map(line => {
                 let cleanLine = line;
@@ -511,15 +653,15 @@ export class LlamaInference {
             });
             cleanedCompletion = cleanedLines.join('\n');
             
-            // PASS 3: Additional cleanup for edge cases
+            // PASS 5: Additional cleanup for edge cases
             cleanedCompletion = cleanedCompletion.replace(/obj\\['middle'\\]/g, ''); // Specific fix for user report
             cleanedCompletion = cleanedCompletion.replace(/\\\\+\u003c/g, '\u003c'); // Remove escaped backslashes before \u003c
             
-            // PASS 4: Remove any remaining angle bracket artifacts
+            // PASS 6: Remove any remaining angle bracket artifacts
             cleanedCompletion = cleanedCompletion.replace(/\u003c[|]+/g, ''); // Orphaned \u003c|
             cleanedCompletion = cleanedCompletion.replace(/[|]+\u003e/g, ''); // Orphaned |\u003e
             
-            // PASS 5: Clean up excessive whitespace/newlines created by token removal
+            // PASS 7: Clean up excessive whitespace/newlines created by token removal
             cleanedCompletion = cleanedCompletion.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
             cleanedCompletion = cleanedCompletion.replace(/^[\s\n]+/, ''); // Remove leading whitespace
             

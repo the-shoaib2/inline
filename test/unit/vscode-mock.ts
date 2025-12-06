@@ -96,6 +96,12 @@ export class CodeAction {
     constructor(public title: string, public kind?: CodeActionKind) {}
 }
 
+export enum DiagnosticSeverity {
+    Error = 0,
+    Warning = 1,
+    Information = 2,
+    Hint = 3
+}
 
 // Keep default if needed by some other test, but usually named is better
 export default {
@@ -109,5 +115,6 @@ export default {
     ThemeColor,
     InlineCompletionTriggerKind,
     CodeActionKind,
-    CodeAction
+    CodeAction,
+    DiagnosticSeverity
 };

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ModelManager, ModelInfo } from '../../inference/model-manager';
+import { LlamaInference } from '../../inference/llama-inference';
 import { ContextEngine, CodeContext } from '../context/context-engine';
 import { StatusBarManager } from '../../ui/status-bar-manager';
 import { NetworkDetector } from '../../network/network-detector';
@@ -146,6 +147,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private currentStreamingTokens: string = '';
     private streamingCallback: ((tokens: string) => void) | null = null;
     
+    // NEW: Fast Cache Manager for L1/L2 caching
+    private fastCacheManager: any; // Will be imported from fast-cache-manager
+    
     constructor(
         modelManager: ModelManager,
         statusBarManager: StatusBarManager,
@@ -174,6 +178,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             minBlockSize: config.get<number>('deduplication.minBlockSize', 20),
             detectDistributed: config.get<boolean>('deduplication.detectDistributedRepetition', true)
         });
+
+        // NEW: Initialize fast cache manager
+        try {
+            const { FastCacheManager } = require('../cache/fast-cache-manager');
+            this.fastCacheManager = new FastCacheManager();
+        } catch (error) {
+            console.warn('[INLINE] FastCacheManager not available, using fallback caching');
+        }
 
         this.loadCacheFromDisk();
     }
@@ -672,10 +684,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Matches <TAG...> where TAG starts with uppercase
         cleaned = cleaned.replace(/<[A-Z][^>]*>/g, '');
 
-        // Phase 11: Remove FIM tokens explicitly (Aggressive)
-        // Matches < ... fim_... > or < ... PRE ... > with optional spaces/pipes
-        const fimRegex = /<[^>]*\b(?:PRE\b|SUF\b|MID\b|END\b|EOT\b|fim_|file_)[^>]*>/gi;
-        cleaned = cleaned.replace(fimRegex, '');
+        // Phase 11: Combined - Use shared optimized regex from Inference engine
+        // This acts as a secondary safety net if the model output them unexpectedly
+        cleaned = cleaned.replace(LlamaInference.FIM_TOKEN_REGEX, '');
+        
+        // Also clean specifics
         cleaned = cleaned.replace(/obj\['middle'\]/g, ''); // Specific fix for user report
         
         // 3. Remove leading newlines if excessive

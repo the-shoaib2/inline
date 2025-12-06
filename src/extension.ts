@@ -19,6 +19,11 @@ import { ProcessInfoDisplay } from './system/process-info-display';
 import { PerformanceTuner } from './system/performance-tuner';
 import { AICommandsProvider } from './core/providers/ai-commands-provider';
 import { EventTrackingManager, createEventTrackingManager } from './events/event-tracking-manager';
+import { CompilationManager } from './features/compilation/compilation-manager';
+import { BuildStateTracker } from './features/compilation/build-state-tracker';
+import { TriggerEngine } from './features/compilation/trigger-engine';
+import { CompilationSuggestionProvider } from './features/compilation/compilation-suggestion-provider';
+import { DependencyChecker } from './features/compilation/dependency-checker';
 
 let completionProvider: InlineCompletionProvider;
 let modelManager: ModelManager;
@@ -33,6 +38,11 @@ let errorHandler: ErrorHandler;
 let telemetryManager: TelemetryManager;
 let aiCommandsProvider: AICommandsProvider;
 let eventTrackingManager: EventTrackingManager;
+let compilationManager: CompilationManager;
+let buildStateTracker: BuildStateTracker;
+let triggerEngine: TriggerEngine;
+let compilationSuggestionProvider: CompilationSuggestionProvider;
+let dependencyChecker: DependencyChecker;
 
 export async function activate(context: vscode.ExtensionContext) {
     try {
@@ -121,7 +131,7 @@ export async function activate(context: vscode.ExtensionContext) {
         );
 
         // Register AI commands provider (NEW)
-        aiCommandsProvider = new AICommandsProvider(modelManager);
+        aiCommandsProvider = new AICommandsProvider(modelManager, completionProvider.getContextEngine());
         aiCommandsProvider.registerCommands(context);
 
         // Initialize event tracking system (NEW)
@@ -139,6 +149,43 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Set AI context tracker for completion provider
         completionProvider.setAIContextTracker(eventTrackingManager.getAIContextTracker());
+
+        // Initialize Compilation Features (NEW)
+        compilationManager = new CompilationManager();
+        context.subscriptions.push(compilationManager);
+
+        buildStateTracker = new BuildStateTracker();
+        context.subscriptions.push(buildStateTracker);
+
+        triggerEngine = new TriggerEngine(
+            compilationManager, 
+            buildStateTracker,
+            eventTrackingManager.getEventBus()
+        );
+        context.subscriptions.push(triggerEngine);
+
+        compilationSuggestionProvider = new CompilationSuggestionProvider(compilationManager, buildStateTracker);
+        context.subscriptions.push(compilationSuggestionProvider);
+        
+        // Register compilation code actions
+        context.subscriptions.push(
+            vscode.languages.registerCodeActionsProvider(
+                { pattern: '**' },
+                compilationSuggestionProvider,
+                { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+            )
+        );
+        
+        // Register manual trigger command
+        context.subscriptions.push(
+            vscode.commands.registerCommand('inline.triggerBuild', () => {
+                compilationManager.compile({ force: true });
+            })
+        );
+        
+        dependencyChecker = new DependencyChecker();
+        context.subscriptions.push(dependencyChecker);
+
 
         // Register commands
         registerCommands(context, modelManager);
@@ -357,133 +404,12 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
             telemetryManager.trackEvent('check_updates');
         }),
         
-        // --- Code Actions Commands ---
-
-        vscode.commands.registerCommand('inline.fixCode', async (document: vscode.TextDocument, range: vscode.Range, diagnostics: vscode.Diagnostic[]) => {
-            await handleValuesAction(document, range, 'fix', diagnostics);
-        }),
-
-
-        vscode.commands.registerCommand('inline.optimizeCode', async (document: vscode.TextDocument, range: vscode.Range) => {
-            await handleValuesAction(document, range, 'optimize');
-        }),
-
-        vscode.commands.registerCommand('inline.explainCode', async (document: vscode.TextDocument, range: vscode.Range) => {
-            await handleExplainAction(document, range);
-        }),
-        
-        vscode.commands.registerCommand('inline.showOptions', async () => {
-             const editor = vscode.window.activeTextEditor;
-             if (!editor) return;
-             
-             const selection = editor.selection;
-             if (selection.isEmpty) {
-                 vscode.window.showInformationMessage('Please select some code first.');
-                 return;
-             }
-             
-             const items = [
-                 { label: '$(sparkle) Fix Code', description: 'Find and fix errors', command: 'inline.fixCode' },
-                 { label: '$(zap) Optimize Selection', description: 'Improve performance/readability', command: 'inline.optimizeCode' },
-                 { label: '$(info) Explain Code', description: 'Explain how it works', command: 'inline.explainCode' }
-             ];
-             
-             const selected = await vscode.window.showQuickPick(items, {
-                 placeHolder: 'Select an AI action for the selected code'
-             });
-             
-            if (selected) {
-                 // Trigger the command with arguments
-                 if (selected.command === 'inline.fixCode') {
-                    // Get diagnostics for range
-                    const diagnostics = vscode.languages.getDiagnostics(editor.document.uri)
-                        .filter(d => d.range.intersection(selection));
-                    // Check if executeCommand is needed or handled by logic
-                    // Actually commands are registered with arguments, so we just call them directly
-                 }
-                 await vscode.commands.executeCommand(selected.command, editor.document, selection);
-             }
-        }),
-
-        vscode.commands.registerCommand('inline.suggestionAccepted', async (suggestionId: string) => {
-            if (eventTrackingManager && suggestionId) {
-                eventTrackingManager.getAIContextTracker().emitSuggestionAccepted(suggestionId);
-                // No UI feedback needed, just track it
-                logger.debug(`Suggestion accepted: ${suggestionId}`);
-            }
-        })
     ];
 
     context.subscriptions.push(...commands);
 }
 
-async function handleValuesAction(document: vscode.TextDocument, range: vscode.Range, type: 'fix' | 'optimize', diagnostics?: vscode.Diagnostic[]) {
-    try {
-        const selectedCode = document.getText(range);
-        let instruction = '';
-        
-        if (type === 'fix') {
-            const errorMessages = diagnostics?.map(d => d.message).join('\n') || 'Unknown error';
-            instruction = `Fix the following code which has these errors:\n${errorMessages}\n\nProvide only the fixed code, no explanation.`;
-        } else {
-            instruction = 'Optimize this code for performance and readability. Provide only the optimized code, no explanation.';
-        }
 
-        const engine = modelManager.getInferenceEngine();
-        if (!engine.isModelLoaded()) {
-             vscode.window.showWarningMessage('Please select and load a model first.');
-             return;
-        }
-
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: type === 'fix' ? 'Fixing code...' : 'Optimizing code...',
-            cancellable: false
-        }, async () => {
-            const result = await engine.generateImprovement(selectedCode, instruction);
-            
-            // Clean result (sometimes models chat, we want code)
-            let cleanResult = result.replace(/```[\w]*\n?|```$/g, '').trim();
-            // Remove "Here is the fixed code:" etc if present?
-            // Simple heuristic for now.
-            
-            if (cleanResult) {
-                const edit = new vscode.WorkspaceEdit();
-                edit.replace(document.uri, range, cleanResult);
-                await vscode.workspace.applyEdit(edit);
-            }
-        });
-    } catch (error: any) {
-        vscode.window.showErrorMessage(`Failed to ${type} code: ${error.message}`);
-    }
-}
-
-async function handleExplainAction(document: vscode.TextDocument, range: vscode.Range) {
-     try {
-        const selectedCode = document.getText(range);
-        const instruction = 'Explain what this code does in simple terms.';
-
-        const engine = modelManager.getInferenceEngine();
-        if (!engine.isModelLoaded()) {
-             vscode.window.showWarningMessage('Please select and load a model first.');
-             return;
-        }
-
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: 'Explaining code...',
-            cancellable: false
-        }, async () => {
-            const result = await engine.generateImprovement(selectedCode, instruction, { maxTokens: 256 });
-            
-            // Show in output channel or temporary document
-            const doc = await vscode.workspace.openTextDocument({ content: result, language: 'markdown' });
-            await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
-        });
-    } catch (error: any) {
-        vscode.window.showErrorMessage(`Failed to explain code: ${error.message}`);
-    }
-}
 
 export async function deactivate(): Promise<void> {
     try {

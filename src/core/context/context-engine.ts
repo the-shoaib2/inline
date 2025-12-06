@@ -5,6 +5,7 @@ import { ContextAnalyzer } from './context-analyzer';
 import { ContextOptimizer } from './context-optimizer';
 import { StateManager } from '../../pipeline/state-manager';
 import { ContextWindowBuilder } from '../../pipeline/context-window-builder';
+import { AdaptiveContextManager, ModelSize } from './adaptive-context-manager';
 
 // Enhanced type information interfaces
 export interface ImportInfo {
@@ -213,8 +214,12 @@ export const FIM_TEMPLATES: Record<string, FIMTemplate> = {
     // Codestral (Mistral)
     'codestral': { prefix: '[SUFFIX]', suffix: '[PREFIX]', middle: '' }, // Mistral is weird: [SUFFIX]suffix[PREFIX]prefix
     
-    // Fallback
-    'default': { prefix: '<PRE>', suffix: '<SUF>', middle: '<MID>' }
+    // StableCode - Uses StarCoder tokens
+    'stable-code': { prefix: '<fim_prefix>', suffix: '<fim_suffix>', middle: '<fim_middle>' },
+
+    // Fallback - Default to StarCoder/DeepSeek style (Standard for most modern GGUFs)
+    // Previously defaulted to CodeLlama <PRE>, which caused hallucinations in others.
+    'default': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' }
 };
 
 export class ContextEngine {
@@ -225,12 +230,37 @@ export class ContextEngine {
     private contextOptimizer: ContextOptimizer;
     private stateManager: StateManager | null = null;
     private contextWindowBuilder: ContextWindowBuilder | null = null;
+    
+    // Adaptive context support
+    private currentModelSize: ModelSize = ModelSize.SMALL;
+    private currentModelName: string = '';
 
     constructor() {
         this.loadProjectPatterns();
         this.semanticAnalyzer = new SemanticAnalyzer();
         this.contextAnalyzer = new ContextAnalyzer();
         this.contextOptimizer = new ContextOptimizer();
+    }
+    
+    /**
+     * Set current model information for adaptive context
+     */
+    setModelInfo(modelName: string, parameterCount?: string): void {
+        this.currentModelName = modelName;
+        this.currentModelSize = AdaptiveContextManager.detectModelSize(modelName, parameterCount);
+        
+        // Update max context length based on model size
+        const config = AdaptiveContextManager.getContextConfig(this.currentModelSize);
+        this.maxContextLength = config.maxContextLength;
+        
+        console.log(`[ContextEngine] Model: ${modelName}, Size: ${this.currentModelSize}, MaxContext: ${this.maxContextLength}`);
+    }
+    
+    /**
+     * Get current model size
+     */
+    getModelSize(): ModelSize {
+        return this.currentModelSize;
     }
 
     /**
@@ -277,16 +307,7 @@ export class ContextEngine {
             const docState = state.openDocuments.get(document.uri.toString());
             
             if (docState) {
-                // Get recent edits from state manager
-                recentEdits = docState.recentEdits
-                    .slice(-5)
-                    .map(edit => ({
-                        timestamp: edit.timestamp,
-                        file: document.fileName,
-                        changes: edit.changes.map(c => c.text).join('\n')
-                    }));
-                
-                // Get cursor movement patterns
+                // Get cursor movement patterns for current doc
                 cursorHistory = state.cursorHistory
                     .filter(cursor => cursor.uri.toString() === document.uri.toString())
                     .slice(-10);
@@ -294,6 +315,22 @@ export class ContextEngine {
                 // Analyze user patterns
                 userPatterns = this.analyzeUserPatterns(docState.recentEdits, cursorHistory);
             }
+
+            // Get recent edits from ALL other open documents
+            for (const [uri, doc] of state.openDocuments) {
+                if (uri !== document.uri.toString()) {
+                    const docEdits = doc.recentEdits.map(edit => ({
+                        timestamp: edit.timestamp,
+                        file: uri, // Use URI as filename reference (simplified)
+                        changes: edit.changes.map(c => c.text).join('\n')
+                    }));
+                    recentEdits.push(...docEdits);
+                }
+            }
+            
+            // Sort by timestamp (newest first) and take top 5
+            recentEdits.sort((a, b) => b.timestamp - a.timestamp);
+            recentEdits = recentEdits.slice(0, 5);
         } else {
             // Fallback to semantic analyzer
             recentEdits = await this.withTimeout(
@@ -442,9 +479,7 @@ export class ContextEngine {
 
         return context;
     }
-    extractImportsEnhanced(document: vscode.TextDocument): any {
-        throw new Error('Method not implemented.');
-    }
+
 
     private async withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
         let timer: NodeJS.Timeout;
@@ -639,22 +674,34 @@ export class ContextEngine {
      * Build intelligent header with type context, examples, and scope information
      */
     private buildIntelligentHeader(context: CodeContext): string {
+        // Get adaptive context configuration based on model size
+        const adaptiveConfig = AdaptiveContextManager.getContextConfig(this.currentModelSize);
+        
         const commentPrefix = this.getCommentPrefix(context.language);
+        
+        // Use adaptive configuration instead of static setting
+        if (!adaptiveConfig.enableVerboseHeader) {
+            // Minimal header for small models
+            return `${commentPrefix} File: ${context.filename}\n${commentPrefix} Language: ${context.language}\n${context.prefix}`;
+        }
+
         let header = '';
 
         // === SECTION 1: File Metadata ===
         header += this.buildFileMetadata(context, commentPrefix);
 
         // === SECTION 2: Type Definitions ===
-        if (context.cursorIntent?.type === 'type_annotation' || 
-            context.cursorIntent?.type === 'variable_declaration' ||
-            context.types?.length > 0 || context.interfaces?.length > 0) {
-            header += this.buildTypeContext(context, commentPrefix);
+        if (adaptiveConfig.includeTypeDefinitions && 
+            (context.cursorIntent?.type === 'type_annotation' || 
+             context.cursorIntent?.type === 'variable_declaration' ||
+             context.types?.length > 0 || context.interfaces?.length > 0)) {
+            header += this.buildTypeContext(context, commentPrefix, adaptiveConfig.maxTypes);
         }
 
         // === SECTION 3: Function Signatures ===
-        if (context.cursorIntent?.type === 'function_call' || context.functions?.length > 0) {
-            header += this.buildFunctionContext(context, commentPrefix);
+        if (adaptiveConfig.includeFunctionSignatures && 
+            (context.cursorIntent?.type === 'function_call' || context.functions?.length > 0)) {
+            header += this.buildFunctionContext(context, commentPrefix, adaptiveConfig.maxFunctions);
         }
         
         // === SECTION 4: Similar Code Examples ===
@@ -668,13 +715,13 @@ export class ContextEngine {
         }
 
         // === SECTION 6: Project Rules ===
-        if (context.cursorRules && context.cursorRules.length > 0) {
+        if (adaptiveConfig.includeProjectRules && context.cursorRules && context.cursorRules.length > 0) {
             header += this.buildProjectRules(context, commentPrefix);
         }
 
         // === SECTION 7: Related Files Context ===
-        if (context.recentEdits.length > 0) {
-            header += this.buildRelatedFilesContext(context, commentPrefix);
+        if (adaptiveConfig.includeRelatedFiles && context.recentEdits.length > 0) {
+            header += this.buildRelatedFilesContext(context, commentPrefix, adaptiveConfig.maxRelatedFiles);
         }
 
         // === SECTION 8: Main Code Context ===
@@ -710,11 +757,11 @@ export class ContextEngine {
     /**
      * Build type context section
      */
-    private buildTypeContext(context: CodeContext, commentPrefix: string): string {
+    private buildTypeContext(context: CodeContext, commentPrefix: string, maxTypes: number = 5): string {
         let section = `${commentPrefix} ═══ TYPE DEFINITIONS ═══\n`;
 
-        // Add interfaces (top 3)
-        const topInterfaces = context.interfaces.slice(0, 3);
+        // Add interfaces (adaptive limit)
+        const topInterfaces = context.interfaces.slice(0, Math.min(maxTypes, 3));
         if (topInterfaces.length > 0) {
             section += `${commentPrefix} Interfaces:\n`;
             topInterfaces.forEach(iface => {
@@ -726,8 +773,8 @@ export class ContextEngine {
             });
         }
 
-        // Add type aliases (top 5)
-        const topTypes = context.types.slice(0, 5);
+        // Add type aliases (adaptive limit)
+        const topTypes = context.types.slice(0, maxTypes);
         if (topTypes.length > 0) {
             section += `${commentPrefix} Types:\n`;
             topTypes.forEach(type => {
@@ -742,11 +789,11 @@ export class ContextEngine {
     /**
      * Build function context section
      */
-    private buildFunctionContext(context: CodeContext, commentPrefix: string): string {
+    private buildFunctionContext(context: CodeContext, commentPrefix: string, maxFunctions: number = 5): string {
         let section = `${commentPrefix} ═══ AVAILABLE FUNCTIONS ═══\n`;
 
-        // Add function signatures (top 5)
-        const topFunctions = context.functions.slice(0, 5);
+        // Add function signatures (adaptive limit)
+        const topFunctions = context.functions.slice(0, maxFunctions);
         topFunctions.forEach(func => {
             section += `${func.isAsync ? 'async ' : ''}function ${func.name}(`;
             section += func.parameters.map(p => 
@@ -840,11 +887,11 @@ export class ContextEngine {
     /**
      * Build related files context section
      */
-    private buildRelatedFilesContext(context: CodeContext, commentPrefix: string): string {
+    private buildRelatedFilesContext(context: CodeContext, commentPrefix: string, maxRelatedFiles: number = 2): string {
         let section = `${commentPrefix} ═══ RELATED FILES ═══\n`;
 
-        // Add recent edits (top 2)
-        const topEdits = context.recentEdits.slice(0, 2);
+        // Add recent edits (adaptive limit)
+        const topEdits = context.recentEdits.slice(0, maxRelatedFiles);
         topEdits.forEach(edit => {
             section += `${commentPrefix} From: ${path.basename(edit.file)}\n`;
             

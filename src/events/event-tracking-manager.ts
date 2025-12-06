@@ -6,6 +6,8 @@ import { EditorCollector } from './collectors/editor-collector';
 import { CodeModificationCollector } from './collectors/code-modification-collector';
 import { UserInteractionCollector } from './collectors/user-interaction-collector';
 import { PerformanceEventCollector } from './collectors/performance-event-collector';
+import { DiagnosticCollector } from './collectors/diagnostic-collector';
+import { TerminalCollector } from './collectors/terminal-collector';
 import { AIContextTracker } from './trackers/ai-context-tracker';
 import { VCSEventTracker } from './trackers/vcs-event-tracker';
 import { SessionStateTracker } from './trackers/session-state-tracker';
@@ -50,6 +52,8 @@ export class EventTrackingManager {
     private codeModificationCollector: CodeModificationCollector;
     private userInteractionCollector: UserInteractionCollector;
     private performanceCollector: PerformanceEventCollector;
+    private diagnosticCollector: DiagnosticCollector;
+    private terminalCollector: TerminalCollector;
     
     // Trackers
     private aiContextTracker: AIContextTracker;
@@ -100,6 +104,8 @@ export class EventTrackingManager {
             this.normalizer,
             config.performanceMonitoringIntervalMs
         );
+        this.diagnosticCollector = new DiagnosticCollector(this.eventBus, this.normalizer);
+        this.terminalCollector = new TerminalCollector(this.eventBus, this.normalizer);
 
         // Initialize trackers
         this.aiContextTracker = new AIContextTracker(this.eventBus);
@@ -140,6 +146,8 @@ export class EventTrackingManager {
         this.codeModificationCollector.start();
         this.userInteractionCollector.start();
         this.performanceCollector.start();
+        this.diagnosticCollector.start();
+        this.terminalCollector.start();
 
         // Start trackers
         this.aiContextTracker.start();
@@ -170,6 +178,8 @@ export class EventTrackingManager {
         this.codeModificationCollector.dispose();
         this.userInteractionCollector.dispose();
         this.performanceCollector.dispose();
+        this.diagnosticCollector.dispose();
+        this.terminalCollector.dispose();
 
         // Stop trackers
         this.aiContextTracker.dispose();

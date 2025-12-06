@@ -407,10 +407,15 @@
           "default": true,
           "description": "Use AST-based analysis for structural duplicate detection (more accurate but slightly slower)"
         },
+        "inline.context.enableVerboseHeader": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include extensive file metadata, type definitions, and similar code examples in the prompt. Recommended for larger models (7B+)."
+        },
         "inline.context.enableMultiFileAnalysis": {
           "type": "boolean",
           "default": true,
-          "description": "Enable multi-file context analysis for better code understanding"
+          "description": "Analyze other open files to provide better context."
         },
         "inline.context.maxDepth": {
           "type": "number",
@@ -506,6 +511,21 @@
           "minimum": 1000,
           "maximum": 100000,
           "description": "Maximum number of events to store"
+        },
+        "inline.compilation.autoBuildOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run build task when files are saved"
+        },
+        "inline.compilation.backgroundIdleBuild": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run build task during idle periods"
+        },
+        "inline.compilation.suggestOnOutdated": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest rebuilding when binary is detected as outdated"
         }
       }
     }

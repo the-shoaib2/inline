@@ -43,6 +43,22 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
             };
             actions.push(optimizeAction);
 
+            const refactorAction = new vscode.CodeAction('🛠️ Refactor Block', vscode.CodeActionKind.RefactorRewrite);
+            refactorAction.command = {
+                command: 'inline.refactorCode', // Assuming this command exists or maps to optimize
+                title: 'Refactor Block',
+                arguments: [document, range]
+            };
+            actions.push(refactorAction);
+
+            const formatAction = new vscode.CodeAction('📝 Format Block', vscode.CodeActionKind.QuickFix);
+            formatAction.command = {
+                command: 'inline.formatCode', // specific command for formatting
+                title: 'Format Block',
+                arguments: [document, range]
+            };
+            actions.push(formatAction);
+
             const explainAction = new vscode.CodeAction('💡 Explain Code', vscode.CodeActionKind.QuickFix);
             explainAction.command = {
                 command: 'inline.explainCode',
