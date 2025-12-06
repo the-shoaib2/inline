@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { SemanticAnalyzer } from '../../analysis/semantic-analyzer';
 import { ContextAnalyzer } from './context-analyzer';
+import { ContextOptimizer } from './context-optimizer';
 import { StateManager } from '../../pipeline/state-manager';
 import { ContextWindowBuilder } from '../../pipeline/context-window-builder';
 
@@ -9,6 +10,7 @@ import { ContextWindowBuilder } from '../../pipeline/context-window-builder';
 export interface ImportInfo {
     module: string;
     imports: string[];
+    tokenCount?: number;
     isDefault: boolean;
     alias?: string;
     resolvedPath?: string;
@@ -145,6 +147,7 @@ export interface CodeContext {
     language: string;
     filename: string;
     project: string;
+    tokenCount?: number;
     
     // Enhanced semantic context
     imports: ImportInfo[];
@@ -216,9 +219,10 @@ export const FIM_TEMPLATES: Record<string, FIMTemplate> = {
 
 export class ContextEngine {
     private maxContextLength: number = 4000;
-    private projectPatterns: Map<string, ProjectPatterns> = new Map();
+    private projectPatterns: Map<string, CodingPattern[]> = new Map();
     private semanticAnalyzer: SemanticAnalyzer;
     private contextAnalyzer: ContextAnalyzer;
+    private contextOptimizer: ContextOptimizer;
     private stateManager: StateManager | null = null;
     private contextWindowBuilder: ContextWindowBuilder | null = null;
 
@@ -226,6 +230,7 @@ export class ContextEngine {
         this.loadProjectPatterns();
         this.semanticAnalyzer = new SemanticAnalyzer();
         this.contextAnalyzer = new ContextAnalyzer();
+        this.contextOptimizer = new ContextOptimizer();
     }
 
     /**
@@ -245,14 +250,22 @@ export class ContextEngine {
     async buildContext(document: vscode.TextDocument, position: vscode.Position): Promise<CodeContext> {
         const text = document.getText();
         const offset = document.offsetAt(position);
+        const language = document.languageId;
 
-        // Get more context before cursor, less after
-        const prefixLength = Math.floor(this.maxContextLength * 0.75);
-        const suffixLength = Math.floor(this.maxContextLength * 0.25);
+        // 1. Dynamic Context Window (Performance Optimization)
+        const fileSize = text.length;
+        const isLargeFile = fileSize > 100 * 1024; // 100KB
+        
+        // Adjust context window based on file size
+        const prefixLength = isLargeFile ? 1000 : Math.floor(this.maxContextLength * 0.75);
+        const suffixLength = isLargeFile ? 500 : Math.floor(this.maxContextLength * 0.25);
 
-        // Smart truncation: Try to cut at line boundaries to preserve semantic integrity
-        const prefix = this.smartTruncate(text.substring(Math.max(0, offset - prefixLength), offset), 'prefix');
-        const suffix = this.smartTruncate(text.substring(offset, Math.min(text.length, offset + suffixLength)), 'suffix');
+        let prefix = text.substring(Math.max(0, offset - prefixLength), offset);
+        let suffix = text.substring(offset, Math.min(text.length, offset + suffixLength));
+
+        // Optimize context (reduce tokens)
+        prefix = this.contextOptimizer.optimize(prefix, prefixLength);
+        suffix = this.contextOptimizer.optimize(suffix, suffixLength);
 
         // Get event-based context if available
         let recentEdits: EditHistory[] = [];
@@ -296,30 +309,33 @@ export class ContextEngine {
             undefined
         );
 
-        // 5. Heuristic Size Limit: Skip deep analysis for large files (>100KB)
-        const isLargeFile = text.length > 100 * 1024;
-        
-        let imports: ImportInfo[] = [];
-        let functions: FunctionInfo[] = [];
-        let classes: ClassInfo[] = [];
-        let interfaces: InterfaceInfo[] = [];
+        let imports: any[] = [];
+        let functions: any[] = [];
+        let classes: any[] = [];
+        let interfaces: any[] = [];
         let types: TypeInfo[] = [];
         let variables: VariableInfo[] = [];
         let comments: string[] = [];
+        let projectConfig: ProjectConfig | null = null;
 
         if (!isLargeFile) {
             // Run enhanced extractions in parallel using semanticAnalyzer
-            [imports, functions, classes, interfaces, types, variables, comments] = await Promise.all([
+            const results = await Promise.all([
                 this.semanticAnalyzer.extractImportsEnhanced(document),
                 this.semanticAnalyzer.extractFunctionsEnhanced(document),
                 this.semanticAnalyzer.extractClassesEnhanced(document),
                 this.semanticAnalyzer.extractInterfacesEnhanced(document),
                 this.semanticAnalyzer.extractTypesEnhanced(document),
                 this.semanticAnalyzer.extractVariablesEnhanced(document),
-                this.extractComments(document)
+                Promise.resolve(this.extractComments(document)), // Use local for now as semanticAnalyzer doesn't have it
+                this.semanticAnalyzer.getProjectConfig(document.uri)
             ]);
+
+            [imports, functions, classes, interfaces, types, variables, comments, projectConfig] = results;
         } else {
             console.log(`[ContextEngine] ⚠️ Large file detected (${(text.length/1024).toFixed(1)}KB), skipping deep analysis`);
+            // Fallback to basic regex for essential items only
+            imports = this.extractImports(document);
         }
 
         // Build symbol table using VS Code's symbol provider
@@ -332,7 +348,7 @@ export class ContextEngine {
         const currentScope = this.semanticAnalyzer.analyzeCurrentScope(document, position, functions, classes);
 
         // Get project configuration
-        const projectConfig = await this.semanticAnalyzer.getProjectConfig(document.uri);
+        projectConfig = await this.semanticAnalyzer.getProjectConfig(document.uri);
 
         // Detect coding patterns and style
         const styleGuide = this.semanticAnalyzer.detectStyleGuide(text);
@@ -632,17 +648,17 @@ export class ContextEngine {
         // === SECTION 2: Type Definitions ===
         if (context.cursorIntent?.type === 'type_annotation' || 
             context.cursorIntent?.type === 'variable_declaration' ||
-            context.types.length > 0 || context.interfaces.length > 0) {
+            context.types?.length > 0 || context.interfaces?.length > 0) {
             header += this.buildTypeContext(context, commentPrefix);
         }
 
         // === SECTION 3: Function Signatures ===
-        if (context.cursorIntent?.type === 'function_call' || context.functions.length > 0) {
+        if (context.cursorIntent?.type === 'function_call' || context.functions?.length > 0) {
             header += this.buildFunctionContext(context, commentPrefix);
         }
-
+        
         // === SECTION 4: Similar Code Examples ===
-        if (context.cursorIntent?.type === 'comment_to_code' && context.relatedCode.length > 0) {
+        if (context.cursorIntent?.type === 'comment_to_code' && context.relatedCode?.length > 0) {
             header += this.buildExampleContext(context, commentPrefix);
         }
 
@@ -848,21 +864,16 @@ export class ContextEngine {
         // TODO: Load and analyze project patterns
     }
 
-    async extractProjectPatterns(workspaceFolder: vscode.WorkspaceFolder): Promise<ProjectPatterns> {
-        const patterns: ProjectPatterns = {
-            namingConventions: [],
-            codeStyle: [],
-            commonImports: [],
-            frequentPatterns: []
-        };
+    private async extractProjectPatterns(workspaceFolder: vscode.WorkspaceFolder): Promise<CodingPattern[]> {
+        const patterns: CodingPattern[] = [];
 
         try {
             const files = await vscode.workspace.findFiles(
-                new vscode.RelativePattern(workspaceFolder, '**/*.{js,ts,py,java,cpp,c,go,rs}'),
-                '**/node_modules/**'
+                new vscode.RelativePattern(workspaceFolder, '**/*.{ts,tsx,js,jsx}'),
+                '**/node_modules/**',
+                50
             );
 
-            // Analyze files to extract patterns
             for (const file of files.slice(0, 50)) { // Limit to 50 files for performance
                 try {
                     const document = await vscode.workspace.openTextDocument(file);
@@ -880,13 +891,42 @@ export class ContextEngine {
         return patterns;
     }
 
-    private analyzeFileForPatterns(document: vscode.TextDocument, patterns: ProjectPatterns): void {
+    private analyzeFileForPatterns(document: vscode.TextDocument, patterns: CodingPattern[]): void {
         const text = document.getText();
+        const imports = this.extractImports(document);
+        
+        // Add imports to patterns
+        for (const imp of imports) {
+            const existing = patterns.find(p => p.pattern === imp);
+            if (existing) {
+                existing.frequency++;
+                if (existing.examples.length < 3) {
+                    existing.examples.push(imp);
+                }
+            } else {
+                patterns.push({
+                    pattern: imp,
+                    frequency: 1,
+                    examples: [imp]
+                });
+            }
+        }
 
-        // Extract common imports
-        const importMatches = text.match(/^import\s+.*$/gm);
-        if (importMatches) {
-            patterns.commonImports.push(...importMatches);
+        // Add function patterns
+        const functions = this.extractFunctions(document);
+        for (const func of functions) {
+            // Extract simplified signature as pattern
+            const signature = func.split('{')[0].trim();
+            const existing = patterns.find(p => p.pattern === signature);
+            if (existing) {
+                existing.frequency++;
+            } else {
+                patterns.push({
+                    pattern: signature,
+                    frequency: 1,
+                    examples: [func.substring(0, 100)]
+                });
+            }
         }
     }
 

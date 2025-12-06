@@ -8,6 +8,8 @@ import { CacheManager } from '../cache/cache-manager';
 import { PerformanceMonitor, CompletionMetrics } from '../../system/performance-monitor';
 import { SmartFilter } from '../context/smart-filter';
 import { DuplicationDetector } from '../../analysis/duplication-detector';
+import { CompletionValidator } from '../../analysis/completion-validator';
+import { FunctionCompleter } from '../../features/code-generation/function-completer';
 
 // LRU Cache implementation
 class LRUCache<K, V> {
@@ -124,6 +126,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private performanceMonitor: PerformanceMonitor;
     private smartFilter: SmartFilter;
     private duplicationDetector: DuplicationDetector;
+    private completionValidator: CompletionValidator;
+    private functionCompleter: FunctionCompleter;
     private requestQueue: CompletionQueue = new CompletionQueue();
     
     // Multi-level caching
@@ -157,6 +161,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.contextEngine = new ContextEngine();
         this.performanceMonitor = new PerformanceMonitor();
         this.smartFilter = new SmartFilter();
+        this.completionValidator = new CompletionValidator();
+        this.functionCompleter = new FunctionCompleter();
 
         // Enable performance monitoring based on config
         const config = vscode.workspace.getConfiguration('inline');
@@ -189,11 +195,32 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
          const predicted = this.predictiveCache.get(cacheKey);
          if (predicted && this.isCacheValid(predicted)) {
              console.log('[INLINE] ⚡ Fast Path: Predictive HIT');
-             return [this.createCompletionItem(predicted.completion, position)];
+             // Emit event for tracking even on cache hit
+             let suggestionId: string | undefined;
+             const tracker = (this as any).aiContextTracker;
+             if (tracker) {
+                 suggestionId = tracker.emitSuggestionGenerated(
+                     predicted.completion,
+                     1.0,
+                     0, // Instant
+                     0
+                 );
+             }
+             return [this.createCompletionItem(predicted.completion, position, suggestionId)];
          }
          const exact = this.exactCache.get(cacheKey);
          if (exact && this.isCacheValid(exact)) {
-             return [this.createCompletionItem(exact.completion, position)];
+             let suggestionId: string | undefined;
+             const tracker = (this as any).aiContextTracker;
+             if (tracker) {
+                 suggestionId = tracker.emitSuggestionGenerated(
+                     exact.completion,
+                     1.0,
+                     0,
+                     0
+                 );
+             }
+             return [this.createCompletionItem(exact.completion, position, suggestionId)];
          }
 
         // 1. Add to queue (this implicitly cancels previous headers)
@@ -238,6 +265,25 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         } catch (error) {
             request.resolve([]); // Safe fail
         }
+    }
+
+    private createCompletionItem(completion: string, position: vscode.Position, suggestionId?: string): vscode.InlineCompletionItem {
+        const cleanedCompletion = this.cleanCompletion(completion);
+        const item = new vscode.InlineCompletionItem(
+            cleanedCompletion,
+            new vscode.Range(position, position)
+        );
+
+        // Attach acceptance command if we have an ID
+        if (suggestionId) {
+            item.command = {
+                title: 'Suggestion Accepted',
+                command: 'inline.suggestionAccepted',
+                arguments: [suggestionId]
+            };
+        }
+
+        return item;
     }
 
     private async provideCompletionInternal(
@@ -310,10 +356,27 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             const enhancedContext = this.enhanceContextWithDiagnostics(codeContext, diagnostics);
 
             console.log('[INLINE] 🤖 Generating completion...');
-            const completion = await this.generateCompletion(enhancedContext, token, document, position);
+            let completion = await this.generateCompletion(enhancedContext, token, document, position);
             console.log(`[INLINE] 🤖 Generated completion (${completion?.length || 0} chars):`, completion?.substring(0, 100));
 
             if (completion && completion.trim().length > 0) {
+                // NEW: Enhance with function completer
+                const config = vscode.workspace.getConfiguration('inline');
+                const functionCompletionEnabled = config.get<boolean>('functionCompletion.enabled', true);
+                
+                if (functionCompletionEnabled) {
+                    const enhanced = await this.functionCompleter.enhanceCompletion(
+                        completion,
+                        codeContext,
+                        config.get<number>('maxTokens', 512)
+                    );
+                    
+                    if (enhanced !== completion) {
+                        console.log('[INLINE] 🔧 Function completion enhanced');
+                        completion = enhanced;
+                    }
+                }
+                
                 console.log('[INLINE] ✅ Valid completion, caching and returning');
                 this.cacheCompletion(cacheKey, completion, codeContext);
                 
@@ -321,7 +384,20 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 this.schedulePrefetch(document, position, completion, codeContext, config);
 
                 generatedChars = completion.length;
-                const items = [this.createCompletionItem(completion, position)];
+
+                // Emit Suggestion Generated Event
+                let suggestionId: string | undefined;
+                const tracker = (this as any).aiContextTracker;
+                if (tracker) {
+                    suggestionId = tracker.emitSuggestionGenerated(
+                        completion,
+                        1.0, // Confidence (mock for now)
+                        Date.now() - startTime,
+                        codeContext.tokenCount || 0
+                    );
+                }
+
+                const items = [this.createCompletionItem(completion, position, suggestionId)];
                 resultCount = items.length;
                 
                 
@@ -585,14 +661,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.cacheManager.set(key, cacheEntry);
     }
 
-    private createCompletionItem(completion: string, position: vscode.Position): vscode.InlineCompletionItem {
-        const cleanedCompletion = this.cleanCompletion(completion);
-        return new vscode.InlineCompletionItem(
-            cleanedCompletion,
-            new vscode.Range(position, position)
-        );
-    }
-
+    // --- AI Context Tracker Integration ---
     public cleanCompletion(completion: string): string {
         let cleaned = completion;
 
@@ -627,8 +696,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 
                 if (report.hasDuplicates) {
                     console.log(`[DEDUP] Found ${report.duplicatesRemoved} duplicate(s), cleaning...`);
-                    console.log(`[DEDUP] Original lines: ${report.originalLineCount}, Cleaned lines: ${report.cleanedLineCount}`);
                     cleaned = report.cleanedCode;
+                } else {
+                    // Fallback for small duplicates/lines that DuplicationDetector ignores (minBlockSize)
+                    cleaned = this.removeDuplicateBlocks(cleaned);
                 }
             } catch (error) {
                 console.warn('[DEDUP] Smart deduplication failed, using fallback:', error);
@@ -640,7 +711,52 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             cleaned = this.removeDuplicateBlocks(cleaned);
         }
 
+        // 5. VALIDATION & AUTO-FIX (NEW)
+        const validationEnabled = config.get<boolean>('validation.enabled', true);
+        if (validationEnabled && cleaned.trim().length > 0) {
+            // Quick check first (fast)
+            const quickCheckPassed = this.completionValidator.quickCheck(
+                cleaned,
+                (this.contextEngine as any).lastLanguage || 'javascript'
+            );
+
+            if (!quickCheckPassed) {
+                console.log('[VALIDATION] Quick check failed, attempting fixes...');
+                // Apply simple fixes for bracket/paren matching
+                cleaned = this.applyQuickFixes(cleaned);
+            }
+        }
+
         return cleaned;
+    }
+
+    /**
+     * Apply quick fixes for common syntax issues
+     */
+    private applyQuickFixes(code: string): string {
+        let fixed = code;
+
+        // Count brackets
+        const openBraces = (fixed.match(/{/g) || []).length;
+        const closeBraces = (fixed.match(/}/g) || []).length;
+        const openParens = (fixed.match(/\(/g) || []).length;
+        const closeParens = (fixed.match(/\)/g) || []).length;
+
+        // Add missing closing braces
+        if (openBraces > closeBraces) {
+            const missing = openBraces - closeBraces;
+            fixed += '\n' + '}'.repeat(missing);
+            console.log(`[VALIDATION] Added ${missing} missing closing brace(s)`);
+        }
+
+        // Add missing closing parentheses
+        if (openParens > closeParens) {
+            const missing = openParens - closeParens;
+            fixed += ')'.repeat(missing);
+            console.log(`[VALIDATION] Added ${missing} missing closing parenthesis(es)`);
+        }
+
+        return fixed;
     }
 
     private removeDuplicateBlocks(text: string): string {

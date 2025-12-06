@@ -31,41 +31,48 @@ export class VCSEventTracker {
     public start(): void {
         this.logger.info('Starting VCS event tracking');
 
-        // Get Git extension
-        this.gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
-        
-        if (!this.gitExtension) {
-            this.logger.warn('Git extension not found, VCS tracking disabled');
-            return;
+        try {
+            // Get Git extension
+            this.gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
+            
+            if (!this.gitExtension) {
+                this.logger.warn('Git extension not found, VCS tracking disabled');
+                return;
+            }
+
+            // Get Git API
+            const gitAPI = this.gitExtension.getAPI(1);
+            
+            if (!gitAPI) {
+                this.logger.warn('Git API not available');
+                return;
+            }
+
+            // Watch for repository changes
+            gitAPI.onDidOpenRepository((repo: any) => {
+                this.handleRepositoryOpened(repo);
+            }, null, this.disposables);
+
+            gitAPI.onDidCloseRepository((repo: any) => {
+                this.handleRepositoryClosed(repo);
+            }, null, this.disposables);
+
+            // Monitor existing repositories
+            const repositories = gitAPI.repositories;
+            repositories.forEach((repo: any) => {
+                this.monitorRepository(repo);
+            });
+
+            // Periodic check for git status changes
+            this.checkInterval = setInterval(() => {
+                this.checkGitStatus(gitAPI.repositories);
+            }, 5000); // Check every 5 seconds
+            
+            this.logger.info('VCS tracking started successfully');
+
+        } catch (error) {
+            this.logger.warn('Failed to initialize VCS tracking:', error);
         }
-
-        // Get Git API
-        const gitAPI = this.gitExtension.getAPI(1);
-        
-        if (!gitAPI) {
-            this.logger.warn('Git API not available');
-            return;
-        }
-
-        // Watch for repository changes
-        gitAPI.onDidOpenRepository((repo: any) => {
-            this.handleRepositoryOpened(repo);
-        }, null, this.disposables);
-
-        gitAPI.onDidCloseRepository((repo: any) => {
-            this.handleRepositoryClosed(repo);
-        }, null, this.disposables);
-
-        // Monitor existing repositories
-        const repositories = gitAPI.repositories;
-        repositories.forEach((repo: any) => {
-            this.monitorRepository(repo);
-        });
-
-        // Periodic check for git status changes
-        this.checkInterval = setInterval(() => {
-            this.checkGitStatus(repositories);
-        }, 5000); // Check every 5 seconds
     }
 
     /**

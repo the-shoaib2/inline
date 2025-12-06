@@ -14,6 +14,7 @@ import { ContextWindowBuilder } from '../pipeline/context-window-builder';
 import { ContextEnricher } from '../pipeline/context-enricher';
 import { OptimizationLayer } from '../pipeline/optimization-layer';
 import { EventStorage } from '../pipeline/event-storage';
+import { FeedbackLoop } from '../pipeline/feedback-loop';
 import { ContextEngine } from '../core/context/context-engine';
 import { Logger } from '../system/logger';
 import * as path from 'path';
@@ -55,12 +56,13 @@ export class EventTrackingManager {
     private vcsEventTracker: VCSEventTracker;
     private sessionStateTracker: SessionStateTracker;
     
-    // Pipeline
+    // Pipelne
     private stateManager: StateManager;
     private contextWindowBuilder: ContextWindowBuilder;
     private contextEnricher: ContextEnricher;
     private optimizationLayer: OptimizationLayer;
     private eventStorage: EventStorage;
+    private feedbackLoop: FeedbackLoop;
     
     // State
     private isStarted: boolean = false;
@@ -109,6 +111,7 @@ export class EventTrackingManager {
         this.contextWindowBuilder = new ContextWindowBuilder(this.stateManager, contextEngine);
         this.contextEnricher = new ContextEnricher(contextEngine);
         this.optimizationLayer = new OptimizationLayer(60000, 1000);
+        this.feedbackLoop = new FeedbackLoop(this.eventBus);
         
         // Initialize storage
         const storagePath = path.join(os.homedir(), '.inline', 'events');
@@ -145,6 +148,7 @@ export class EventTrackingManager {
 
         // Start pipeline
         this.stateManager.start();
+        this.feedbackLoop.start();
 
         this.isStarted = true;
         this.logger.info('Event tracking system started successfully');
@@ -175,6 +179,7 @@ export class EventTrackingManager {
         // Stop pipeline
         this.stateManager.dispose();
         this.optimizationLayer.dispose();
+        this.feedbackLoop.dispose();
 
         // Dispose normalizer
         this.normalizer.dispose();
@@ -195,6 +200,13 @@ export class EventTrackingManager {
      */
     public getAIContextTracker(): AIContextTracker {
         return this.aiContextTracker;
+    }
+    
+    /**
+     * Get the feedback loop
+     */
+    public getFeedbackLoop(): FeedbackLoop {
+        return this.feedbackLoop;
     }
 
     /**

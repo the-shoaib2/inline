@@ -121,11 +121,40 @@ class PerformanceBenchmark {
     }
 }
 
-export async function runBenchmarks(): Promise<void> {
+    export async function runBenchmarks(): Promise<void> {
     console.log('\n🎯 Starting Performance Benchmarks...\n');
     
     const benchmark = new PerformanceBenchmark();
+    
+    // 1. Basic Operations
     await benchmark.benchmarkBasicOperations();
+
+    // 2. Mock PromptCache Benchmark
+    await benchmark.runBenchmark('PromptCache (Mock)', async () => {
+        const cache = new Map<string, number[]>();
+        const prompt = 'function test() { console.log("hello"); }'.repeat(5);
+        const tokens = Array(100).fill(1); // Mock tokens
+        
+        // Cache Miss
+        if (!cache.has(prompt)) {
+            cache.set(prompt, tokens);
+        }
+        
+        // Cache Hit
+        cache.get(prompt);
+    }, 1000);
+
+    // 3. Mock Context Optimization Benchmark
+    await benchmark.runBenchmark('Context Opt (Mock)', async () => {
+        const text = '   \n\n   import { x } from "y";   \n\n   function foo() { }   \n\n   // comment   '.repeat(50);
+        
+        // Simple optimization logic (mimicking ContextOptimizer)
+        const optimized = text
+            .replace(/\\n{3,}/g, '\\n\\n')
+            .replace(/[ \\t]{2,}/g, ' ')
+            .trim();
+    }, 100);
+
     benchmark.printSummary();
     
     console.log('\n✅ Benchmarks complete!\n');

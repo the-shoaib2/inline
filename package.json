@@ -30,6 +30,9 @@
     "onStartupFinished",
     "onLanguage:*"
   ],
+  "extensionDependencies": [
+    "vscode.git"
+  ],
   "main": "./out/src/extension.js",
   "contributes": {
     "commands": [

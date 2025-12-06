@@ -392,23 +392,25 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
                  placeHolder: 'Select an AI action for the selected code'
              });
              
-             if (selected) {
+            if (selected) {
                  // Trigger the command with arguments
-                 // Commands expect (document, range, diagnostics?)
-                 // diagnostics might be missing for fixCode invoked this way, but handleValuesLogic handles explicit instruction if type='fix'
-                 // Wait, fixCode expects diagnostics. If null, it defaults to generic fix?
-                 // Let's modify handleValuesAction to handle missing diagnostics better (it does check ?.map).
-                 
-                 // However, we need to pass arguments.
                  if (selected.command === 'inline.fixCode') {
                     // Get diagnostics for range
                     const diagnostics = vscode.languages.getDiagnostics(editor.document.uri)
                         .filter(d => d.range.intersection(selection));
-                    await vscode.commands.executeCommand(selected.command, editor.document, selection, diagnostics);
-                 } else {
-                    await vscode.commands.executeCommand(selected.command, editor.document, selection);
+                    // Check if executeCommand is needed or handled by logic
+                    // Actually commands are registered with arguments, so we just call them directly
                  }
+                 await vscode.commands.executeCommand(selected.command, editor.document, selection);
              }
+        }),
+
+        vscode.commands.registerCommand('inline.suggestionAccepted', async (suggestionId: string) => {
+            if (eventTrackingManager && suggestionId) {
+                eventTrackingManager.getAIContextTracker().emitSuggestionAccepted(suggestionId);
+                // No UI feedback needed, just track it
+                logger.debug(`Suggestion accepted: ${suggestionId}`);
+            }
         })
     ];
 

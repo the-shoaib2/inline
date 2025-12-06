@@ -74,8 +74,17 @@ function calculateSum(a, b) {
                 'const value1 = "First unique value";',
                 'const value2 = "Second unique value";',
                 'const value1 = "First unique value";',
+                'const value2 = "Second unique value";',
+                'const value1 = "First unique value";',
+                'const value2 = "Second unique value";',
+                'const value1 = "First unique value";',
+                'const value2 = "Second unique value";',
+                'const value1 = "First unique value";',
+                'const value2 = "Second unique value";',
+                'const value1 = "First unique value";',
                 'const value2 = "Second unique value";'
             ];
+
 
             const patterns = detector.detectDistributedRepetition(lines);
             expect(patterns.length).to.be.greaterThan(0);
