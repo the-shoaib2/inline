@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { ModelManager } from '../core/model-manager';
+import { ModelManager } from '../inference/model-manager';
 import { ModelDownloader } from '../models/model-downloader';
 import { DownloadManager } from '../models/download-manager';
 import { ModelRegistry } from '../models/model-registry';
-import { ConfigManager } from '../utils/config-manager';
+import { ConfigManager } from '../system/config-manager';
 
 interface InlineConfigWithRules extends ReturnType<ConfigManager['getAll']> {
     codingRules?: Array<{

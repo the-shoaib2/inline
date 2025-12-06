@@ -1,7 +1,7 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { SmartFilter } from '../../src/core/smart-filter';
+import { SmartFilter } from '../../src/core/context/smart-filter';
 
 describe('SmartFilter Unit Tests', () => {
     let filter: SmartFilter;

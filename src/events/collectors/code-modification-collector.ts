@@ -6,7 +6,7 @@ import {
     CodeModificationEventType,
     CodeChange 
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Collects code modification events from VS Code

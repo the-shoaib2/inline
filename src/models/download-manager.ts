@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
 import { URL } from 'url';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 export interface DownloadOptions {
     url: string;

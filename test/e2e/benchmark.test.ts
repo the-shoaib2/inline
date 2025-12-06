@@ -12,7 +12,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { LlamaInference } from '../../src/core/llama-inference';
+import { LlamaInference } from '../../src/inference/llama-inference';
 
 suite('LLM Benchmark Test', () => {
     let inference: LlamaInference;

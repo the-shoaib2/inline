@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 export interface ValidationResult {
     isValid: boolean;

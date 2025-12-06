@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SemanticAnalyzer } from '../utils/semantic-analyzer';
-import { ContextAnalyzer } from '../utils/context-analyzer';
+import { SemanticAnalyzer } from '../../analysis/semantic-analyzer';
+import { ContextAnalyzer } from './context-analyzer';
+import { StateManager } from '../../pipeline/state-manager';
+import { ContextWindowBuilder } from '../../pipeline/context-window-builder';
 
 // Enhanced type information interfaces
 export interface ImportInfo {
@@ -217,11 +219,27 @@ export class ContextEngine {
     private projectPatterns: Map<string, ProjectPatterns> = new Map();
     private semanticAnalyzer: SemanticAnalyzer;
     private contextAnalyzer: ContextAnalyzer;
+    private stateManager: StateManager | null = null;
+    private contextWindowBuilder: ContextWindowBuilder | null = null;
 
     constructor() {
         this.loadProjectPatterns();
         this.semanticAnalyzer = new SemanticAnalyzer();
         this.contextAnalyzer = new ContextAnalyzer();
+    }
+
+    /**
+     * Set the state manager for event-based context
+     */
+    public setStateManager(stateManager: StateManager): void {
+        this.stateManager = stateManager;
+    }
+
+    /**
+     * Set the context window builder
+     */
+    public setContextWindowBuilder(builder: ContextWindowBuilder): void {
+        this.contextWindowBuilder = builder;
     }
 
     async buildContext(document: vscode.TextDocument, position: vscode.Position): Promise<CodeContext> {
@@ -236,11 +254,47 @@ export class ContextEngine {
         const prefix = this.smartTruncate(text.substring(Math.max(0, offset - prefixLength), offset), 'prefix');
         const suffix = this.smartTruncate(text.substring(offset, Math.min(text.length, offset + suffixLength)), 'suffix');
 
-        // Run async context gathering in parallel with 100ms timeout
-        const [recentEdits, cursorRules] = await Promise.all([
-            this.withTimeout(this.semanticAnalyzer.getRecentEditsEnhanced(document.uri), 50, []),
-            this.withTimeout(this.loadCursorRules(document.uri), 50, undefined)
-        ]);
+        // Get event-based context if available
+        let recentEdits: EditHistory[] = [];
+        let cursorHistory: any[] = [];
+        let userPatterns: any = null;
+        
+        if (this.stateManager) {
+            const state = this.stateManager.getState();
+            const docState = state.openDocuments.get(document.uri.toString());
+            
+            if (docState) {
+                // Get recent edits from state manager
+                recentEdits = docState.recentEdits
+                    .slice(-5)
+                    .map(edit => ({
+                        timestamp: edit.timestamp,
+                        file: document.fileName,
+                        changes: edit.changes.map(c => c.text).join('\n')
+                    }));
+                
+                // Get cursor movement patterns
+                cursorHistory = state.cursorHistory
+                    .filter(cursor => cursor.uri.toString() === document.uri.toString())
+                    .slice(-10);
+                
+                // Analyze user patterns
+                userPatterns = this.analyzeUserPatterns(docState.recentEdits, cursorHistory);
+            }
+        } else {
+            // Fallback to semantic analyzer
+            recentEdits = await this.withTimeout(
+                this.semanticAnalyzer.getRecentEditsEnhanced(document.uri), 
+                50, 
+                []
+            );
+        }
+        
+        const cursorRules = await this.withTimeout(
+            this.loadCursorRules(document.uri), 
+            50, 
+            undefined
+        );
 
         // 5. Heuristic Size Limit: Skip deep analysis for large files (>100KB)
         const isLargeFile = text.length > 100 * 1024;
@@ -871,15 +925,77 @@ export class ContextEngine {
                 /require[sd]?\s+(.+)/i
             ];
 
-            patterns.forEach(pattern => {
+            for (const pattern of patterns) {
                 const match = comment.match(pattern);
                 if (match) {
                     requirements.push(match[1].trim());
                 }
-            });
+            }
         });
 
         return requirements;
+    }
+
+    /**
+     * Analyze user patterns from edit history and cursor movements
+     */
+    private analyzeUserPatterns(edits: any[], cursorHistory: any[]): any {
+        if (edits.length === 0 && cursorHistory.length === 0) {
+            return null;
+        }
+
+        // Calculate typing speed (edits per minute)
+        const recentEdits = edits.slice(-10);
+        const typingSpeed = recentEdits.length > 1 
+            ? (recentEdits.length / ((recentEdits[recentEdits.length - 1].timestamp - recentEdits[0].timestamp) / 60000))
+            : 0;
+
+        // Detect editing style
+        const hasFrequentSmallEdits = recentEdits.filter(e => 
+            e.changes && e.changes.length === 1 && e.changes[0].text.length < 5
+        ).length > recentEdits.length * 0.7;
+
+        // Detect cursor movement patterns
+        const cursorJumps = cursorHistory.length > 1
+            ? cursorHistory.filter((curr: any, i: number) => {
+                if (i === 0) return false;
+                const prev = cursorHistory[i - 1];
+                const lineDiff = Math.abs(curr.position.line - prev.position.line);
+                return lineDiff > 5; // Jump more than 5 lines
+            }).length
+            : 0;
+
+        return {
+            typingSpeed: Math.round(typingSpeed),
+            editingStyle: hasFrequentSmallEdits ? 'incremental' : 'bulk',
+            cursorJumps,
+            isActivelyEditing: recentEdits.length > 5,
+            preferredEditType: this.detectPreferredEditType(recentEdits)
+        };
+    }
+
+    /**
+     * Detect preferred edit type from history
+     */
+    private detectPreferredEditType(edits: any[]): string {
+        const types = edits.map((e: any) => e.type);
+        const typeCounts: Record<string, number> = {};
+        
+        types.forEach((type: string) => {
+            typeCounts[type] = (typeCounts[type] || 0) + 1;
+        });
+
+        let maxType = 'unknown';
+        let maxCount = 0;
+        
+        for (const [type, count] of Object.entries(typeCounts)) {
+            if (count > maxCount) {
+                maxCount = count;
+                maxType = type;
+            }
+        }
+
+        return maxType;
     }
 
     private getCommentPrefix(language: string): string {

@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { DocGenerator } from '../../src/core/doc-generator';
-import { LlamaInference } from '../../src/core/llama-inference';
+import { DocGenerator } from '../../src/features/code-generation/doc-generator';
+import { LlamaInference } from '../../src/inference/llama-inference';
 
 suite('Documentation Generator E2E Tests', () => {
     let docGenerator: DocGenerator;

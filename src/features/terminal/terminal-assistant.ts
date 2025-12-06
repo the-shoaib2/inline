@@ -1,5 +1,5 @@
-import { LlamaInference } from './llama-inference';
-import { Logger } from '../utils/logger';
+import { LlamaInference } from '../../inference/llama-inference';
+import { Logger } from '../../system/logger';
 
 export interface CommandSuggestion {
     command: string;

@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import type {
     CodeContext, CursorIntent, FunctionInfo, ClassInfo, ImportInfo,
     TypeInfo, InterfaceInfo, SymbolInfo
-} from '../core/context-engine';
+} from './context-engine';
 
 export interface OptimizedContext {
     prefix: string;

@@ -9,7 +9,7 @@ import {
     EventPriority,
     CursorPosition
 } from '../events/event-types';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 /**
  * Document state information

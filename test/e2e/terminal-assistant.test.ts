@@ -1,6 +1,6 @@
 import * as assert from 'assert';
-import { TerminalAssistant } from '../../src/core/terminal-assistant';
-import { LlamaInference } from '../../src/core/llama-inference';
+import { TerminalAssistant } from '../../src/features/terminal/terminal-assistant';
+import { LlamaInference } from '../../src/inference/llama-inference';
 
 suite('Terminal Assistant E2E Tests', () => {
     let assistant: TerminalAssistant;

@@ -6,7 +6,7 @@ import {
     EditorEventType,
     CursorPosition 
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Collects editor-related events from VS Code

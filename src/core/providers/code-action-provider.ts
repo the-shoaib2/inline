@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ModelManager } from './model-manager';
+import { ModelManager } from '../../inference/model-manager';
 
 export class InlineCodeActionProvider implements vscode.CodeActionProvider {
     public static readonly providedCodeActionKinds = [

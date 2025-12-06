@@ -5,7 +5,7 @@ import {
     VCSEvent, 
     VCSEventType 
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Tracks version control system events (Git)

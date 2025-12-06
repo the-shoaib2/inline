@@ -1,5 +1,5 @@
 import { AnyEvent, BaseEvent } from './event-types';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 /**
  * Event normalizer - converts platform-specific events to standard format

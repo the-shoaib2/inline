@@ -1,8 +1,8 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { InlineCodeActionProvider } from '../../src/core/code-action-provider';
-import { ModelManager } from '../../src/core/model-manager';
+import { InlineCodeActionProvider } from '../../src/core/providers/code-action-provider';
+import { ModelManager } from '../../src/inference/model-manager';
 
 describe('Code Action Provider Tests', () => {
     let provider: InlineCodeActionProvider;

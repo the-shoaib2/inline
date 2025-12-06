@@ -1,5 +1,5 @@
 import { AnyEvent } from '../events/event-types';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 /**
  * Optimization layer for event processing

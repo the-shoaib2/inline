@@ -6,7 +6,7 @@ import {
     EventSubscription,
     EventPriority 
 } from './event-types';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 /**
  * Central event bus for the event tracking system

@@ -5,7 +5,7 @@ import {
     FileSystemEvent, 
     FileSystemEventType 
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Collects file system events from VS Code

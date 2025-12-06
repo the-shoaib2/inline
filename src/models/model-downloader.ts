@@ -5,8 +5,8 @@ import * as https from 'https';
 import * as os from 'os';
 // @ts-ignore - tar module types not available
 import * as tar from 'tar';
-import { ModelInfo } from '../core/model-manager';
-import { Logger } from '../utils/logger';
+import { ModelInfo } from '../inference/model-manager';
+import { Logger } from '../system/logger';
 
 interface DownloadTask {
     model: ModelInfo;

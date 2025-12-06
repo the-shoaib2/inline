@@ -1,23 +1,23 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
-import { InlineCompletionProvider } from './core/completion-provider';
-import { InlineCodeActionProvider } from './core/code-action-provider';
-import { InlineHoverProvider } from './core/hover-provider';
-import { ModelManager } from './core/model-manager';
-import { CacheManager } from './core/cache-manager';
+import { InlineCompletionProvider } from './core/providers/completion-provider';
+import { InlineCodeActionProvider } from './core/providers/code-action-provider';
+import { InlineHoverProvider } from './core/providers/hover-provider';
+import { ModelManager } from './inference/model-manager';
+import { CacheManager } from './core/cache/cache-manager';
 import { StatusBarManager } from './ui/status-bar-manager';
 import { WebviewProvider } from './ui/webview-provider';
-import { NetworkDetector } from './utils/network-detector';
-import { ResourceManager } from './utils/resource-manager';
-import { Logger } from './utils/logger';
-import { ConfigManager } from './utils/config-manager';
-import { ErrorHandler } from './utils/error-handler';
-import { TelemetryManager } from './utils/telemetry-manager';
-import { NetworkConfig } from './utils/network-config';
-import { ProcessInfoDisplay } from './utils/process-info-display';
-import { PerformanceTuner } from './utils/performance-tuner';
-import { AICommandsProvider } from './ui/ai-commands-provider';
+import { NetworkDetector } from './network/network-detector';
+import { ResourceManager } from './system/resource-manager';
+import { Logger } from './system/logger';
+import { ConfigManager } from './system/config-manager';
+import { ErrorHandler } from './system/error-handler';
+import { TelemetryManager } from './system/telemetry-manager';
+import { NetworkConfig } from './network/network-config';
+import { ProcessInfoDisplay } from './system/process-info-display';
+import { PerformanceTuner } from './system/performance-tuner';
+import { AICommandsProvider } from './core/providers/ai-commands-provider';
 import { EventTrackingManager, createEventTrackingManager } from './events/event-tracking-manager';
 
 let completionProvider: InlineCompletionProvider;
@@ -125,14 +125,20 @@ export async function activate(context: vscode.ExtensionContext) {
         aiCommandsProvider.registerCommands(context);
 
         // Initialize event tracking system (NEW)
-        const contextEngine = completionProvider.getContextEngine();
-        eventTrackingManager = createEventTrackingManager(context, contextEngine);
+        // Initialize event tracking manager
+        eventTrackingManager = createEventTrackingManager(context, completionProvider.getContextEngine());
         eventTrackingManager.start();
-        logger.info('Event tracking system initialized');
+        
+        // Wire event system to context engine
+        const stateManager = eventTrackingManager.getStateManager();
+        const contextWindowBuilder = eventTrackingManager.getContextWindowBuilder();
+        completionProvider.getContextEngine().setStateManager(stateManager);
+        completionProvider.getContextEngine().setContextWindowBuilder(contextWindowBuilder);
+        
+        logger.info('Event tracking system integrated with completion provider');
 
-        // Integrate AI context tracker with completion provider
-        const aiTracker = eventTrackingManager.getAIContextTracker();
-        completionProvider.setAIContextTracker(aiTracker);
+        // Set AI context tracker for completion provider
+        completionProvider.setAIContextTracker(eventTrackingManager.getAIContextTracker());
 
         // Register commands
         registerCommands(context, modelManager);

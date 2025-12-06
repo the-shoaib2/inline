@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ModelManager, ModelInfo } from '../../src/core/model-manager';
+import { ModelManager, ModelInfo } from '../../src/inference/model-manager';
 import { createMockModelInfo, createMockModels } from '../mocks/model-mock';
 
 describe('ModelManager Unit Tests', () => {

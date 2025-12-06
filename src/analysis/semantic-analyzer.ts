@@ -8,7 +8,7 @@ import type {
     ImportInfo, FunctionInfo, ClassInfo, InterfaceInfo, TypeInfo, VariableInfo,
     ParameterInfo, PropertyInfo, SymbolInfo, ScopeInfo, CursorIntent,
     ProjectConfig, StyleGuide, EditHistory
-} from '../core/context-engine';
+} from '../core/context/context-engine';
 
 export class SemanticAnalyzer {
     /**

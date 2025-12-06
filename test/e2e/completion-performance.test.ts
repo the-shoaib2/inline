@@ -9,7 +9,7 @@ import {
   closeAllEditors,
   getExtension
 } from '../helpers/test-utils';
-import { InlineCompletionProvider } from '../../src/core/completion-provider';
+import { InlineCompletionProvider } from '../../src/core/providers/completion-provider';
 
 suite('Completion Performance Tests', () => {
     let provider: InlineCompletionProvider;

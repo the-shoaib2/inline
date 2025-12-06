@@ -1,5 +1,5 @@
 import * as os from 'os';
-import { Logger } from './logger';
+import { Logger } from '../system/logger';
 
 export interface GPUInfo {
     available: boolean;

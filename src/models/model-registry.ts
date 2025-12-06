@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { ModelInfo } from '../core/model-manager';
-import { Logger } from '../utils/logger';
+import { ModelInfo } from '../inference/model-manager';
+import { Logger } from '../system/logger';
 
 export interface ModelMetadata {
     id: string;

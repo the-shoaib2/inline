@@ -14,8 +14,8 @@ import { ContextWindowBuilder } from '../pipeline/context-window-builder';
 import { ContextEnricher } from '../pipeline/context-enricher';
 import { OptimizationLayer } from '../pipeline/optimization-layer';
 import { EventStorage } from '../pipeline/event-storage';
-import { ContextEngine } from '../core/context-engine';
-import { Logger } from '../utils/logger';
+import { ContextEngine } from '../core/context/context-engine';
+import { Logger } from '../system/logger';
 import * as path from 'path';
 import * as os from 'os';
 

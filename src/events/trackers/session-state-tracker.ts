@@ -6,7 +6,7 @@ import {
     EventFilter,
     EventPriority
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Tracks session and extension state events

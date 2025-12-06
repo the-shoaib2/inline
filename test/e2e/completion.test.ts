@@ -8,7 +8,7 @@ import {
   closeAllEditors,
   getExtension
 } from '../helpers/test-utils';
-import { InlineCompletionProvider } from '../../src/core/completion-provider';
+import { InlineCompletionProvider } from '../../src/core/providers/completion-provider';
 
 suite('Completion Provider E2E Tests', () => {
   let provider: InlineCompletionProvider;

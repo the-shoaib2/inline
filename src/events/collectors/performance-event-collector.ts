@@ -4,7 +4,7 @@ import {
     PerformanceEvent, 
     PerformanceEventType 
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Collects performance metrics

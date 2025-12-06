@@ -5,7 +5,7 @@ import {
     EventFilter,
     EventPriority
 } from '../event-types';
-import { Logger } from '../../utils/logger';
+import { Logger } from './../../system/logger';
 
 /**
  * Tracks AI-specific context and events

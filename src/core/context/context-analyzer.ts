@@ -6,7 +6,7 @@ import * as path from 'path';
 import type {
     ImportInfo, DependencyInfo, RelatedCodeBlock, CodingPattern,
     SymbolInfo, FunctionInfo, ClassInfo
-} from '../core/context-engine';
+} from './context-engine';
 
 export interface RelatedFileContext {
     filePath: string;

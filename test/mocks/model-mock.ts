@@ -1,4 +1,4 @@
-import { ModelInfo } from '../../src/core/model-manager';
+import { ModelInfo } from '../../src/inference/model-manager';
 
 /**
  * Mock model for testing

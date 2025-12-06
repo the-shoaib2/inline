@@ -1,10 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import type { LlamaModel, LlamaContext } from 'node-llama-cpp';
-import { Logger } from '../utils/logger';
-import { GPUDetector } from '../utils/gpu-detector';
-import { DuplicationDetector } from '../utils/duplication-detector';
-import { ASTParser } from '../utils/ast-parser';
+import { Logger } from '../system/logger';
+import { GPUDetector } from '../inference/gpu-detector';
+import { DuplicationDetector } from '../analysis/duplication-detector';
+import { ASTParser } from '../analysis/ast-parser';
 import * as vscode from 'vscode';
 import * as os from 'os';
 

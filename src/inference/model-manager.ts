@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { LlamaInference } from './llama-inference';
-import { Logger } from '../utils/logger';
+import { Logger } from '../system/logger';
 
 export interface ModelInfo {
     id: string;

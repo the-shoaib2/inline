@@ -1,7 +1,7 @@
 import { AnyEvent, CodeModificationEvent, EditorEvent } from '../events/event-types';
-import { ContextEngine, CodeContext } from '../core/context-engine';
-import { SemanticAnalyzer } from '../utils/semantic-analyzer';
-import { Logger } from '../utils/logger';
+import { ContextEngine, CodeContext } from '../core/context/context-engine';
+import { SemanticAnalyzer } from '../analysis/semantic-analyzer';
+import { Logger } from '../system/logger';
 import * as vscode from 'vscode';
 
 /**

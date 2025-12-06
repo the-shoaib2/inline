@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { StateManager, DocumentState, EditRecord } from './state-manager';
-import { ContextEngine, CodeContext } from '../core/context-engine';
-import { Logger } from '../utils/logger';
+import { ContextEngine, CodeContext } from '../core/context/context-engine';
+import { Logger } from '../system/logger';
 
 /**
  * Context window for AI model

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ModelManager } from '../core/model-manager';
+import { ModelManager } from '../inference/model-manager';
 
 export class ModelManagerView {
     private modelManager: ModelManager;

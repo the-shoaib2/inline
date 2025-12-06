@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { TestGenerator } from '../core/test-generator';
-import { DocGenerator } from '../core/doc-generator';
-import { ErrorExplainer } from '../core/error-explainer';
-import { SecurityScanner } from '../core/security-scanner';
-import { PRGenerator } from '../core/pr-generator';
-import { ModelManager } from '../core/model-manager';
-import { Logger } from '../utils/logger';
-import { TerminalAssistant } from '../core/terminal-assistant';
-import { RefactoringEngine } from '../core/refactoring-engine';
+import { TestGenerator } from '../../features/code-generation/test-generator';
+import { DocGenerator } from '../../features/code-generation/doc-generator';
+import { ErrorExplainer } from '../../features/code-analysis/error-explainer';
+import { SecurityScanner } from '../../features/code-analysis/security-scanner';
+import { PRGenerator } from '../../features/code-generation/pr-generator';
+import { ModelManager } from '../../inference/model-manager';
+import { Logger } from '../../system/logger';
+import { TerminalAssistant } from '../../features/terminal/terminal-assistant';
+import { RefactoringEngine } from '../../features/code-analysis/refactoring-engine';
 
 export class AICommandsProvider {
     private testGenerator: TestGenerator;

@@ -1,6 +1,6 @@
 
 import * as assert from 'assert';
-import { InlineCompletionProvider } from '../../src/core/completion-provider';
+import { InlineCompletionProvider } from '../../src/core/providers/completion-provider';
 
 describe('Completion Filtering Unit Tests', () => {
     let provider: InlineCompletionProvider;

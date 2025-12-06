@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { ModelManager, ModelInfo } from './model-manager';
-import { ContextEngine, CodeContext } from './context-engine';
-import { StatusBarManager } from '../ui/status-bar-manager';
-import { NetworkDetector } from '../utils/network-detector';
-import { ResourceManager } from '../utils/resource-manager';
-import { CacheManager } from './cache-manager';
-import { PerformanceMonitor, CompletionMetrics } from '../utils/performance-monitor';
-import { SmartFilter } from './smart-filter';
-import { DuplicationDetector } from '../utils/duplication-detector';
+import { ModelManager, ModelInfo } from '../../inference/model-manager';
+import { ContextEngine, CodeContext } from '../context/context-engine';
+import { StatusBarManager } from '../../ui/status-bar-manager';
+import { NetworkDetector } from '../../network/network-detector';
+import { ResourceManager } from '../../system/resource-manager';
+import { CacheManager } from '../cache/cache-manager';
+import { PerformanceMonitor, CompletionMetrics } from '../../system/performance-monitor';
+import { SmartFilter } from '../context/smart-filter';
+import { DuplicationDetector } from '../../analysis/duplication-detector';
 
 // LRU Cache implementation
 class LRUCache<K, V> {
