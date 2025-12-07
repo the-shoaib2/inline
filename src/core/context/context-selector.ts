@@ -1,12 +1,23 @@
-// Context Selector - Intelligent context selection and prioritization
-// Provides adaptive, intent-based context selection for optimal completions
+/**
+ * Context selector for intelligent context selection and prioritization.
+ *
+ * Features:
+ * - Adaptive context selection based on cursor position and intent
+ * - Dynamic prefix/suffix ratio optimization
+ * - Symbol prioritization by relevance
+ * - Token-aware context optimization
+ * - Multi-tier context categorization
+ */
 
 import * as vscode from 'vscode';
 import type {
-    CodeContext, CursorIntent, FunctionInfo, ClassInfo, ImportInfo,
+    CodeContext, CursorIntent, FunctionInfo, ImportInfo,
     TypeInfo, InterfaceInfo, SymbolInfo
 } from './context-engine';
 
+/**
+ * Optimized context with prioritized elements and relevance scoring.
+ */
 export interface OptimizedContext {
     prefix: string;
     suffix: string;
@@ -17,6 +28,9 @@ export interface OptimizedContext {
     contextScore: number;
 }
 
+/**
+ * Prioritized context organized by importance tiers.
+ */
 export interface PrioritizedContext {
     essential: string[];      // Must include
     important: string[];      // Should include
@@ -24,11 +38,21 @@ export interface PrioritizedContext {
     totalTokens: number;
 }
 
+/**
+ * Intelligent context selector that optimizes context based on cursor position,
+ * user intent, and token constraints.
+ */
 export class ContextSelector {
     private maxContextTokens: number = 4000;
 
     /**
-     * Select optimal context based on cursor position and intent
+     * Select optimal context based on cursor position and detected intent.
+     *
+     * @param document - Current document
+     * @param position - Cursor position
+     * @param intent - Detected user intent
+     * @param availableContext - Full available context
+     * @returns Optimized context with prioritized elements
      */
     selectOptimalContext(
         document: vscode.TextDocument,
@@ -36,44 +60,44 @@ export class ContextSelector {
         intent: CursorIntent | null,
         availableContext: CodeContext
     ): OptimizedContext {
-        // Calculate adaptive prefix/suffix ratio
+        // Calculate optimal prefix/suffix ratio based on cursor position
         const ratio = this.calculateOptimalRatio(position, document);
-        
-        // Adjust prefix and suffix based on ratio
+
+        // Adjust context window according to calculated ratio
         const { prefix, suffix } = this.adjustContextRatio(
             availableContext.prefix,
             availableContext.suffix,
             ratio
         );
 
-        // Prioritize symbols based on intent
+        // Prioritize symbols by relevance to current intent and position
         const prioritizedSymbols = this.prioritizeSymbols(
             availableContext.symbolTable,
             intent,
             position
         );
 
-        // Select relevant types
+        // Filter types relevant to current context
         const relevantTypes = this.selectRelevantTypes(
             availableContext.types,
             availableContext.interfaces,
             intent
         );
 
-        // Select relevant functions
+        // Select functions most relevant to current position and intent
         const relevantFunctions = this.selectRelevantFunctions(
             availableContext.functions,
             intent,
             position
         );
 
-        // Suggest imports based on intent
+        // Suggest imports that might be needed for current context
         const suggestedImports = this.suggestImports(
             availableContext.imports,
             intent
         );
 
-        // Calculate context quality score
+        // Calculate overall context quality score for optimization
         const contextScore = this.calculateContextScore(
             prioritizedSymbols,
             relevantTypes,
@@ -93,7 +117,11 @@ export class ContextSelector {
     }
 
     /**
-     * Prioritize context elements based on intent
+     * Prioritize context elements into tiers based on detected user intent.
+     *
+     * @param context - Full available context
+     * @param intent - Detected user intent
+     * @returns Context organized by importance tiers
      */
     prioritizeContext(
         context: CodeContext,
@@ -104,11 +132,12 @@ export class ContextSelector {
         const optional: string[] = [];
 
         if (!intent) {
-            // Default prioritization
+            // Default prioritization when no specific intent detected
             essential.push('Current file context');
             important.push('Imports', 'Functions', 'Classes');
             optional.push('Types', 'Interfaces', 'Variables');
         } else {
+            // Intent-specific prioritization for optimal context selection
             switch (intent.type) {
                 case 'function_call':
                     essential.push('Function signatures', 'Parameter types');
@@ -148,7 +177,7 @@ export class ContextSelector {
             }
         }
 
-        // Estimate token count
+        // Calculate total token count for the prioritized context
         const totalTokens = this.estimateTokenCount(essential, important, optional);
 
         return {
@@ -160,7 +189,12 @@ export class ContextSelector {
     }
 
     /**
-     * Calculate optimal prefix/suffix ratio based on cursor position
+     * Calculate optimal prefix/suffix ratio based on cursor position in document.
+     * Uses adaptive weighting to provide more relevant context.
+     *
+     * @param position - Current cursor position
+     * @param document - Current document
+     * @returns Optimal prefix and suffix ratios
      */
     calculateOptimalRatio(
         position: vscode.Position,
@@ -170,15 +204,15 @@ export class ContextSelector {
         const currentLine = position.line;
         const linePosition = currentLine / totalLines;
 
-        // Adaptive ratio based on position
+        // Adaptive ratio based on cursor position in file
         if (linePosition < 0.2) {
-            // Near start of file - more suffix context
+            // Near start of file - prioritize suffix (future context)
             return { prefixRatio: 0.4, suffixRatio: 0.6 };
         } else if (linePosition > 0.8) {
-            // Near end of file - more prefix context
+            // Near end of file - prioritize prefix (past context)
             return { prefixRatio: 0.8, suffixRatio: 0.2 };
         } else if (linePosition > 0.4 && linePosition < 0.6) {
-            // Middle of file - balanced
+            // Middle of file - balanced context
             return { prefixRatio: 0.5, suffixRatio: 0.5 };
         } else {
             // Default - slightly more prefix
@@ -352,7 +386,7 @@ export class ContextSelector {
         intent: CursorIntent | null
     ): number {
         let score = 0;
-        let maxScore = 100;
+        const maxScore = 100;
 
         // Symbol availability (0-30 points)
         score += Math.min(30, symbols.length * 1.5);
@@ -453,7 +487,7 @@ export class ContextSelector {
             let importance = 5; // Base importance
             if (intent?.type === 'import') importance += 10;
             if (imp.isDefault) importance += 2;
-            
+
             ranked.push({
                 element: `import ${imp.imports.join(', ')} from '${imp.module}'`,
                 type: 'import',
@@ -467,7 +501,7 @@ export class ContextSelector {
             if (intent?.type === 'function_call') importance += 10;
             if (func.isAsync) importance += 3;
             if (func.isExported) importance += 2;
-            
+
             ranked.push({
                 element: func.signature,
                 type: 'function',
@@ -479,7 +513,7 @@ export class ContextSelector {
         context.types.forEach(type => {
             let importance = 6;
             if (intent?.type === 'type_annotation') importance += 10;
-            
+
             ranked.push({
                 element: `type ${type.name} = ${type.definition}`,
                 type: 'type',

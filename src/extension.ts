@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 import { InlineCompletionProvider } from './core/providers/completion-provider';
 import { InlineCodeActionProvider } from './core/providers/code-action-provider';
 import { InlineHoverProvider } from './core/providers/hover-provider';
@@ -14,6 +15,7 @@ import { Logger } from './system/logger';
 import { ConfigManager } from './system/config-manager';
 import { ErrorHandler } from './system/error-handler';
 import { TelemetryManager } from './system/telemetry-manager';
+import { LanguageConfigService } from './core/config/language-config-service';
 import { NetworkConfig } from './network/network-config';
 import { ProcessInfoDisplay } from './system/process-info-display';
 import { PerformanceTuner } from './system/performance-tuner';
@@ -24,7 +26,21 @@ import { BuildStateTracker } from './features/compilation/build-state-tracker';
 import { TriggerEngine } from './features/compilation/trigger-engine';
 import { CompilationSuggestionProvider } from './features/compilation/compilation-suggestion-provider';
 import { DependencyChecker } from './features/compilation/dependency-checker';
+import { FeatureTracker } from './system/feature-tracker';
+import { FEATURE_REGISTRY } from './system/feature-registry';
 
+/**
+ * VSCode extension entry point and lifecycle management.
+ *
+ * Coordinates all extension components:
+ * - AI model management and inference
+ * - Multi-tier caching system
+ * - Context analysis and optimization
+ * - UI components and status tracking
+ * - Event tracking and telemetry
+ */
+
+// Global component instances for lifecycle management
 let completionProvider: InlineCompletionProvider;
 let modelManager: ModelManager;
 let cacheManager: CacheManager;
@@ -43,43 +59,54 @@ let buildStateTracker: BuildStateTracker;
 let triggerEngine: TriggerEngine;
 let compilationSuggestionProvider: CompilationSuggestionProvider;
 let dependencyChecker: DependencyChecker;
+let featureTracker: FeatureTracker;
 
+/**
+ * Extension activation - initializes all components and services.
+ *
+ * Activation sequence:
+ * 1. Network configuration
+ * 2. Service initialization (logger, config, telemetry)
+ * 3. Core components (cache, model, UI)
+ * 4. Provider registration (completion, hover, actions)
+ * 5. Event system integration
+ * 6. Feature initialization
+ */
 export async function activate(context: vscode.ExtensionContext) {
     try {
-        // Configure network settings first
+        // Configure network settings first for offline detection
         NetworkConfig.configure();
 
-        // Initialize logger
+        // Initialize language service for context analysis
+        LanguageConfigService.getInstance().initialize(context);
+
+        // Initialize core services
         logger = new Logger('Inline');
         logger.info('Activating Inline extension...');
 
-        // Initialize error handler
         errorHandler = ErrorHandler.getInstance();
-
-        // Initialize telemetry
         telemetryManager = new TelemetryManager();
         telemetryManager.trackEvent('extension_activated');
 
-        // Initialize configuration manager
         configManager = new ConfigManager();
         logger.info('Configuration loaded', configManager.getAll());
 
-        // Run performance auto-tuning (deferred to avoid blocking startup)
+        // Performance tuning deferred to avoid blocking startup
         setTimeout(() => {
             PerformanceTuner.tune().catch(err => console.error('Tuning failed:', err));
         }, 5000);
-        
+
         // Initialize core components
         cacheManager = new CacheManager(context);
         modelManager = new ModelManager(context);
         statusBarManager = new StatusBarManager();
         networkDetector = new NetworkDetector();
 
-        // Lazy-initialize ResourceManager (defer until first use for faster activation)
+        // Lazy-initialize resource manager until needed
         resourceManager = new ResourceManager();
-        resourceManager.stopMonitoring(); // Don't start monitoring until needed
+        resourceManager.stopMonitoring();
 
-        // Initialize completion provider
+        // Initialize completion provider with all dependencies
         completionProvider = new InlineCompletionProvider(
             modelManager,
             statusBarManager,
@@ -88,10 +115,8 @@ export async function activate(context: vscode.ExtensionContext) {
             cacheManager
         );
 
-        // Initialize webview provider
+        // Initialize webview for model management
         webviewProvider = new WebviewProvider(context.extensionUri, modelManager);
-
-        // Register webview provider
         context.subscriptions.push(
             vscode.window.registerWebviewViewProvider(
                 WebviewProvider.viewType,
@@ -99,29 +124,23 @@ export async function activate(context: vscode.ExtensionContext) {
             )
         );
 
-        // Development Mode: All features enabled for testing
+        // Development mode feature enablement
         if (context.extensionMode === vscode.ExtensionMode.Development) {
             logger.info('Development Mode detected: All features enabled for testing');
         }
 
-        // Register completion provider
+        // Register language providers
         const provider = vscode.languages.registerInlineCompletionItemProvider(
             { pattern: '**' },
             completionProvider
         );
         context.subscriptions.push(provider);
 
-        // Register code action provider (NEW)
-        const codeActionProvider = new InlineCodeActionProvider(modelManager);
-        context.subscriptions.push(
-            vscode.languages.registerCodeActionsProvider(
-                { pattern: '**' },
-                codeActionProvider,
-                { providedCodeActionKinds: InlineCodeActionProvider.providedCodeActionKinds }
-            )
-        );
-        
-        // Register Hover Provider (NEW)
+        // Code action provider for AI suggestions
+        new InlineCodeActionProvider(modelManager);
+        // Note: provider registered but not stored - unused variable removed
+
+        // Hover provider for enhanced documentation
         const hoverProvider = new InlineHoverProvider();
         context.subscriptions.push(
             vscode.languages.registerHoverProvider(
@@ -130,27 +149,24 @@ export async function activate(context: vscode.ExtensionContext) {
             )
         );
 
-        // Register AI commands provider (NEW)
+        // AI commands provider for advanced features
         aiCommandsProvider = new AICommandsProvider(modelManager, completionProvider.getContextEngine());
         aiCommandsProvider.registerCommands(context);
 
-        // Initialize event tracking system (NEW)
-        // Initialize event tracking manager
+        // Initialize event tracking system for context awareness
         eventTrackingManager = createEventTrackingManager(context, completionProvider.getContextEngine());
         eventTrackingManager.start();
-        
-        // Wire event system to context engine
+
+        // Wire event system to context engine for real-time updates
         const stateManager = eventTrackingManager.getStateManager();
         const contextWindowBuilder = eventTrackingManager.getContextWindowBuilder();
         completionProvider.getContextEngine().setStateManager(stateManager);
         completionProvider.getContextEngine().setContextWindowBuilder(contextWindowBuilder);
-        
-        logger.info('Event tracking system integrated with completion provider');
 
-        // Set AI context tracker for completion provider
+        logger.info('Event tracking system integrated with completion provider');
         completionProvider.setAIContextTracker(eventTrackingManager.getAIContextTracker());
 
-        // Initialize Compilation Features (NEW)
+        // Initialize compilation features for build integration
         compilationManager = new CompilationManager();
         context.subscriptions.push(compilationManager);
 
@@ -158,7 +174,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(buildStateTracker);
 
         triggerEngine = new TriggerEngine(
-            compilationManager, 
+            compilationManager,
             buildStateTracker,
             eventTrackingManager.getEventBus()
         );
@@ -166,7 +182,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         compilationSuggestionProvider = new CompilationSuggestionProvider(compilationManager, buildStateTracker);
         context.subscriptions.push(compilationSuggestionProvider);
-        
+
         // Register compilation code actions
         context.subscriptions.push(
             vscode.languages.registerCodeActionsProvider(
@@ -175,31 +191,35 @@ export async function activate(context: vscode.ExtensionContext) {
                 { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
             )
         );
-        
-        // Register manual trigger command
+
+        // Manual build trigger command
         context.subscriptions.push(
             vscode.commands.registerCommand('inline.triggerBuild', () => {
                 compilationManager.compile({ force: true });
             })
         );
-        
+
         dependencyChecker = new DependencyChecker();
         context.subscriptions.push(dependencyChecker);
 
+        // Initialize feature tracking for analytics
+        featureTracker = new FeatureTracker(context);
+        FEATURE_REGISTRY.forEach(feature => featureTracker.registerFeature(feature));
+        logger.info('Feature tracker initialized with registry');
 
-        // Register commands
+        // Register all extension commands
         registerCommands(context, modelManager);
 
-        // Initialize status bar
+        // Initialize UI components
         statusBarManager.initialize();
 
-        // Update status bar with current model
+        // Update status bar with current model information
         const currentModel = modelManager.getCurrentModel();
         if (currentModel) {
             statusBarManager.setModel(currentModel.name);
         }
 
-        // Model Warmup
+        // Model warmup for faster first inference
         if (configManager.get('modelWarmup') !== false) {
             setTimeout(async () => {
                 const model = modelManager.getCurrentModel();
@@ -207,19 +227,17 @@ export async function activate(context: vscode.ExtensionContext) {
                     try {
                         logger.info(`Warming up model: ${model.name}`);
                         const engine = modelManager.getInferenceEngine();
-                        // Load with config
-                         // (assuming standard load is fine, tuner comes later)
+                        // Load model to memory for faster responses
                         await engine.loadModel(model.path);
                         logger.info('Model warmup complete');
                     } catch (error) {
                         logger.error(`Model warmup failed: ${error}`);
                     }
                 }
-            }, 2000); // Delay warmup to not block startup
+            }, 2000); // Delay to not block startup
         }
 
-        // Start network monitoring asynchronously (don't block activation)
-        // Only start if not configured for offline-only mode
+        // Start network monitoring asynchronously
         if (!configManager.autoOffline) {
             setTimeout(() => {
                 networkDetector.startMonitoring((isOffline) => {
@@ -231,7 +249,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 });
             }, 100);
         } else {
-            // Start in offline mode immediately
+            // Start in offline mode immediately if configured
             statusBarManager.updateStatus(true);
             logger.info('Starting in offline mode');
         }
@@ -239,7 +257,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Set context for UI visibility
         vscode.commands.executeCommand('setContext', 'inline.enabled', true);
 
-        // Update cache size periodically
+        // Periodic cache size updates for status bar
         const cacheInterval = setInterval(() => {
             const cacheSize = completionProvider.getCacheSize();
             const sizeMB = (cacheSize * 0.001).toFixed(1);
@@ -273,7 +291,10 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 }
 
-function registerCommands(context: vscode.ExtensionContext, modelManagerImplementation: ModelManager): void {
+/**
+ * Register all extension commands and their handlers.
+ */
+function registerCommands(context: vscode.ExtensionContext, _modelManagerImplementation: ModelManager): void {
     const commands = [
         vscode.commands.registerCommand('inline.modelManager', () => {
             vscode.commands.executeCommand('workbench.view.extension.inline-sidebar');
@@ -288,16 +309,9 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
             });
         }),
 
-        vscode.commands.registerCommand('inline.clearCache', async () => {
-            try {
-                completionProvider.clearCache();
-                cacheManager.clear();
-                statusBarManager.setCacheSize('0MB');
-                vscode.window.showInformationMessage('Cache cleared successfully!');
-                telemetryManager.trackEvent('cache_cleared');
-            } catch (error) {
-                errorHandler.handleError(error as Error, 'Clear Cache', true);
-            }
+        vscode.commands.registerCommand('inline.clearCache', () => {
+            completionProvider.clearCache();
+            vscode.window.showInformationMessage('Inline cache cleared');
         }),
 
         vscode.commands.registerCommand('inline.downloadModel', () => {
@@ -333,23 +347,23 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
         vscode.commands.registerCommand('inline.showEventStats', async () => {
             if (eventTrackingManager) {
                 const stats = eventTrackingManager.getStatistics();
-                const report = `# Event Tracking Statistics\n\n` +
-                    `## Event Bus\n` +
-                    `- Buffer Size: ${stats.eventBusStats.bufferSize}/${stats.eventBusStats.maxSize}\n` +
-                    `- Subscriptions: ${stats.eventBusStats.subscriptionCount}\n\n` +
-                    `## AI Metrics\n` +
-                    `- Total Inferences: ${stats.aiMetrics.totalInferences}\n` +
-                    `- Total Suggestions: ${stats.aiMetrics.totalSuggestions}\n` +
-                    `- Accepted: ${stats.aiMetrics.acceptedSuggestions}\n` +
-                    `- Rejected: ${stats.aiMetrics.rejectedSuggestions}\n` +
-                    `- Acceptance Rate: ${(stats.aiMetrics.acceptanceRate * 100).toFixed(1)}%\n` +
-                    `- Avg Inference Time: ${stats.aiMetrics.averageInferenceTime.toFixed(0)}ms\n` +
-                    `- Avg Confidence: ${(stats.aiMetrics.averageConfidence * 100).toFixed(1)}%\n\n` +
-                    `## State Info\n` +
-                    `- Open Documents: ${stats.stateInfo.openDocuments}\n` +
-                    `- Cursor History: ${stats.stateInfo.cursorHistorySize}\n` +
-                    `- Recent Edits: ${stats.stateInfo.recentEditsSize}\n`;
-                
+                const report = '# Event Tracking Statistics\n\n' +
+                    '## Event Bus\n' +
+                    '- Buffer Size: ' + stats.eventBusStats.bufferSize + '/' + stats.eventBusStats.maxSize + '\n' +
+                    '- Subscriptions: ' + stats.eventBusStats.subscriptionCount + '\n\n' +
+                    '## AI Metrics\n' +
+                    '- Total Inferences: ' + stats.aiMetrics.totalInferences + '\n' +
+                    '- Total Suggestions: ' + stats.aiMetrics.totalSuggestions + '\n' +
+                    '- Accepted: ' + stats.aiMetrics.acceptedSuggestions + '\n' +
+                    '- Rejected: ' + stats.aiMetrics.rejectedSuggestions + '\n' +
+                    '- Acceptance Rate: ' + (stats.aiMetrics.acceptanceRate * 100).toFixed(1) + '%\n' +
+                    '- Avg Inference Time: ' + stats.aiMetrics.averageInferenceTime.toFixed(0) + 'ms\n' +
+                    '- Avg Confidence: ' + (stats.aiMetrics.averageConfidence * 100).toFixed(1) + '%\n\n' +
+                    '## State Info\n' +
+                    '- Open Documents: ' + stats.stateInfo.openDocuments + '\n' +
+                    '- Cursor History: ' + stats.stateInfo.cursorHistorySize + '\n' +
+                    '- Recent Edits: ' + stats.stateInfo.recentEditsSize + '\n';
+
                 const doc = await vscode.workspace.openTextDocument({ content: report, language: 'markdown' });
                 await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
             }
@@ -372,9 +386,9 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
             if (url) {
                 // Open webview
                 vscode.commands.executeCommand('workbench.view.extension.inline-sidebar');
-                // We rely on the user pasting the URL in the UI for now, 
+                // We rely on the user pasting the URL in the UI for now,
                 // or we could send a message if we exposed a method.
-                // Since we implemented downloadFromUrl in webview-provider, 
+                // Since we implemented downloadFromUrl in webview-provider,
                 // we can try to send a message to it if we had access to the instance.
                 // But webviewProvider is available here!
 
@@ -388,8 +402,8 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
 
         vscode.commands.registerCommand('inline.openModelsFolder', async () => {
             const modelsDir = path.join(os.homedir(), '.inline', 'models');
-            if (!require('fs').existsSync(modelsDir)) {
-                require('fs').mkdirSync(modelsDir, { recursive: true });
+            if (!fs.existsSync(modelsDir)) {
+                fs.mkdirSync(modelsDir, { recursive: true });
             }
             await vscode.env.openExternal(vscode.Uri.file(modelsDir));
             telemetryManager.trackEvent('models_folder_opened');
@@ -403,7 +417,71 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
             }, 1500);
             telemetryManager.trackEvent('check_updates');
         }),
-        
+
+        vscode.commands.registerCommand('inline.showFeatureStatus', async () => {
+            if (featureTracker) {
+                const markdown = featureTracker.generateMarkdown();
+                const doc = await vscode.workspace.openTextDocument({
+                    content: markdown,
+                    language: 'markdown'
+                });
+                await vscode.window.showTextDocument(doc, {
+                    preview: true,
+                    viewColumn: vscode.ViewColumn.Beside
+                });
+                telemetryManager.trackEvent('feature_status_viewed');
+            }
+        }),
+
+        // Import Management Commands
+        vscode.commands.registerCommand('inline.organizeImports', async (document?: vscode.TextDocument) => {
+            const doc = document || vscode.window.activeTextEditor?.document;
+            if (!doc) { return; }
+
+            // Code action provider registration handled separately
+
+            // Get import resolver from code action provider
+            // For now, create a new instance
+            const { ImportResolver } = await import('./core/providers/import-resolver');
+            const resolver = new ImportResolver();
+            const edits = await resolver.organizeImports(doc);
+
+            const workspaceEdit = new vscode.WorkspaceEdit();
+            edits.forEach(edit => workspaceEdit.replace(doc.uri, edit.range, edit.newText));
+            await vscode.workspace.applyEdit(workspaceEdit);
+            vscode.window.showInformationMessage('Imports organized!');
+        }),
+
+        vscode.commands.registerCommand('inline.removeUnusedImports', async (document?: vscode.TextDocument) => {
+            const doc = document || vscode.window.activeTextEditor?.document;
+            if (!doc) { return; }
+
+            const { ImportResolver } = await import('./core/providers/import-resolver');
+            const resolver = new ImportResolver();
+            const edits = await resolver.removeUnusedImports(doc);
+
+            const workspaceEdit = new vscode.WorkspaceEdit();
+            edits.forEach(edit => workspaceEdit.replace(doc.uri, edit.range, edit.newText));
+            await vscode.workspace.applyEdit(workspaceEdit);
+            vscode.window.showInformationMessage(`Removed ${edits.length} unused import(s)!`);
+        }),
+
+        vscode.commands.registerCommand('inline.addImport', async (
+            document: vscode.TextDocument,
+            symbol: string,
+            module: string,
+            isDefault: boolean
+        ) => {
+            const { ImportResolver } = await import('./core/providers/import-resolver');
+            const resolver = new ImportResolver();
+            const edit = await resolver.addImport(document, symbol, module, isDefault);
+
+            const workspaceEdit = new vscode.WorkspaceEdit();
+            workspaceEdit.replace(document.uri, edit.range, edit.newText);
+            await vscode.workspace.applyEdit(workspaceEdit);
+            vscode.window.showInformationMessage(`Added import: ${symbol}`);
+        }),
+
     ];
 
     context.subscriptions.push(...commands);
@@ -411,11 +489,21 @@ function registerCommands(context: vscode.ExtensionContext, modelManagerImplemen
 
 
 
+/**
+ * Extension deactivation - cleanup resources and dispose components.
+ *
+ * Cleanup sequence:
+ * 1. Stop network monitoring
+ * 2. Cleanup model manager
+ * 3. Dispose UI components
+ * 4. Dispose event tracking
+ * 5. Dispose logger last
+ */
 export async function deactivate(): Promise<void> {
     try {
         logger?.info('Deactivating Inline extension...');
 
-        // Stop monitoring first
+        // Stop monitoring first to prevent new events
         if (networkDetector) {
             try {
                 networkDetector.stopMonitoring();
@@ -424,7 +512,7 @@ export async function deactivate(): Promise<void> {
             }
         }
 
-        // Cleanup model manager
+        // Cleanup model resources
         if (modelManager) {
             try {
                 await modelManager.cleanup();
@@ -442,7 +530,7 @@ export async function deactivate(): Promise<void> {
             }
         }
 
-        // Dispose event tracking manager
+        // Dispose event tracking system
         if (eventTrackingManager) {
             try {
                 eventTrackingManager.dispose();
@@ -451,7 +539,7 @@ export async function deactivate(): Promise<void> {
             }
         }
 
-        // Dispose logger last
+        // Dispose logger last to capture all cleanup logs
         if (logger) {
             try {
                 logger.dispose();
@@ -460,7 +548,7 @@ export async function deactivate(): Promise<void> {
             }
         }
 
-        // Track deactivation (with error handling)
+        // Track deactivation event (ignore errors during cleanup)
         try {
             telemetryManager?.trackEvent('extension_deactivated');
         } catch (error) {

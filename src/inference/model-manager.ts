@@ -5,6 +5,10 @@ import * as os from 'os';
 import { LlamaInference } from './llama-inference';
 import { Logger } from '../system/logger';
 
+/**
+ * Metadata for a code completion model.
+ * Includes size, language support, resource requirements, and FIM template info.
+ */
 export interface ModelInfo {
     id: string;
     name: string;
@@ -24,14 +28,21 @@ export interface ModelInfo {
     parameterCount?: string;
     contextWindow?: number;
     downloadUrl?: string;
+    fimTemplate?: string;
 }
 
+/**
+ * Extracted metadata from model filenames or registry.
+ */
 export interface ModelMetadata {
     architecture?: string;
     parameterCount?: string;
     quantization?: string;
 }
 
+/**
+ * Constraints for selecting the best model for a given task.
+ */
 export interface ModelRequirements {
     language?: string;
     maxVRAM?: number;
@@ -40,6 +51,17 @@ export interface ModelRequirements {
     speed?: 'fast' | 'balanced' | 'quality';
 }
 
+/**
+ * Manages model lifecycle: discovery, loading, switching, and cleanup.
+ *
+ * Responsibilities:
+ * - Load model registry from JSON and discover downloaded models
+ * - Track workspace-local and global models
+ * - Persist last active model across sessions
+ * - Load/unload models with progress feedback
+ * - Select best model based on language and resource constraints
+ * - Extract metadata from model filenames
+ */
 export class ModelManager {
     private context: vscode.ExtensionContext;
     private modelsDirectory: string;
@@ -51,22 +73,22 @@ export class ModelManager {
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.logger = new Logger('ModelManager');
-        
-        // Fix: Read modelPath from configuration
+
+        // Resolve models directory from config or use default ~/.inline/models
         const config = vscode.workspace.getConfiguration('inline');
         const customPath = config.get<string>('modelPath');
-        
+
         if (customPath && customPath.trim().length > 0) {
             this.modelsDirectory = customPath;
         } else {
             this.modelsDirectory = path.join(os.homedir(), '.inline', 'models');
         }
-        
+
         this.inferenceEngine = new LlamaInference();
         this.initializeModelsDirectory();
         this.loadAvailableModels();
-        
-        // Listen for configuration changes
+
+        // Watch for model path changes and refresh discovery
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('inline.modelPath')) {
                 const newConfig = vscode.workspace.getConfiguration('inline');
@@ -80,6 +102,9 @@ export class ModelManager {
         });
     }
 
+    /**
+     * Create models directory if it doesn't exist.
+     */
     private async initializeModelsDirectory(): Promise<void> {
         try {
             if (!fs.existsSync(this.modelsDirectory)) {
@@ -90,53 +115,48 @@ export class ModelManager {
         }
     }
 
+    /**
+     * Load model registry from JSON and discover downloaded models.
+     * Restores last active model if it's still available.
+     */
     private async loadAvailableModels(): Promise<void> {
         try {
-            // Load from external JSON registry
+            // Load predefined models from extension registry
             const registryPath = path.join(this.context.extensionPath, 'src', 'resources', 'models.json');
-            
+
             if (fs.existsSync(registryPath)) {
                 const content = fs.readFileSync(registryPath, 'utf8');
                 const models = JSON.parse(content) as ModelInfo[];
-                
+
                 models.forEach(model => {
                     this.availableModels.set(model.id, model);
                 });
             } else {
                 this.logger.warn(`Models registry not found at ${registryPath}`);
-                // Fallback models could be defined here if critical
             }
         } catch (error) {
             this.logger.error(`Failed to load model registry: ${error}`);
         }
 
-        // Await the check so imported models are registered before we try to restore one
+        // Discover downloaded and imported models
         await this.checkDownloadedModels();
         this.restoreLastActiveModel();
     }
 
+    /**
+     * Restore the last active model from persistent state.
+     * Sets currentModel reference; actual engine loading is deferred to warmup phase.
+     */
     private restoreLastActiveModel(): void {
         const lastModelId = this.context.globalState.get<string>('lastActiveModelId');
         if (lastModelId) {
             const model = this.availableModels.get(lastModelId);
             if (model && model.isDownloaded) {
-                // Determine if we should auto-load the engine or just set the current object
-                // The user wants it "when active never remveo", so we should probably keep it selected.
-                // But loading the engine is heavy.
-                // However, updated setCurrentModel loads the engine.
-                // Let's just set the reference here and let the user (or warmup) trigger load if needed?
-                // OR, effectively "restore" means making it active.
-
-                // If I just set this.currentModel, it's "selected" in UI but not loaded in engine.
-                // If I want it to be truly active (ready to gen), I should load it.
-                // But forcing a load on startup might be aggressive if the user just wants to see it selected.
-                // Wait, the Extension Activation has a warmup block that calls `engine.loadModel(model.path)`.
-                // So if I set `this.currentModel` here, the warmup logic in `extension.ts` will pick it up and load it!
-
+                // Set reference only; extension warmup will trigger engine load if needed
                 this.currentModel = model;
                 this.logger.info(`Restored last active model: ${model.name}`);
             } else {
-                // If model no longer exists or isn't downloaded, clear the state
+                // Clear stale state if model no longer exists or isn't downloaded
                 this.context.globalState.update('lastActiveModelId', undefined);
             }
         }
@@ -196,7 +216,8 @@ export class ModelManager {
                             architecture: metadata.architecture || 'llama',
                             quantization: metadata.quantization,
                             parameterCount: metadata.parameterCount,
-                            contextWindow: 4096
+                            contextWindow: 4096,
+                            fimTemplate: metadata.architecture // Heuristic: arch often maps to template
                         });
                     } catch (e) {
                         this.logger.warn(`Failed to stat imported model ${file}: ${e}`);
@@ -227,23 +248,10 @@ export class ModelManager {
                         // But filenames usually don't have colons.
                         // Let's normalize name: imported_starcoder2_7b_Q4_K_M.gguf -> imported_starcoder2_7b_Q4_K_M
 
-                        let modelId = path.basename(file, '.gguf');
+                        const modelId = path.basename(file, '.gguf');
 
-                        // Heuristic: If user is trying to provide a standard model manually
-                        // e.g. models/starcoder2-7b.gguf -> map to 'starcoder2:7b' if plausible?
-                        // For now, treat workspace models as "Imported" unless they match specific naming convention
-                        // preventing conflicts.
-
-                        // Actually, if the user mentioned 'imported_starcoder2_7b_Q4_K_M.gguf', it's likely custom.
-
-                        // Check if we can map to existing model definition
-                        // ... (Skipping complex mapping for now, treating as generic or imported)
-
+                        // Workspace models are treated as imported unless they match standard naming
                         const name = modelId.replace(/_/g, ' ').replace(/-/g, ' ');
-
-                        // If it's already in availableModels (e.g. standard model), update it
-                        // This is hard because IDs differ.
-                        // Let's add it as a new entry if not found.
 
                         if (!this.availableModels.has(modelId)) {
                              this.availableModels.set(modelId, {
@@ -362,8 +370,14 @@ export class ModelManager {
         return candidates[0];
     }
 
+    /**
+     * Load a model into the inference engine with progress feedback.
+     * Unloads previous model if switching. Persists selection across sessions.
+     *
+     * @throws Error if model not found or loading fails
+     */
     async setCurrentModel(modelId: string): Promise<void> {
-        // Refresh to find any new models (like workspace ones)
+        // Refresh to discover any newly added models
         await this.checkDownloadedModels();
 
         const model = this.availableModels.get(modelId);
@@ -383,16 +397,18 @@ export class ModelManager {
             }, async (progress) => {
                 progress.report({ message: 'Initializing engine...' });
 
-                // If switching, unload first
+                // Unload previous model to free resources
                 if (this.currentModel) {
                      await this.inferenceEngine.unloadModel();
                 }
 
+                // Read inference configuration
                 const config = vscode.workspace.getConfiguration('inline');
                 const threads = config.get<number>('inference.threads', 4);
                 const gpuLayers = config.get<number>('inference.gpuLayers');
                 const contextSize = config.get<number>('contextWindow', 4096);
 
+                // Load model with configured parameters
                 await this.inferenceEngine.loadModel(model.path!, {
                      threads,
                      gpuLayers,
@@ -400,7 +416,7 @@ export class ModelManager {
                 });
                 this.currentModel = model;
 
-                // Save persistence
+                // Persist selection for next session
                 await this.context.globalState.update('lastActiveModelId', model.id);
 
                 this.logger.info(`Successfully loaded model: ${model.name} from ${model.path}`);
@@ -410,11 +426,9 @@ export class ModelManager {
         } catch (error) {
             this.logger.error(`Failed to load model ${modelId}: ${error}`);
             vscode.window.showErrorMessage(`Failed to load model: ${error instanceof Error ? error.message : String(error)}`);
-            // Ensure we don't leave it in a half-state
+            // Clear reference on failure to avoid stale state
             if (this.currentModel?.id === modelId) {
                 this.currentModel = null;
-                // Don't clear persistence here necessarily, maybe they can retry?
-                // But it wasn't loaded successfully, so null is correct.
             }
             throw error;
         }
@@ -533,12 +547,17 @@ export class ModelManager {
             // Okay, let's keep it simple: If config exists, we can't just return 'custom' unless ContextEngine reads config.
             // Let's assume ContextEngine will read config for 'custom' ID or we pass it.
             // For now, let's stick to auto-detection and handle custom in next step if needed.
-            // Actually, the user asked for "custom settings". 
+            // Actually, the user asked for "custom settings".
             // I will implement 'custom' ID and update ContextEngine to read settings for it.
             return 'custom';
         }
 
         if (!this.currentModel) return 'default';
+
+        // Check if model has explicit FIM template defined in JSON
+        if (this.currentModel.fimTemplate) {
+            return this.currentModel.fimTemplate;
+        }
 
         const rawString = (this.currentModel.id + this.currentModel.name + (this.currentModel.path || '')).toLowerCase();
 
@@ -550,8 +569,8 @@ export class ModelManager {
         if (rawString.includes('yi-') || rawString.includes('yi_')) return 'yi';
         if (rawString.includes('starcoder')) return 'starcoder';
         if (rawString.includes('codellama')) return 'codellama';
-        if (rawString.includes('stable')) return 'stable-code'; 
-        
+        if (rawString.includes('stable')) return 'stable-code';
+
         return 'default';
     }
 

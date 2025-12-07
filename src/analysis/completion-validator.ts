@@ -3,7 +3,8 @@ import { ASTParser } from './ast-parser';
 import { Logger } from '../system/logger';
 
 /**
- * Validation result
+ * Complete validation report for a code completion.
+ * Includes errors, warnings, and suggested fixes.
  */
 export interface ValidationResult {
     valid: boolean;
@@ -14,7 +15,7 @@ export interface ValidationResult {
 }
 
 /**
- * Validation error
+ * Syntax or semantic error found during validation.
  */
 export interface ValidationError {
     message: string;
@@ -25,7 +26,7 @@ export interface ValidationError {
 }
 
 /**
- * Validation warning
+ * Non-critical issue found during validation.
  */
 export interface ValidationWarning {
     message: string;
@@ -34,7 +35,7 @@ export interface ValidationWarning {
 }
 
 /**
- * Code fix suggestion
+ * Suggested code fix with edit ranges.
  */
 export interface CodeFix {
     description: string;
@@ -45,7 +46,13 @@ export interface CodeFix {
 }
 
 /**
- * Completion validator - validates code completions for syntax errors
+ * Validates code completions for syntax errors and issues.
+ *
+ * Responsibilities:
+ * - Parse completion with surrounding context
+ * - Detect syntax errors and semantic issues
+ * - Suggest fixes where possible
+ * - Provide line/column information for errors
  */
 export class CompletionValidator {
     private logger: Logger;
@@ -57,7 +64,13 @@ export class CompletionValidator {
     }
 
     /**
-     * Validate a completion
+     * Validate a code completion against syntax rules.
+     * Combines completion with prefix/suffix context for accurate parsing.
+     *
+     * @param completion The generated code to validate
+     * @param language Programming language for syntax rules
+     * @param context Optional prefix/suffix context
+     * @returns Validation report with errors and suggestions
      */
     public async validateCompletion(
         completion: string,
@@ -68,10 +81,10 @@ export class CompletionValidator {
         }
     ): Promise<ValidationResult> {
         try {
-            // Build complete code for validation
+            // Reconstruct full code for accurate parsing
             const fullCode = this.buildFullCode(completion, context);
 
-            // Parse and validate
+            // Parse AST to detect syntax errors
             const parseResult = this.astParser.parse(fullCode, language);
 
             if (!parseResult) {

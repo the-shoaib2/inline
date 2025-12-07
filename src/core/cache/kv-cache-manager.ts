@@ -3,14 +3,20 @@ import * as path from 'path';
 import * as os from 'os';
 import { Logger } from '../../system/logger';
 
+/**
+ * Key-value cache entry with metadata for LRU tracking.
+ */
 export interface KVCacheEntry {
     key: string;
-    value: any;
+    value: unknown;
     timestamp: number;
     hitCount: number;
     size: number;
 }
 
+/**
+ * Comprehensive cache performance metrics.
+ */
 export interface CacheStats {
     totalEntries: number;
     totalSize: number;
@@ -20,6 +26,16 @@ export interface CacheStats {
     averageHitCount: number;
 }
 
+/**
+ * High-performance key-value cache with LRU eviction and persistence.
+ *
+ * Features:
+ * - Memory-limited with size and entry count constraints
+ * - LRU eviction based on access timestamps
+ * - Optional disk persistence for cache warmup
+ * - Debounced persistence to avoid I/O thrashing
+ * - Prefix-based queries for bulk operations
+ */
 export class KVCacheManager {
     private cache: Map<string, KVCacheEntry> = new Map();
     private maxSize: number;
@@ -44,19 +60,19 @@ export class KVCacheManager {
         this.persistEnabled = options.persistEnabled !== false;
         this.logger = new Logger('KVCacheManager');
 
-        // Load persisted cache on initialization
+        // Load persisted cache on initialization for warm start
         if (this.persistEnabled) {
             this.loadFromDisk();
         }
     }
 
     /**
-     * Store a value in the cache with automatic eviction if needed
+     * Store value with automatic LRU eviction when limits exceeded.
      */
-    public set(key: string, value: any): void {
+    public set(key: string, value: unknown): void {
         const size = this.estimateSize(value);
-        
-        // Check if we need to evict entries
+
+        // Evict entries until space is available
         while (
             (this.currentSize + size > this.maxSize || this.cache.size >= this.maxEntries) &&
             this.cache.size > 0
@@ -81,20 +97,20 @@ export class KVCacheManager {
         this.cache.set(key, entry);
         this.currentSize += size;
 
-        // Persist if enabled
+        // Schedule debounced persistence
         if (this.persistEnabled) {
             this.schedulePersist();
         }
     }
 
     /**
-     * Retrieve a value from the cache
+     * Retrieve value and update access tracking.
      */
-    public get(key: string): any | null {
+    public get(key: string): unknown | null {
         const entry = this.cache.get(key);
-        
+
         if (entry) {
-            // Update hit count and timestamp
+            // Update access metrics for LRU tracking
             entry.hitCount++;
             entry.timestamp = Date.now();
             this.hits++;
@@ -106,14 +122,14 @@ export class KVCacheManager {
     }
 
     /**
-     * Check if a key exists in the cache
+     * Check if key exists in cache.
      */
     public has(key: string): boolean {
         return this.cache.has(key);
     }
 
     /**
-     * Remove a specific entry from the cache
+     * Remove specific entry and update size tracking.
      */
     public delete(key: string): boolean {
         const entry = this.cache.get(key);
@@ -126,7 +142,7 @@ export class KVCacheManager {
     }
 
     /**
-     * Clear all entries from the cache
+     * Clear all entries and reset statistics.
      */
     public clear(): void {
         this.cache.clear();
@@ -141,7 +157,7 @@ export class KVCacheManager {
     }
 
     /**
-     * Get cache statistics
+     * Generate comprehensive cache performance statistics.
      */
     public getStats(): CacheStats {
         const totalRequests = this.hits + this.misses;
@@ -165,7 +181,7 @@ export class KVCacheManager {
     }
 
     /**
-     * Evict the least recently used entry
+     * Remove least recently used entry based on timestamp.
      */
     private evictLRU(): void {
         let oldestKey: string | null = null;
@@ -189,19 +205,20 @@ export class KVCacheManager {
     }
 
     /**
-     * Estimate the size of a value in bytes
+     * Estimate memory size of value for cache management.
      */
-    private estimateSize(value: any): number {
+    private estimateSize(value: unknown): number {
         try {
             const str = JSON.stringify(value);
-            return str.length * 2; // UTF-16 encoding
+            return str.length * 2; // UTF-16 encoding approximation
         } catch {
-            return 1024; // Default estimate if serialization fails
+            return 1024; // Default fallback for unserializable values
         }
     }
 
     /**
-     * Load cache from disk
+     * Load cache entries from disk with age filtering.
+     * Only loads entries less than 24 hours old.
      */
     private loadFromDisk(): void {
         try {
@@ -210,7 +227,7 @@ export class KVCacheManager {
                 const entries: KVCacheEntry[] = JSON.parse(data);
 
                 for (const entry of entries) {
-                    // Only load recent entries (less than 24 hours old)
+                    // Filter out stale entries (older than 24 hours)
                     const age = Date.now() - entry.timestamp;
                     if (age < 24 * 60 * 60 * 1000) {
                         this.cache.set(entry.key, entry);
@@ -226,7 +243,7 @@ export class KVCacheManager {
     }
 
     /**
-     * Persist cache to disk (debounced)
+     * Debounced persistence to avoid I/O thrashing during rapid updates.
      */
     private persistTimeout: NodeJS.Timeout | null = null;
 
@@ -240,6 +257,9 @@ export class KVCacheManager {
         }, 5000); // Persist after 5 seconds of inactivity
     }
 
+    /**
+     * Write cache entries to disk atomically.
+     */
     private persistToDisk(): void {
         try {
             const dir = path.dirname(this.persistPath);
@@ -256,7 +276,7 @@ export class KVCacheManager {
     }
 
     /**
-     * Clear persisted cache file
+     * Remove persisted cache file from disk.
      */
     private clearDisk(): void {
         try {
@@ -269,22 +289,22 @@ export class KVCacheManager {
     }
 
     /**
-     * Warm up the cache with common patterns
+     * Pre-populate cache with common patterns for faster startup.
      */
-    public async warmup(patterns: Array<{ key: string; value: any }>): Promise<void> {
+    public async warmup(patterns: Array<{ key: string; value: unknown }>): Promise<void> {
         this.logger.info(`Warming up cache with ${patterns.length} patterns`);
-        
+
         for (const pattern of patterns) {
             this.set(pattern.key, pattern.value);
         }
     }
 
     /**
-     * Get entries matching a prefix
+     * Retrieve all entries matching key prefix.
      */
     public getByPrefix(prefix: string): KVCacheEntry[] {
         const results: KVCacheEntry[] = [];
-        
+
         for (const [key, entry] of this.cache.entries()) {
             if (key.startsWith(prefix)) {
                 results.push(entry);
@@ -295,7 +315,7 @@ export class KVCacheManager {
     }
 
     /**
-     * Cleanup and persist before shutdown
+     * Cleanup resources and persist final state.
      */
     public async dispose(): Promise<void> {
         if (this.persistTimeout) {

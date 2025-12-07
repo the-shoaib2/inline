@@ -72,8 +72,18 @@ export class ProcessInfoDisplay {
         const loadAvg = os.loadavg();
         const cpuUsage = process.cpuUsage() as NodeJS.CpuUsage;
         
+        // Get V8 heap limit for accurate percentage calculation
+        let heapLimit = 1.4 * 1024 * 1024 * 1024; // Default 1.4GB
+        try {
+            const v8 = require('v8');
+            const heapStats = v8.getHeapStatistics();
+            heapLimit = heapStats.heap_size_limit;
+        } catch {
+            // Use default
+        }
+        
         return {
-            // Process Information
+            // Process Information (Extension-Specific)
             process: {
                 pid: process.pid,
                 version: process.version,
@@ -93,7 +103,7 @@ export class ProcessInfoDisplay {
                 }
             },
             
-            // System Information
+            // System Information (For Reference Only)
             system: {
                 platform: os.platform(),
                 release: os.release(),
@@ -149,8 +159,18 @@ export class ProcessInfoDisplay {
      * Get webview HTML content
      */
     private static getWebviewContent(info: ProcessInfo): string {
-        const memUsagePercent = ((info.system.memory.used / info.system.memory.total) * 100).toFixed(1);
-        const heapUsagePercent = ((info.process.memory.heapUsed / info.process.memory.heapTotal) * 100).toFixed(1);
+        // Calculate heap usage percentage (against V8 limit, not total)
+        let heapLimit = 1.4 * 1024 * 1024 * 1024; // Default 1.4GB
+        try {
+            const v8 = require('v8');
+            const heapStats = v8.getHeapStatistics();
+            heapLimit = heapStats.heap_size_limit;
+        } catch {
+            // Use default
+        }
+        
+        const heapUsagePercent = ((info.process.memory.heapUsed / heapLimit) * 100).toFixed(1);
+        const systemMemUsagePercent = ((info.system.memory.used / info.system.memory.total) * 100).toFixed(1);
         
         return `<!DOCTYPE html>
 <html lang="en">
@@ -250,71 +270,74 @@ export class ProcessInfoDisplay {
             border-radius: 5px;
             margin: 20px 0;
         }
+        .info {
+            background: var(--vscode-inputValidation-infoBackground);
+            border: 1px solid var(--vscode-inputValidation-infoBorder);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🖥️ Process & System Information</h1>
+        <h1>🖥️ Extension Memory & System Information</h1>
         
-        ${parseFloat(memUsagePercent) >= 95 ? `
-        <div class="error">
-            <strong>⚠️ CRITICAL: High Memory Usage Detected!</strong><br>
-            System memory usage is at ${memUsagePercent}%. Immediate action required.
+        <div class="info">
+            <strong>ℹ️ Memory Tracking</strong><br>
+            This extension now tracks <strong>extension-specific memory</strong> (heap usage) instead of system-wide memory. 
+            Warnings are based on the extension's heap usage, not your total system RAM.
         </div>
-        ` : parseFloat(memUsagePercent) >= 80 ? `
+        
+        ${parseFloat(heapUsagePercent) >= 95 ? `
+        <div class="error">
+            <strong>⚠️ CRITICAL: High Extension Memory Usage!</strong><br>
+            Extension heap usage is at ${heapUsagePercent}%. The extension will trigger automatic cleanup.
+        </div>
+        ` : parseFloat(heapUsagePercent) >= 80 ? `
         <div class="warning">
-            <strong>⚠️ WARNING: High Memory Usage</strong><br>
-            System memory usage is at ${memUsagePercent}%. Consider closing unused applications.
+            <strong>⚠️ WARNING: High Extension Memory Usage</strong><br>
+            Extension heap usage is at ${heapUsagePercent}%. Consider clearing caches or reducing context size.
         </div>
         ` : ''}
         
-        <h2>💾 Memory Usage</h2>
+        <h2>💾 Extension Memory (This Extension Only)</h2>
         <div class="info-grid">
             <div class="info-card">
-                <h3>System Memory</h3>
+                <h3>Heap Memory (V8 JavaScript)</h3>
                 <div class="info-row">
-                    <span class="info-label">Total:</span>
-                    <span class="info-value">${this.formatBytes(info.system.memory.total)}</span>
+                    <span class="info-label">Limit:</span>
+                    <span class="info-value">${this.formatBytes(heapLimit)}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Used:</span>
-                    <span class="info-value">${this.formatBytes(info.system.memory.used)}</span>
+                    <span class="info-value">${this.formatBytes(info.process.memory.heapUsed)}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Free:</span>
-                    <span class="info-value">${this.formatBytes(info.system.memory.free)}</span>
+                    <span class="info-label">Total Allocated:</span>
+                    <span class="info-value">${this.formatBytes(info.process.memory.heapTotal)}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill ${parseFloat(memUsagePercent) >= 95 ? 'progress-critical' : parseFloat(memUsagePercent) >= 80 ? 'progress-warning' : 'progress-normal'}" 
-                         style="width: ${memUsagePercent}%">
-                        ${memUsagePercent}%
+                    <div class="progress-fill ${parseFloat(heapUsagePercent) >= 95 ? 'progress-critical' : parseFloat(heapUsagePercent) >= 80 ? 'progress-warning' : 'progress-normal'}" 
+                         style="width: ${heapUsagePercent}%">
+                        ${heapUsagePercent}%
                     </div>
                 </div>
             </div>
             
             <div class="info-card">
-                <h3>Process Memory (Node.js)</h3>
+                <h3>Process Memory</h3>
                 <div class="info-row">
-                    <span class="info-label">RSS:</span>
+                    <span class="info-label">RSS (Total):</span>
                     <span class="info-value">${this.formatBytes(info.process.memory.rss)}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Heap Total:</span>
-                    <span class="info-value">${this.formatBytes(info.process.memory.heapTotal)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Heap Used:</span>
-                    <span class="info-value">${this.formatBytes(info.process.memory.heapUsed)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">External:</span>
+                    <span class="info-label">External (C++):</span>
                     <span class="info-value">${this.formatBytes(info.process.memory.external)}</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill ${parseFloat(heapUsagePercent) >= 90 ? 'progress-critical' : parseFloat(heapUsagePercent) >= 70 ? 'progress-warning' : 'progress-normal'}" 
-                         style="width: ${heapUsagePercent}%">
-                        ${heapUsagePercent}%
-                    </div>
+                <div class="info-row">
+                    <span class="info-label">Array Buffers:</span>
+                    <span class="info-value">${this.formatBytes(info.process.memory.arrayBuffers)}</span>
                 </div>
             </div>
         </div>
@@ -358,8 +381,30 @@ export class ProcessInfoDisplay {
             </div>
         </div>
         
-        <h2>🖥️ System Information</h2>
+        <h2>🖥️ System Information (Reference)</h2>
         <div class="info-grid">
+            <div class="info-card">
+                <h3>System Memory</h3>
+                <div class="info-row">
+                    <span class="info-label">Total:</span>
+                    <span class="info-value">${this.formatBytes(info.system.memory.total)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Used:</span>
+                    <span class="info-value">${this.formatBytes(info.system.memory.used)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Free:</span>
+                    <span class="info-value">${this.formatBytes(info.system.memory.free)}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill progress-normal" 
+                         style="width: ${systemMemUsagePercent}%">
+                        ${systemMemUsagePercent}%
+                    </div>
+                </div>
+            </div>
+            
             <div class="info-card">
                 <h3>System Details</h3>
                 <div class="info-row">

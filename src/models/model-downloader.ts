@@ -8,6 +8,9 @@ import * as tar from 'tar';
 import { ModelInfo } from '../inference/model-manager';
 import { Logger } from '../system/logger';
 
+/**
+ * Queued download task with progress tracking.
+ */
 interface DownloadTask {
     model: ModelInfo;
     progressCallback?: (progress: number) => void;
@@ -16,6 +19,9 @@ interface DownloadTask {
     cancellationToken?: vscode.CancellationToken;
 }
 
+/**
+ * Real-time download progress metrics.
+ */
 interface DownloadProgress {
     modelId: string;
     progress: number;
@@ -25,6 +31,17 @@ interface DownloadProgress {
     eta: number;
 }
 
+/**
+ * Downloads and manages GGUF model files from remote sources.
+ *
+ * Responsibilities:
+ * - Queue and execute downloads sequentially
+ * - Track download progress and speed
+ * - Extract tar.gz archives
+ * - Validate downloaded files
+ * - Support cancellation via CancellationToken
+ * - Maintain safe models directory
+ */
 export class ModelDownloader {
     private downloadQueue: DownloadTask[] = [];
     private isDownloading: boolean = false;
@@ -32,14 +49,22 @@ export class ModelDownloader {
     private activeDownloads: Map<string, DownloadProgress> = new Map();
     private safeModelsDir: string;
 
+    /**
+     * Initialize downloader with target models directory.
+     * @param modelsDir Directory to store downloaded models
+     */
     constructor(private modelsDir: string) {
         this.logger = new Logger('ModelDownloader');
-        this.safeModelsDir = modelsDir; // Use provided directory which should match ModelManager
+        this.safeModelsDir = modelsDir;
         this.ensureModelsDirectory();
     }
 
+    /**
+     * Get safe models directory path.
+     * Prefers extension global storage, falls back to ~/.inline/models.
+     */
     private getSafeModelsDirectory(): string {
-        // Get global storage directory for safe model storage
+        // Try to use extension global storage for safe isolation
         const extension = vscode.extensions.getExtension('inline.inline');
         if (extension && extension.extensionPath) {
             const globalStoragePath = extension.extensionUri.fsPath;
@@ -52,6 +77,9 @@ export class ModelDownloader {
         return path.join(homeDir, '.inline', 'models');
     }
 
+    /**
+     * Create models directory if it doesn't exist.
+     */
     private ensureModelsDirectory(): void {
         if (!fs.existsSync(this.safeModelsDir)) {
             fs.mkdirSync(this.safeModelsDir, { recursive: true });
@@ -59,13 +87,17 @@ export class ModelDownloader {
         }
     }
 
+    /**
+     * Get list of available models for download.
+     * Includes metadata, size, and requirements.
+     */
     public getAvailableModels(): ModelInfo[] {
         return [
             {
                 id: 'deepseek-coder-6.7b',
                 name: 'DeepSeek Coder 6.7B',
                 description: 'Lightweight code completion model optimized for multiple languages',
-                size: 3.8 * 1024 * 1024 * 1024, // 3.8GB
+                size: 3.8 * 1024 * 1024 * 1024,
                 languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go'],
                 requirements: { vram: 8, ram: 12, cpu: true, gpu: true },
                 isDownloaded: false,
@@ -75,7 +107,7 @@ export class ModelDownloader {
                 id: 'starcoder2-3b',
                 name: 'StarCoder2 3B',
                 description: 'Fast and efficient model for quick completions',
-                size: 1.7 * 1024 * 1024 * 1024, // 1.7GB
+                size: 1.7 * 1024 * 1024 * 1024,
                 languages: ['python', 'javascript', 'typescript', 'java', 'cpp'],
                 requirements: { vram: 4, ram: 8, cpu: true, gpu: false },
                 isDownloaded: false,

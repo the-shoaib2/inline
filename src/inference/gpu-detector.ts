@@ -1,6 +1,10 @@
 import * as os from 'os';
 import { Logger } from '../system/logger';
 
+/**
+ * GPU capability information for model layer offloading.
+ * Used to determine optimal GPU layer count for inference.
+ */
 export interface GPUInfo {
     available: boolean;
     type: 'metal' | 'cuda' | 'none';
@@ -8,6 +12,16 @@ export interface GPUInfo {
     vramEstimate?: number;
 }
 
+/**
+ * Detects GPU availability and capabilities across platforms.
+ *
+ * Supports:
+ * - Metal (macOS)
+ * - CUDA (Linux/Windows with NVIDIA)
+ * - CPU fallback
+ *
+ * Caches detection results to avoid repeated system calls.
+ */
 export class GPUDetector {
     private logger: Logger;
     private cachedInfo: GPUInfo | null = null;
@@ -17,7 +31,10 @@ export class GPUDetector {
     }
 
     /**
-     * Detect available GPU and optimal configuration
+     * Detect available GPU and calculate optimal layer offloading.
+     * Results are cached for subsequent calls.
+     *
+     * @returns GPU capability information
      */
     public async detectGPU(): Promise<GPUInfo> {
         if (this.cachedInfo) {
@@ -30,13 +47,13 @@ export class GPUDetector {
         let gpuInfo: GPUInfo;
 
         if (platform === 'darwin') {
-            // macOS - check for Metal support
+            // macOS - Metal acceleration available on modern hardware
             gpuInfo = await this.detectMetal();
         } else if (platform === 'linux' || platform === 'win32') {
-            // Linux/Windows - check for CUDA
+            // Linux/Windows - NVIDIA CUDA support
             gpuInfo = await this.detectCUDA();
         } else {
-            // Unsupported platform
+            // Unsupported platform - fallback to CPU
             gpuInfo = {
                 available: false,
                 type: 'none',
@@ -51,17 +68,18 @@ export class GPUDetector {
     }
 
     /**
-     * Detect Metal support on macOS
+     * Detect Metal GPU support on macOS.
+     * Estimates VRAM as 25% of system RAM (conservative estimate).
+     * Calculates optimal layer count for model offloading.
      */
     private async detectMetal(): Promise<GPUInfo> {
         try {
-            // On macOS, Metal is available on all modern Macs (2012+)
-            // We can safely assume Metal is available
+            // Metal is available on all modern macOS systems (2012+)
             const totalMemory = os.totalmem();
-            const vramEstimate = Math.floor(totalMemory * 0.25 / (1024 * 1024 * 1024)); // 25% of RAM as VRAM estimate
+            // Conservative VRAM estimate: 25% of system RAM
+            const vramEstimate = Math.floor(totalMemory * 0.25 / (1024 * 1024 * 1024));
 
-            // Optimal layers based on available memory
-            // For Qwen2.5-Coder-1.5B, each layer is ~50-100MB
+            // Calculate layers based on VRAM (each layer ~50-100MB for typical models)
             const optimalLayers = this.calculateOptimalLayers(vramEstimate);
 
             return {
@@ -88,7 +106,7 @@ export class GPUDetector {
             // Try to detect NVIDIA GPU
             // This is a simple heuristic - in production, you'd use nvidia-smi or similar
             const { execSync } = require('child_process');
-            
+
             try {
                 // Try nvidia-smi command
                 const output = execSync('nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits', {
@@ -131,7 +149,7 @@ export class GPUDetector {
     private calculateOptimalLayers(vramGB: number): number {
         // Conservative estimates for Qwen2.5-Coder-1.5B
         // Each layer ~50-100MB, model has ~24-28 layers
-        
+
         if (vramGB >= 8) {
             return 28; // Full offload
         } else if (vramGB >= 6) {

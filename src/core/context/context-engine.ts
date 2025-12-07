@@ -1,3 +1,14 @@
+/**
+ * Context engine for intelligent code analysis and context gathering.
+ *
+ * Features:
+ * - Semantic analysis of code structure
+ * - Import resolution and dependency tracking
+ * - Function and class extraction
+ * - Context optimization for AI models
+ * - Adaptive context management based on model size
+ */
+
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { SemanticAnalyzer } from '../../analysis/semantic-analyzer';
@@ -6,8 +17,11 @@ import { ContextOptimizer } from './context-optimizer';
 import { StateManager } from '../../pipeline/state-manager';
 import { ContextWindowBuilder } from '../../pipeline/context-window-builder';
 import { AdaptiveContextManager, ModelSize } from './adaptive-context-manager';
+import { LanguageConfigService } from '../config/language-config-service';
 
-// Enhanced type information interfaces
+/**
+ * Import statement information with resolution details.
+ */
 export interface ImportInfo {
     module: string;
     imports: string[];
@@ -18,6 +32,9 @@ export interface ImportInfo {
     lineNumber: number;
 }
 
+/**
+ * Function parameter information with type and default values.
+ */
 export interface ParameterInfo {
     name: string;
     type?: string;
@@ -25,6 +42,9 @@ export interface ParameterInfo {
     defaultValue?: string;
 }
 
+/**
+ * Function signature and metadata for context analysis.
+ */
 export interface FunctionInfo {
     name: string;
     signature: string;
@@ -36,6 +56,9 @@ export interface FunctionInfo {
     isExported: boolean;
 }
 
+/**
+ * Class property information with visibility modifiers.
+ */
 export interface PropertyInfo {
     name: string;
     type?: string;
@@ -44,6 +67,9 @@ export interface PropertyInfo {
     isReadonly: boolean;
 }
 
+/**
+ * Class definition with methods and properties.
+ */
 export interface ClassInfo {
     name: string;
     extends?: string;
@@ -54,6 +80,9 @@ export interface ClassInfo {
     isExported: boolean;
 }
 
+/**
+ * Interface definition for type analysis.
+ */
 export interface InterfaceInfo {
     name: string;
     extends?: string[];
@@ -62,12 +91,18 @@ export interface InterfaceInfo {
     lineNumber: number;
 }
 
+/**
+ * Type alias or type definition information.
+ */
 export interface TypeInfo {
     name: string;
     definition: string;
     lineNumber: number;
 }
 
+/**
+ * Variable declaration information with type and value.
+ */
 export interface VariableInfo {
     name: string;
     type?: string;
@@ -76,6 +111,9 @@ export interface VariableInfo {
     lineNumber: number;
 }
 
+/**
+ * Symbol information extracted from code analysis.
+ */
 export interface SymbolInfo {
     name: string;
     kind: vscode.SymbolKind;
@@ -84,6 +122,9 @@ export interface SymbolInfo {
     documentation?: string;
 }
 
+/**
+ * Scope information for variable visibility analysis.
+ */
 export interface ScopeInfo {
     type: 'global' | 'class' | 'function' | 'block';
     name?: string;
@@ -92,12 +133,18 @@ export interface ScopeInfo {
     lineRange: { start: number; end: number };
 }
 
+/**
+ * File dependency information for import analysis.
+ */
 export interface DependencyInfo {
     filePath: string;
     symbols: string[];
     isExternal: boolean;
 }
 
+/**
+ * Related code block with similarity scoring.
+ */
 export interface RelatedCodeBlock {
     code: string;
     filePath: string;
@@ -105,12 +152,18 @@ export interface RelatedCodeBlock {
     context: string;
 }
 
+/**
+ * Edit history tracking for context relevance.
+ */
 export interface EditHistory {
     timestamp: number;
     file: string;
     changes: string;
 }
 
+/**
+ * Detected user intent from cursor position and context.
+ */
 export interface CursorIntent {
     type: 'function_call' | 'variable_declaration' | 'class_method' | 'import' | 'comment_to_code' | 'type_annotation' | 'unknown';
     confidence: number;
@@ -118,6 +171,9 @@ export interface CursorIntent {
     detectedPatterns: string[];
 }
 
+/**
+ * Project configuration and metadata.
+ */
 export interface ProjectConfig {
     hasTypeScript: boolean;
     hasJavaScript: boolean;
@@ -126,12 +182,18 @@ export interface ProjectConfig {
     dependencies: string[];
 }
 
+/**
+ * Coding pattern detected in the codebase.
+ */
 export interface CodingPattern {
     pattern: string;
     frequency: number;
     examples: string[];
 }
 
+/**
+ * Style guide configuration for code formatting.
+ */
 export interface StyleGuide {
     indentation: 'tabs' | 'spaces';
     indentSize: number;
@@ -140,7 +202,10 @@ export interface StyleGuide {
     trailingComma: boolean;
 }
 
-// Enhanced CodeContext with comprehensive semantic information
+/**
+ * Comprehensive code context with semantic information.
+ * Combines basic context with enhanced semantic analysis.
+ */
 export interface CodeContext {
     // Basic context (existing)
     prefix: string;
@@ -149,7 +214,7 @@ export interface CodeContext {
     filename: string;
     project: string;
     tokenCount?: number;
-    
+
     // Enhanced semantic context
     imports: ImportInfo[];
     functions: FunctionInfo[];
@@ -157,27 +222,30 @@ export interface CodeContext {
     interfaces: InterfaceInfo[];
     types: TypeInfo[];
     variables: VariableInfo[];
-    
+
     // Scope and symbol information
     currentScope: ScopeInfo | null;
     symbolTable: Map<string, SymbolInfo>;
     dependencies: DependencyInfo[];
-    
+
     // Project-wide context
     projectConfig: ProjectConfig | null;
     codingPatterns: CodingPattern[];
     styleGuide: StyleGuide | null;
-    
+
     // Intelligent context
     relatedCode: RelatedCodeBlock[];
     recentEdits: EditHistory[];
     cursorIntent: CursorIntent | null;
-    
+
     // Legacy fields
     comments: string[];
     cursorRules?: string;
 }
 
+/**
+ * Project-wide coding patterns and conventions.
+ */
 export interface ProjectPatterns {
     namingConventions: string[];
     codeStyle: string[];
@@ -185,6 +253,9 @@ export interface ProjectPatterns {
     frequentPatterns: string[];
 }
 
+/**
+ * Fill-in-the-Middle template configuration.
+ */
 export interface FIMTemplate {
     prefix: string;
     suffix: string;
@@ -192,28 +263,31 @@ export interface FIMTemplate {
     eos?: string;
 }
 
+/**
+ * Predefined FIM templates for different model families.
+ */
 export const FIM_TEMPLATES: Record<string, FIMTemplate> = {
     // Standard (StarCoder, StableCode, etc.)
     'starcoder': { prefix: '<fim_prefix>', suffix: '<fim_suffix>', middle: '<fim_middle>' },
-    
+
     // DeepSeek
     'deepseek': { prefix: '<｜fim begin｜>', suffix: '<｜fim hole｜>', middle: '<｜fim end｜>' },
-    
+
     // CodeLlama
     'codellama': { prefix: '<PRE> ', suffix: ' <SUF> ', middle: ' <MID>' },
-    
+
     // CodeGemma (Google)
     'codegemma': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' },
-    
+
     // Qwen (Alibaba) - Often follows StarCoder style but sometimes uses specialized tokens
     'qwen': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' },
 
     // Yi-Coder (01.AI)
     'yi': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' },
-    
+
     // Codestral (Mistral)
     'codestral': { prefix: '[SUFFIX]', suffix: '[PREFIX]', middle: '' }, // Mistral is weird: [SUFFIX]suffix[PREFIX]prefix
-    
+
     // StableCode - Uses StarCoder tokens
     'stable-code': { prefix: '<fim_prefix>', suffix: '<fim_suffix>', middle: '<fim_middle>' },
 
@@ -222,6 +296,16 @@ export const FIM_TEMPLATES: Record<string, FIMTemplate> = {
     'default': { prefix: '<|fim_prefix|>', suffix: '<|fim_suffix|>', middle: '<|fim_middle|>' }
 };
 
+/**
+ * Main context engine for intelligent code analysis and context gathering.
+ *
+ * Features:
+ * - Semantic analysis of code structure
+ * - Adaptive context management based on model size
+ * - Project-wide pattern detection
+ * - Import resolution and dependency tracking
+ * - Context optimization for AI models
+ */
 export class ContextEngine {
     private maxContextLength: number = 4000;
     private projectPatterns: Map<string, CodingPattern[]> = new Map();
@@ -230,7 +314,7 @@ export class ContextEngine {
     private contextOptimizer: ContextOptimizer;
     private stateManager: StateManager | null = null;
     private contextWindowBuilder: ContextWindowBuilder | null = null;
-    
+
     // Adaptive context support
     private currentModelSize: ModelSize = ModelSize.SMALL;
     private currentModelName: string = '';
@@ -241,21 +325,25 @@ export class ContextEngine {
         this.contextAnalyzer = new ContextAnalyzer();
         this.contextOptimizer = new ContextOptimizer();
     }
-    
+
     /**
-     * Set current model information for adaptive context
+     * Set current model information for adaptive context management.
+     * Adjusts context window and optimization based on model capabilities.
+     *
+     * @param modelName - Name of the current model
+     * @param parameterCount - Optional parameter count for size detection
      */
     setModelInfo(modelName: string, parameterCount?: string): void {
         this.currentModelName = modelName;
         this.currentModelSize = AdaptiveContextManager.detectModelSize(modelName, parameterCount);
-        
+
         // Update max context length based on model size
         const config = AdaptiveContextManager.getContextConfig(this.currentModelSize);
         this.maxContextLength = config.maxContextLength;
-        
+
         console.log(`[ContextEngine] Model: ${modelName}, Size: ${this.currentModelSize}, MaxContext: ${this.maxContextLength}`);
     }
-    
+
     /**
      * Get current model size
      */
@@ -280,12 +368,11 @@ export class ContextEngine {
     async buildContext(document: vscode.TextDocument, position: vscode.Position): Promise<CodeContext> {
         const text = document.getText();
         const offset = document.offsetAt(position);
-        const language = document.languageId;
 
         // 1. Dynamic Context Window (Performance Optimization)
         const fileSize = text.length;
         const isLargeFile = fileSize > 100 * 1024; // 100KB
-        
+
         // Adjust context window based on file size
         const prefixLength = isLargeFile ? 1000 : Math.floor(this.maxContextLength * 0.75);
         const suffixLength = isLargeFile ? 500 : Math.floor(this.maxContextLength * 0.25);
@@ -299,21 +386,20 @@ export class ContextEngine {
 
         // Get event-based context if available
         let recentEdits: EditHistory[] = [];
-        let cursorHistory: any[] = [];
-        let userPatterns: any = null;
-        
+        let cursorHistory: unknown[] = [];
+
         if (this.stateManager) {
             const state = this.stateManager.getState();
             const docState = state.openDocuments.get(document.uri.toString());
-            
+
             if (docState) {
                 // Get cursor movement patterns for current doc
                 cursorHistory = state.cursorHistory
                     .filter(cursor => cursor.uri.toString() === document.uri.toString())
                     .slice(-10);
-                
-                // Analyze user patterns
-                userPatterns = this.analyzeUserPatterns(docState.recentEdits, cursorHistory);
+
+                // Analyze user patterns (currently unused but available for future enhancements)
+                this.analyzeUserPatterns(docState.recentEdits, cursorHistory);
             }
 
             // Get recent edits from ALL other open documents
@@ -327,29 +413,29 @@ export class ContextEngine {
                     recentEdits.push(...docEdits);
                 }
             }
-            
+
             // Sort by timestamp (newest first) and take top 5
             recentEdits.sort((a, b) => b.timestamp - a.timestamp);
             recentEdits = recentEdits.slice(0, 5);
         } else {
             // Fallback to semantic analyzer
             recentEdits = await this.withTimeout(
-                this.semanticAnalyzer.getRecentEditsEnhanced(document.uri), 
-                50, 
+                this.semanticAnalyzer.getRecentEditsEnhanced(document.uri),
+                50,
                 []
             );
         }
-        
+
         const cursorRules = await this.withTimeout(
-            this.loadCursorRules(document.uri), 
-            50, 
+            this.loadCursorRules(document.uri),
+            50,
             undefined
         );
 
-        let imports: any[] = [];
-        let functions: any[] = [];
-        let classes: any[] = [];
-        let interfaces: any[] = [];
+        let imports: unknown[] = [];
+        let functions: unknown[] = [];
+        let classes: unknown[] = [];
+        let interfaces: unknown[] = [];
         let types: TypeInfo[] = [];
         let variables: VariableInfo[] = [];
         let comments: string[] = [];
@@ -382,7 +468,7 @@ export class ContextEngine {
         const cursorIntent = this.semanticAnalyzer.detectCursorIntent(document, position, prefix, suffix);
 
         // Analyze current scope
-        const currentScope = this.semanticAnalyzer.analyzeCurrentScope(document, position, functions, classes);
+        const currentScope = this.semanticAnalyzer.analyzeCurrentScope(document, position, functions as FunctionInfo[], classes as ClassInfo[]);
 
         // Get project configuration
         projectConfig = await this.semanticAnalyzer.getProjectConfig(document.uri);
@@ -402,7 +488,7 @@ export class ContextEngine {
             try {
                 // Build dependency graph
                 dependencies = await this.withTimeout(
-                    this.contextAnalyzer.buildDependencyGraph(document.uri, imports),
+                    this.contextAnalyzer.buildDependencyGraph(document.uri, imports as ImportInfo[]),
                     100,
                     []
                 );
@@ -429,7 +515,7 @@ export class ContextEngine {
                         '**/node_modules/**',
                         50
                     );
-                    
+
                     codingPatterns = await this.withTimeout(
                         this.contextAnalyzer.detectCodingPatterns(files),
                         200,
@@ -448,30 +534,30 @@ export class ContextEngine {
             language: document.languageId,
             filename: path.basename(document.uri.fsPath),
             project: this.getProjectName(document.uri),
-            
+
             // Enhanced semantic context
-            imports,
-            functions,
-            classes,
-            interfaces,
+            imports: imports as ImportInfo[],
+            functions: functions as FunctionInfo[],
+            classes: classes as ClassInfo[],
+            interfaces: interfaces as InterfaceInfo[],
             types,
             variables,
-            
+
             // Scope and symbol information
             currentScope,
             symbolTable,
             dependencies,
-            
+
             // Project-wide context
             projectConfig,
             codingPatterns,
             styleGuide,
-            
+
             // Intelligent context
             relatedCode,
             recentEdits,
             cursorIntent,
-            
+
             // Legacy fields
             comments,
             cursorRules
@@ -523,22 +609,19 @@ export class ContextEngine {
     private extractImports(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const imports: string[] = [];
+        const patterns = LanguageConfigService.getInstance().getPatterns(document.languageId);
 
-        const patterns = {
-            python: /^import\s+.*|^from\s+.*\s+import\s+.*/gm,
-            javascript: /^import\s+.*|^const\s+.*=\s*require\(.*/gm,
-            typescript: /^import\s+.*|^const\s+.*=\s*require\(.*/gm,
-            java: /^import\s+.*;/gm,
-            cpp: /^#include\s+.*/gm,
-            go: /^import\s+(\([^)]*\)|".*")/gm,
-            rust: /^use\s+.*;/gm
-        };
-
-        const pattern = patterns[document.languageId as keyof typeof patterns];
-        if (pattern) {
-            const matches = text.match(pattern);
-            if (matches) {
-                imports.push(...matches);
+        if (patterns && patterns.imports) {
+            for (const patternString of patterns.imports) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    const matches = text.match(regex);
+                    if (matches) {
+                        imports.push(...matches);
+                    }
+                } catch (e) {
+                    console.error(`[ContextEngine] Invalid regex for imports: ${patternString}`, e);
+                }
             }
         }
 
@@ -548,22 +631,19 @@ export class ContextEngine {
     private extractFunctions(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const functions: string[] = [];
+        const patterns = LanguageConfigService.getInstance().getPatterns(document.languageId);
 
-        const patterns = {
-            python: /^def\s+\w+\s*\([^)]*\):/gm,
-            javascript: /^function\s+\w+\s*\([^)]*\)\s*{|^\w+\s*:\s*function\s*\([^)]*\)\s*{|^\w+\s*=\s*\([^)]*\)\s*=>/gm,
-            typescript: /^function\s+\w+\s*\([^)]*\)\s*[:{]?|^\w+\s*\([^)]*\)\s*[:{]?|^\w+\s*:\s*\([^)]*\)\s*=>/gm,
-            java: /^(?:public|private|protected)?\s+.*\s+\w+\s*\([^)]*\)\s*{/gm,
-            cpp: /^\w+\s+\w+\s*\([^)]*\)\s*{/gm,
-            go: /^func\s+\w+\s*\([^)]*\)/gm,
-            rust: /^fn\s+\w+\s*\([^)]*\)/gm
-        };
-
-        const pattern = patterns[document.languageId as keyof typeof patterns];
-        if (pattern) {
-            const matches = text.match(pattern);
-            if (matches) {
-                functions.push(...matches);
+        if (patterns && patterns.functions) {
+            for (const patternString of patterns.functions) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    const matches = text.match(regex);
+                    if (matches) {
+                        functions.push(...matches);
+                    }
+                } catch (e) {
+                    console.error(`[ContextEngine] Invalid regex for functions: ${patternString}`, e);
+                }
             }
         }
 
@@ -573,22 +653,19 @@ export class ContextEngine {
     private extractClasses(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const classes: string[] = [];
+        const patterns = LanguageConfigService.getInstance().getPatterns(document.languageId);
 
-        const patterns = {
-            python: /^class\s+\w+/gm,
-            javascript: /^class\s+\w+/gm,
-            typescript: /^class\s+\w+/gm,
-            java: /^(?:public|private|protected)?\s+class\s+\w+/gm,
-            cpp: /^class\s+\w+/gm,
-            go: /^type\s+\w+\s+struct/gm,
-            rust: /^struct\s+\w+/gm
-        };
-
-        const pattern = patterns[document.languageId as keyof typeof patterns];
-        if (pattern) {
-            const matches = text.match(pattern);
-            if (matches) {
-                classes.push(...matches);
+        if (patterns && patterns.classes) {
+             for (const patternString of patterns.classes) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    const matches = text.match(regex);
+                    if (matches) {
+                        classes.push(...matches);
+                    }
+                } catch (e) {
+                    console.error(`[ContextEngine] Invalid regex for classes: ${patternString}`, e);
+                }
             }
         }
 
@@ -598,22 +675,19 @@ export class ContextEngine {
     private extractComments(document: vscode.TextDocument): string[] {
         const text = document.getText();
         const comments: string[] = [];
+        const patterns = LanguageConfigService.getInstance().getPatterns(document.languageId);
 
-        const patterns = {
-            python: /#.*$/gm,
-            javascript: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-            typescript: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-            java: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-            cpp: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-            go: /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-            rust: /\/\/.*$|\/\*[\s\S]*?\*\//gm
-        };
-
-        const pattern = patterns[document.languageId as keyof typeof patterns];
-        if (pattern) {
-            const matches = text.match(pattern);
-            if (matches) {
-                comments.push(...matches.filter(comment => comment.trim().length > 1));
+        if (patterns && patterns.comments) {
+             for (const patternString of patterns.comments) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    const matches = text.match(regex);
+                    if (matches) {
+                        comments.push(...matches.filter(comment => comment.trim().length > 1));
+                    }
+                } catch (e) {
+                    console.error(`[ContextEngine] Invalid regex for comments: ${patternString}`, e);
+                }
             }
         }
 
@@ -676,9 +750,9 @@ export class ContextEngine {
     private buildIntelligentHeader(context: CodeContext): string {
         // Get adaptive context configuration based on model size
         const adaptiveConfig = AdaptiveContextManager.getContextConfig(this.currentModelSize);
-        
+
         const commentPrefix = this.getCommentPrefix(context.language);
-        
+
         // Use adaptive configuration instead of static setting
         if (!adaptiveConfig.enableVerboseHeader) {
             // Minimal header for small models
@@ -691,19 +765,19 @@ export class ContextEngine {
         header += this.buildFileMetadata(context, commentPrefix);
 
         // === SECTION 2: Type Definitions ===
-        if (adaptiveConfig.includeTypeDefinitions && 
-            (context.cursorIntent?.type === 'type_annotation' || 
+        if (adaptiveConfig.includeTypeDefinitions &&
+            (context.cursorIntent?.type === 'type_annotation' ||
              context.cursorIntent?.type === 'variable_declaration' ||
              context.types?.length > 0 || context.interfaces?.length > 0)) {
             header += this.buildTypeContext(context, commentPrefix, adaptiveConfig.maxTypes);
         }
 
         // === SECTION 3: Function Signatures ===
-        if (adaptiveConfig.includeFunctionSignatures && 
+        if (adaptiveConfig.includeFunctionSignatures &&
             (context.cursorIntent?.type === 'function_call' || context.functions?.length > 0)) {
             header += this.buildFunctionContext(context, commentPrefix, adaptiveConfig.maxFunctions);
         }
-        
+
         // === SECTION 4: Similar Code Examples ===
         if (context.cursorIntent?.type === 'comment_to_code' && context.relatedCode?.length > 0) {
             header += this.buildExampleContext(context, commentPrefix);
@@ -737,7 +811,7 @@ export class ContextEngine {
         let section = `${commentPrefix} ═══ FILE METADATA ═══\n`;
         section += `${commentPrefix} File: ${context.filename}\n`;
         section += `${commentPrefix} Language: ${context.language}\n`;
-        
+
         if (context.projectConfig) {
             if (context.projectConfig.framework) {
                 section += `${commentPrefix} Framework: ${context.projectConfig.framework}\n`;
@@ -796,11 +870,11 @@ export class ContextEngine {
         const topFunctions = context.functions.slice(0, maxFunctions);
         topFunctions.forEach(func => {
             section += `${func.isAsync ? 'async ' : ''}function ${func.name}(`;
-            section += func.parameters.map(p => 
+            section += func.parameters.map(p =>
                 `${p.name}${p.optional ? '?' : ''}${p.type ? ': ' + p.type : ''}`
             ).join(', ');
             section += `)${func.returnType ? ': ' + func.returnType : ''}\n`;
-            
+
             if (func.docstring) {
                 section += `${commentPrefix}   ${func.docstring.substring(0, 80)}\n`;
             }
@@ -821,13 +895,13 @@ export class ContextEngine {
         topExamples.forEach((example, index) => {
             section += `${commentPrefix} Example ${index + 1} (${Math.round(example.similarity * 100)}% similar):\n`;
             section += `${commentPrefix} From: ${path.basename(example.filePath)}\n`;
-            
+
             // Add code snippet (limit to 10 lines)
             const lines = example.code.split('\n').slice(0, 10);
             lines.forEach(line => {
                 section += `${commentPrefix} ${line}\n`;
             });
-            
+
             section += '\n';
         });
 
@@ -842,7 +916,7 @@ export class ContextEngine {
 
         let section = `${commentPrefix} ═══ CURRENT SCOPE ═══\n`;
         section += `${commentPrefix} Scope: ${context.currentScope.type}`;
-        
+
         if (context.currentScope.name) {
             section += ` (${context.currentScope.name})`;
         }
@@ -867,11 +941,11 @@ export class ContextEngine {
      */
     private buildProjectRules(context: CodeContext, commentPrefix: string): string {
         let section = `${commentPrefix} ═══ PROJECT RULES ═══\n`;
-        
+
         // Add cursor rules (limit to 500 chars)
         const rules = context.cursorRules!.substring(0, 500);
         const ruleLines = rules.split('\n');
-        
+
         ruleLines.forEach(line => {
             section += `${commentPrefix} ${line}\n`;
         });
@@ -894,13 +968,13 @@ export class ContextEngine {
         const topEdits = context.recentEdits.slice(0, maxRelatedFiles);
         topEdits.forEach(edit => {
             section += `${commentPrefix} From: ${path.basename(edit.file)}\n`;
-            
+
             // Add snippet (limit to 5 lines)
             const lines = edit.changes.split('\n').slice(0, 5);
             lines.forEach(line => {
                 section += `${commentPrefix} ${line}\n`;
             });
-            
+
             section += '\n';
         });
 
@@ -941,7 +1015,7 @@ export class ContextEngine {
     private analyzeFileForPatterns(document: vscode.TextDocument, patterns: CodingPattern[]): void {
         const text = document.getText();
         const imports = this.extractImports(document);
-        
+
         // Add imports to patterns
         for (const imp of imports) {
             const existing = patterns.find(p => p.pattern === imp);
@@ -1026,28 +1100,31 @@ export class ContextEngine {
     /**
      * Analyze user patterns from edit history and cursor movements
      */
-    private analyzeUserPatterns(edits: any[], cursorHistory: any[]): any {
+    private analyzeUserPatterns(edits: unknown[], cursorHistory: unknown[]): unknown {
         if (edits.length === 0 && cursorHistory.length === 0) {
             return null;
         }
 
         // Calculate typing speed (edits per minute)
         const recentEdits = edits.slice(-10);
-        const typingSpeed = recentEdits.length > 1 
-            ? (recentEdits.length / ((recentEdits[recentEdits.length - 1].timestamp - recentEdits[0].timestamp) / 60000))
+        const typingSpeed = recentEdits.length > 1
+            ? (recentEdits.length / (((recentEdits[recentEdits.length - 1] as { timestamp: number }).timestamp - (recentEdits[0] as { timestamp: number }).timestamp) / 60000))
             : 0;
 
         // Detect editing style
-        const hasFrequentSmallEdits = recentEdits.filter(e => 
-            e.changes && e.changes.length === 1 && e.changes[0].text.length < 5
-        ).length > recentEdits.length * 0.7;
+        const hasFrequentSmallEdits = recentEdits.filter(e => {
+            const edit = e as { changes?: { text: string }[] };
+            return edit.changes && edit.changes.length === 1 && edit.changes[0].text.length < 5;
+        }).length > recentEdits.length * 0.7;
 
         // Detect cursor movement patterns
         const cursorJumps = cursorHistory.length > 1
-            ? cursorHistory.filter((curr: any, i: number) => {
+            ? cursorHistory.filter((curr: unknown, i: number) => {
                 if (i === 0) return false;
                 const prev = cursorHistory[i - 1];
-                const lineDiff = Math.abs(curr.position.line - prev.position.line);
+                const currPos = curr as { position: { line: number } };
+                const prevPos = prev as { position: { line: number } };
+                const lineDiff = Math.abs(currPos.position.line - prevPos.position.line);
                 return lineDiff > 5; // Jump more than 5 lines
             }).length
             : 0;
@@ -1064,17 +1141,19 @@ export class ContextEngine {
     /**
      * Detect preferred edit type from history
      */
-    private detectPreferredEditType(edits: any[]): string {
-        const types = edits.map((e: any) => e.type);
+    private detectPreferredEditType(edits: unknown[]): string {
+        const types = edits.map((e: unknown) => (e as { type?: string }).type);
         const typeCounts: Record<string, number> = {};
-        
-        types.forEach((type: string) => {
-            typeCounts[type] = (typeCounts[type] || 0) + 1;
+
+        types.forEach((type: string | undefined) => {
+            if (type) {
+                typeCounts[type] = (typeCounts[type] || 0) + 1;
+            }
         });
 
         let maxType = 'unknown';
         let maxCount = 0;
-        
+
         for (const [type, count] of Object.entries(typeCounts)) {
             if (count > maxCount) {
                 maxCount = count;
@@ -1113,7 +1192,7 @@ export class ContextEngine {
 
         if (type === 'prefix') {
             const firstNewline = text.indexOf('\n');
-            if (firstNewline !== -1 && firstNewline < 100) { 
+            if (firstNewline !== -1 && firstNewline < 100) {
                 return text.substring(firstNewline + 1);
             }
         } else {

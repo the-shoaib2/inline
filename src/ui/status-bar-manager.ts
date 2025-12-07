@@ -1,6 +1,19 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
 
+/**
+ * Manages VS Code status bar display for Inline extension.
+ *
+ * Displays:
+ * - Current model name
+ * - Online/offline status
+ * - Loading state
+ * - Cache size
+ * - Memory usage
+ *
+ * Updates every 2 seconds with system metrics.
+ * Clickable to open Model Manager.
+ */
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
     private isOffline: boolean = false;
@@ -18,46 +31,66 @@ export class StatusBarManager {
             vscode.StatusBarAlignment.Right,
             100
         );
+        // Click to open Model Manager
         this.statusBarItem.command = 'inline.modelManager';
     }
 
+    /**
+     * Initialize status bar display and start monitoring.
+     */
     public initialize(): void {
         this.updateDisplay();
         this.statusBarItem.show();
         this.startMonitoring();
     }
 
+    /**
+     * Start periodic memory and CPU usage monitoring.
+     * Updates every 2 seconds.
+     */
     private startMonitoring(): void {
-        // Update memory usage every 2 seconds
         this.monitorInterval = setInterval(() => {
             this.updateMemoryUsage();
             this.updateDisplay();
         }, 2000);
     }
 
+    /**
+     * Update cached memory and CPU usage metrics.
+     * Measures both system-wide and process-specific usage.
+     */
     private updateMemoryUsage(): void {
         const totalMemory = os.totalmem();
         const freeMemory = os.freemem();
         const usedMemory = totalMemory - freeMemory;
         this.memoryUsage = (usedMemory / totalMemory) * 100;
 
-        // Get process memory
+        // Process heap usage as percentage
         const processMemory = process.memoryUsage();
         const heapUsedMB = processMemory.heapUsed / 1024 / 1024;
         const heapTotalMB = processMemory.heapTotal / 1024 / 1024;
         this.cpuUsage = (heapUsedMB / heapTotalMB) * 100;
     }
 
+    /**
+     * Update online/offline status indicator.
+     */
     public updateStatus(offline: boolean): void {
         this.isOffline = offline;
         this.updateDisplay();
     }
 
+    /**
+     * Update displayed model name.
+     */
     public setModel(modelName: string): void {
         this.currentModel = modelName;
         this.updateDisplay();
     }
 
+    /**
+     * Set loading state with optional custom message.
+     */
     public setLoading(loading: boolean, text?: string): void {
         this.isLoading = loading;
         if (text) {
@@ -68,17 +101,23 @@ export class StatusBarManager {
         this.updateDisplay();
     }
 
+    /**
+     * Update displayed cache size.
+     */
     public setCacheSize(size: string): void {
         this.cacheSize = size;
         this.updateDisplay();
     }
-    
+
+    /**
+     * Set arbitrary status bar text.
+     */
     public setText(text: string) {
         if (this.statusBarItem) {
             this.statusBarItem.text = text;
         }
     }
-    
+
     public setTooltip(tooltip: string) {
         if (this.statusBarItem) {
             this.statusBarItem.tooltip = tooltip;
@@ -99,7 +138,7 @@ export class StatusBarManager {
 
         const icon = this.isOffline ? '$(plug)' : '$(cloud)';
         const status = this.isOffline ? 'Offline' : 'Online';
-        
+
         // Determine background color based on memory usage
         let color: vscode.ThemeColor | undefined;
         if (this.memoryUsage >= 95) {
@@ -113,7 +152,7 @@ export class StatusBarManager {
         // Show memory usage in status bar
         const memoryIcon = this.memoryUsage >= 95 ? '$(alert)' : this.memoryUsage >= 80 ? '$(warning)' : '';
         const memoryText = this.memoryUsage > 0 ? ` ${memoryIcon} ${this.memoryUsage.toFixed(1)}%` : '';
-        
+
         this.statusBarItem.text = `${icon} Inline: ${status}${memoryText}`;
         this.statusBarItem.tooltip = this.createTooltip();
         this.statusBarItem.backgroundColor = color;
@@ -125,15 +164,15 @@ export class StatusBarManager {
         const heapTotalMB = (processMemory.heapTotal / 1024 / 1024).toFixed(1);
         const rssMB = (processMemory.rss / 1024 / 1024).toFixed(1);
         const externalMB = (processMemory.external / 1024 / 1024).toFixed(1);
-        
+
         const totalMemoryGB = (os.totalmem() / 1024 / 1024 / 1024).toFixed(1);
         const freeMemoryGB = (os.freemem() / 1024 / 1024 / 1024).toFixed(1);
         const usedMemoryGB = (parseFloat(totalMemoryGB) - parseFloat(freeMemoryGB)).toFixed(1);
-        
+
         const cpuCount = os.cpus().length;
         const platform = os.platform();
         const arch = os.arch();
-        
+
         const lines = [
             '🤖 Inline AI Code Completion',
             '',

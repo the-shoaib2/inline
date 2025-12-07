@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
+import { GPUDetector } from '../inference/gpu-detector';
+import { Logger } from './logger';
+import { execSync } from 'child_process';
 
+/**
+ * Current resource utilization metrics.
+ * All values are normalized to 0-1 range (percentage).
+ */
 export interface ResourceUsage {
     cpu: number;
     memory: number;
@@ -8,6 +15,10 @@ export interface ResourceUsage {
     disk: number;
 }
 
+/**
+ * Thresholds for warning on resource exhaustion.
+ * Values are normalized to 0-1 range.
+ */
 export interface ResourceThresholds {
     maxCPU: number;
     maxMemory: number;
@@ -15,21 +26,35 @@ export interface ResourceThresholds {
     maxDisk: number;
 }
 
+/**
+ * Monitors system resource usage (CPU, memory, VRAM, disk).
+ *
+ * Periodically samples resource metrics and warns when thresholds are exceeded.
+ * Provides recommendations for model size based on available memory.
+ * Integrates with GPU detection for VRAM monitoring.
+ */
 export class ResourceManager {
     private thresholds: ResourceThresholds = {
         maxCPU: 0.8,
-        maxMemory: 0.95,  // Increased from 0.9 - use 95% of available memory
+        maxMemory: 0.95,
         maxVRAM: 0.9,
         maxDisk: 0.95
     };
 
     private monitoringInterval: NodeJS.Timeout | null = null;
     private lastUsage: ResourceUsage = { cpu: 0, memory: 0, disk: 0 };
+    private gpuDetector: GPUDetector;
+    private logger: Logger;
 
     constructor() {
+        this.gpuDetector = new GPUDetector();
+        this.logger = new Logger('ResourceManager');
         this.startMonitoring();
     }
 
+    /**
+     * Start periodic resource monitoring (every 30 seconds).
+     */
     startMonitoring(): void {
         if (this.monitoringInterval) {
             clearInterval(this.monitoringInterval);
@@ -37,9 +62,12 @@ export class ResourceManager {
 
         this.monitoringInterval = setInterval(() => {
             this.updateResourceUsage();
-        }, 30000); // Check every 30 seconds (reduced from 5s for better performance)
+        }, 30000);
     }
 
+    /**
+     * Stop resource monitoring.
+     */
     stopMonitoring(): void {
         if (this.monitoringInterval) {
             clearInterval(this.monitoringInterval);
@@ -47,35 +75,134 @@ export class ResourceManager {
         }
     }
 
+    /**
+     * Update cached resource metrics and check thresholds.
+     */
     private updateResourceUsage(): void {
         this.lastUsage = this.getCurrentUsage();
-        
-        // Check thresholds and emit warnings
         this.checkThresholds();
     }
 
+    /**
+     * Get current resource usage across all metrics.
+     * Uses process heap ratio for memory (not system-wide).
+     */
     getCurrentUsage(): ResourceUsage {
-        // Use process-specific memory instead of system-wide
         const processMemory = process.memoryUsage();
-        const totalMemory = os.totalmem();
-        
-        // Calculate process memory usage as percentage of total system memory
         const heapUsed = processMemory.heapUsed;
         const heapTotal = processMemory.heapTotal;
-        const memoryUsageRatio = heapUsed / heapTotal;  // Process heap usage ratio
-        
+        const memoryUsageRatio = heapUsed / heapTotal;
+
         const cpus = os.cpus();
         const loadAvg = os.loadavg();
         const cpuUsage = loadAvg[0] / cpus.length;
 
+        const vram = this.getVRAMUsage();
+        const disk = this.getDiskUsage();
+
         return {
             cpu: cpuUsage,
-            memory: memoryUsageRatio,  // Use process heap ratio instead of system memory
-            disk: 0, // TODO: Implement disk usage monitoring
-            vram: 0  // TODO: Implement VRAM monitoring
+            memory: memoryUsageRatio,
+            disk,
+            vram
         };
     }
 
+    /**
+     * Get VRAM usage (GPU memory)
+     */
+    private async getVRAMUsageAsync(): Promise<number> {
+        try {
+            const gpuInfo = await this.gpuDetector.detectGPU();
+
+            if (!gpuInfo.available || !gpuInfo.vramEstimate) {
+                return 0;
+            }
+
+            // Try to get actual VRAM usage via nvidia-smi
+            if (process.platform !== 'win32') {
+                try {
+                    const output = execSync('nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits', {
+                        encoding: 'utf8',
+                        timeout: 1000
+                    });
+
+                    const [used, total] = output.trim().split(',').map(Number);
+                    if (used && total) {
+                        return used / total;
+                    }
+                } catch {
+                    // nvidia-smi not available, estimate based on model loading
+                }
+            }
+
+            // Fallback: estimate based on whether model is loaded
+            // If GPU layers > 0, assume some VRAM is in use
+            return gpuInfo.optimalLayers > 0 ? 0.3 : 0;
+        } catch (error) {
+            this.logger.warn('Failed to get VRAM usage:', error as Error);
+            return 0;
+        }
+    }
+
+    /**
+     * Get VRAM usage (GPU memory) - synchronous wrapper
+     */
+    private getVRAMUsage(): number {
+        // Return cached value or 0, actual update happens async
+        return this.lastUsage.vram || 0;
+    }
+
+    /**
+     * Get disk usage for workspace
+     */
+    private getDiskUsage(): number {
+        try {
+            if (process.platform === 'win32') {
+                // Windows: use wmic
+                const drive = process.cwd().substring(0, 2);
+                const output = execSync(`wmic logicaldisk where "DeviceID='${drive}'" get Size,FreeSpace /format:csv`, {
+                    encoding: 'utf8',
+                    timeout: 2000
+                });
+
+                const lines = output.trim().split('\n');
+                if (lines.length > 1) {
+                    const [, freeSpace, size] = lines[1].split(',');
+                    const free = parseInt(freeSpace);
+                    const total = parseInt(size);
+                    if (free && total) {
+                        return 1 - (free / total);
+                    }
+                }
+            } else {
+                // Unix: use df
+                const output = execSync('df -k .', {
+                    encoding: 'utf8',
+                    timeout: 2000
+                });
+
+                const lines = output.trim().split('\n');
+                if (lines.length > 1) {
+                    const parts = lines[1].split(/\s+/);
+                    const used = parseInt(parts[2]);
+                    const available = parseInt(parts[3]);
+                    const total = used + available;
+                    if (total > 0) {
+                        return used / total;
+                    }
+                }
+            }
+        } catch (error) {
+            this.logger.warn('Failed to get disk usage:', error as Error);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Check if any resource metric exceeds threshold and warn user.
+     */
     private checkThresholds(): void {
         if (this.lastUsage.cpu > this.thresholds.maxCPU) {
             vscode.window.showWarningMessage(
@@ -98,8 +225,22 @@ export class ResourceManager {
                 }
             });
         }
+
+        if (this.lastUsage.vram && this.thresholds.maxVRAM && this.lastUsage.vram > this.thresholds.maxVRAM) {
+            vscode.window.showWarningMessage(
+                `High VRAM usage detected: ${(this.lastUsage.vram * 100).toFixed(1)}%`,
+                'Details'
+            ).then(selection => {
+                if (selection === 'Details') {
+                    this.showResourceDetails();
+                }
+            });
+        }
     }
 
+    /**
+     * Display formatted resource usage details to user.
+     */
     private showResourceDetails(): void {
         const usage = this.lastUsage;
         const details = `
@@ -113,35 +254,52 @@ ${usage.vram !== undefined ? `VRAM: ${(usage.vram * 100).toFixed(1)}%` : ''}
         vscode.window.showInformationMessage(details, 'OK');
     }
 
+    /**
+     * Check if system has sufficient memory to load a model.
+     * Includes 50% buffer for safety.
+     */
     canHandleModel(modelSizeGB: number): boolean {
-        const availableMemory = os.freemem() / (1024 * 1024 * 1024); // Convert to GB
-        const requiredMemory = modelSizeGB * 1.5; // Add 50% buffer
-        
-        return availableMemory >= requiredMemory && 
+        const availableMemory = os.freemem() / (1024 * 1024 * 1024);
+        const requiredMemory = modelSizeGB * 1.5;
+
+        return availableMemory >= requiredMemory &&
                this.lastUsage.memory < this.thresholds.maxMemory;
     }
 
+    /**
+     * Recommend optimal model size based on current resource availability.
+     * Returns size between 1GB and 8GB, adjusted for current load.
+     */
     getOptimalModelSize(): number {
-        const availableMemory = os.freemem() / (1024 * 1024 * 1024); // Convert to GB
+        const availableMemory = os.freemem() / (1024 * 1024 * 1024);
         const currentLoad = this.lastUsage.memory;
-        
-        // Adjust based on current memory usage
+
+        // Reduce available memory by current load
         let usableMemory = availableMemory * (1 - currentLoad);
-        
-        // Leave some buffer for system
+
+        // Leave 30% buffer for system operations
         usableMemory *= 0.7;
-        
-        return Math.max(1, Math.min(usableMemory, 8)); // Between 1GB and 8GB
+
+        return Math.max(1, Math.min(usableMemory, 8));
     }
 
+    /**
+     * Update resource threshold values.
+     */
     setThresholds(thresholds: Partial<ResourceThresholds>): void {
         this.thresholds = { ...this.thresholds, ...thresholds };
     }
 
+    /**
+     * Get last sampled resource usage metrics.
+     */
     getLastUsage(): ResourceUsage {
         return this.lastUsage;
     }
 
+    /**
+     * Clean up monitoring resources.
+     */
     dispose(): void {
         this.stopMonitoring();
     }

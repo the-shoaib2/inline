@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { EventBus } from '../events/event-bus';
-import { 
+import {
     AnyEvent,
     EditorEvent,
     CodeModificationEvent,
@@ -12,7 +12,8 @@ import {
 import { Logger } from '../system/logger';
 
 /**
- * Document state information
+ * Snapshot of a single document's state.
+ * Includes cursor position, selections, and recent edits.
  */
 export interface DocumentState {
     uri: vscode.Uri;
@@ -26,7 +27,7 @@ export interface DocumentState {
 }
 
 /**
- * Edit record
+ * Single edit operation with timestamp and change details.
  */
 export interface EditRecord {
     timestamp: number;
@@ -38,7 +39,8 @@ export interface EditRecord {
 }
 
 /**
- * Editor state model
+ * Complete editor state model.
+ * Maintains active document, open files, and activity history.
  */
 export interface EditorStateModel {
     activeDocument: DocumentState | null;
@@ -58,7 +60,14 @@ export interface EditorStateModel {
 }
 
 /**
- * State manager - maintains current editor state from events
+ * Maintains editor state synchronized with event stream.
+ *
+ * Responsibilities:
+ * - Track active document and open files
+ * - Record cursor position and selection history
+ * - Maintain recent edits with timestamps
+ * - Subscribe to editor events for state updates
+ * - Provide state queries for context building
  */
 export class StateManager {
     private logger: Logger;
@@ -66,6 +75,11 @@ export class StateManager {
     private subscriptionIds: string[] = [];
     private state: EditorStateModel;
 
+    /**
+     * Initialize state manager with event bus.
+     * @param eventBus Event bus for editor events
+     * @param maxHistorySize Maximum history entries to keep (default: 100)
+     */
     constructor(eventBus: EventBus, maxHistorySize: number = 100) {
         this.logger = new Logger('StateManager');
         this.eventBus = eventBus;

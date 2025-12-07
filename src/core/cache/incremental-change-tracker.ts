@@ -1,12 +1,18 @@
 import * as vscode from 'vscode';
 import { Logger } from '../../system/logger';
 
+/**
+ * Text change representation for incremental processing.
+ */
 export interface TextChange {
     range: vscode.Range;
     text: string;
     rangeLength: number;
 }
 
+/**
+ * Computed change delta with affected line tracking.
+ */
 export interface ChangeDelta {
     uri: string;
     version: number;
@@ -15,68 +21,72 @@ export interface ChangeDelta {
 }
 
 /**
- * Incremental Change Tracker
- * 
- * Tracks document changes efficiently for incremental processing.
- * Batches small changes and computes affected regions.
+ * Tracks document changes for incremental processing with debouncing.
+ *
+ * Features:
+ * - Batches rapid changes to reduce processing overhead
+ * - Computes affected line regions for targeted updates
+ * - Version tracking for cache invalidation
+ * - Debounced processing to handle typing bursts
  */
 export class IncrementalChangeTracker {
     private documentVersions: Map<string, number> = new Map();
     private pendingChanges: Map<string, TextChange[]> = new Map();
     private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
     private logger: Logger;
-    
-    private readonly DEBOUNCE_DELAY = 300; // ms
+
+    private readonly DEBOUNCE_DELAY = 300; // ms - balances responsiveness with performance
 
     constructor() {
         this.logger = new Logger('IncrementalChangeTracker');
     }
 
     /**
-     * Track a document change
+     * Track document change with debounced batch processing.
+     * Updates version tracking and queues change for batch processing.
      */
     trackChange(
         uri: string,
         version: number,
         change: vscode.TextDocumentContentChangeEvent
     ): void {
-        // Update version
+        // Update document version for cache invalidation
         this.documentVersions.set(uri, version);
 
-        // Convert to TextChange
         const textChange: TextChange = {
             range: change.range,
             text: change.text,
             rangeLength: change.rangeLength || 0
         };
 
-        // Add to pending changes
+        // Queue change for batch processing
         const pending = this.pendingChanges.get(uri) || [];
         pending.push(textChange);
         this.pendingChanges.set(uri, pending);
 
         this.logger.debug(`Tracked change for ${uri}: ${change.text.length} chars`);
 
-        // Debounce processing
+        // Debounce to batch rapid changes during typing
         this.debounceBatchProcessing(uri);
     }
 
     /**
-     * Get current version for a document
+     * Get current document version for cache validation.
      */
     getVersion(uri: string): number {
         return this.documentVersions.get(uri) || 0;
     }
 
     /**
-     * Get pending changes for a document
+     * Get queued changes for document processing.
      */
     getPendingChanges(uri: string): TextChange[] {
         return this.pendingChanges.get(uri) || [];
     }
 
     /**
-     * Compute change delta for a document
+     * Compute change delta with affected line analysis.
+     * Used for targeted cache invalidation and incremental updates.
      */
     computeDelta(uri: string): ChangeDelta | null {
         const changes = this.pendingChanges.get(uri);
@@ -96,12 +106,13 @@ export class IncrementalChangeTracker {
     }
 
     /**
-     * Clear pending changes for a document
+     * Clear pending changes and cancel debounce timer.
+     * Called after changes are processed or document is closed.
      */
     clearPending(uri: string): void {
         this.pendingChanges.delete(uri);
-        
-        // Cancel debounce timer
+
+        // Cancel pending debounce timer
         const timer = this.debounceTimers.get(uri);
         if (timer) {
             clearTimeout(timer);
@@ -110,23 +121,24 @@ export class IncrementalChangeTracker {
     }
 
     /**
-     * Clear all tracking data
+     * Reset all tracking data and cancel active timers.
      */
     clear(): void {
         this.documentVersions.clear();
         this.pendingChanges.clear();
-        
-        // Cancel all timers
+
+        // Cancel all debounce timers to prevent memory leaks
         for (const timer of this.debounceTimers.values()) {
             clearTimeout(timer);
         }
         this.debounceTimers.clear();
-        
+
         this.logger.info('Change tracker cleared');
     }
 
     /**
-     * Compute affected line numbers from changes
+     * Calculate all line numbers affected by text changes.
+     * Includes both changed ranges and lines from inserted text.
      */
     private computeAffectedLines(changes: TextChange[]): Set<number> {
         const affectedLines = new Set<number>();
@@ -135,12 +147,12 @@ export class IncrementalChangeTracker {
             const startLine = change.range.start.line;
             const endLine = change.range.end.line;
 
-            // Add all lines in the range
+            // Mark all lines in the changed range
             for (let line = startLine; line <= endLine; line++) {
                 affectedLines.add(line);
             }
 
-            // If text contains newlines, add those lines too
+            // Include new lines from inserted text
             const newlineCount = (change.text.match(/\n/g) || []).length;
             for (let i = 1; i <= newlineCount; i++) {
                 affectedLines.add(startLine + i);
@@ -151,16 +163,17 @@ export class IncrementalChangeTracker {
     }
 
     /**
-     * Debounce batch processing of changes
+     * Debounce rapid changes to batch process them efficiently.
+     * Reduces processing overhead during typing bursts.
      */
     private debounceBatchProcessing(uri: string): void {
-        // Cancel existing timer
+        // Cancel existing timer to extend debounce period
         const existingTimer = this.debounceTimers.get(uri);
         if (existingTimer) {
             clearTimeout(existingTimer);
         }
 
-        // Set new timer
+        // Schedule batch processing after debounce delay
         const timer = setTimeout(() => {
             this.processBatch(uri);
         }, this.DEBOUNCE_DELAY);
@@ -169,7 +182,8 @@ export class IncrementalChangeTracker {
     }
 
     /**
-     * Process batched changes
+     * Process batched changes for monitoring and logging.
+     * Actual cache invalidation is handled by the cache manager.
      */
     private processBatch(uri: string): void {
         const delta = this.computeDelta(uri);
@@ -179,13 +193,12 @@ export class IncrementalChangeTracker {
                 `${delta.affectedLines.size} affected lines`
             );
         }
-        
-        // Note: Actual processing will be triggered by cache invalidation
-        // This is just for logging/monitoring
+
+        // Cache invalidation is triggered separately - this is for monitoring only
     }
 
     /**
-     * Check if document has pending changes
+     * Check if document has unprocessed changes.
      */
     hasPendingChanges(uri: string): boolean {
         const changes = this.pendingChanges.get(uri);
@@ -193,7 +206,7 @@ export class IncrementalChangeTracker {
     }
 
     /**
-     * Get statistics
+     * Generate tracking statistics for monitoring.
      */
     getStats(): {
         trackedDocuments: number;

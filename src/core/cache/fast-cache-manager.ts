@@ -1,14 +1,17 @@
 import * as vscode from 'vscode';
 import { Logger } from '../../system/logger';
 import { ASTCache } from './ast-cache';
-import { OpenFilesCache } from './open-files-cache';
+import { OpenFilesCache, ParsedFileContext } from './open-files-cache';
 import { IncrementalChangeTracker } from './incremental-change-tracker';
 
 /**
- * Fast Cache Manager
- * 
- * Coordinates L1 (AST) and L2 (Open Files) caches with incremental change tracking.
- * Provides unified interface for fast context retrieval.
+ * Coordinates multi-tier caching system with incremental change tracking.
+ *
+ * Features:
+ * - L1 cache: AST storage for parsed syntax trees
+ * - L2 cache: Open files context for active documents
+ * - Incremental change tracking for targeted updates
+ * - Automatic cache invalidation on document changes
  */
 export class FastCacheManager {
     private astCache: ASTCache;
@@ -16,13 +19,13 @@ export class FastCacheManager {
     private changeTracker: IncrementalChangeTracker;
     private logger: Logger;
 
-    // Document change listener
+    // Event listeners for document lifecycle
     private changeListener: vscode.Disposable | null = null;
     private closeListener: vscode.Disposable | null = null;
 
     constructor() {
-        this.astCache = new ASTCache(100); // 100MB
-        this.openFilesCache = new OpenFilesCache(10); // 10 recent files
+        this.astCache = new ASTCache(100); // 100MB for AST cache
+        this.openFilesCache = new OpenFilesCache(10); // Track 10 recent files
         this.changeTracker = new IncrementalChangeTracker();
         this.logger = new Logger('FastCacheManager');
 
@@ -30,27 +33,27 @@ export class FastCacheManager {
     }
 
     /**
-     * Setup document change listeners
+     * Setup document event listeners for automatic cache management.
      */
     private setupListeners(): void {
-        // Listen for document changes
+        // Track document changes for cache invalidation
         this.changeListener = vscode.workspace.onDidChangeTextDocument(event => {
             const uri = event.document.uri.toString();
             const version = event.document.version;
 
-            // Track changes
+            // Queue changes for incremental processing
             for (const change of event.contentChanges) {
                 this.changeTracker.trackChange(uri, version, change);
             }
 
-            // Invalidate caches
+            // Invalidate affected caches
             this.astCache.invalidate(uri);
             this.openFilesCache.invalidate(uri);
 
             this.logger.debug(`Document changed: ${uri}, version ${version}`);
         });
 
-        // Listen for document close
+        // Clean up cache when documents are closed
         this.closeListener = vscode.workspace.onDidCloseTextDocument(document => {
             const uri = document.uri.toString();
             this.openFilesCache.closeFile(uri);
@@ -59,75 +62,75 @@ export class FastCacheManager {
     }
 
     /**
-     * Get AST from L1 cache
+     * Retrieve cached AST if version matches.
      */
-    getAST(uri: string, version: number): any | null {
+    getAST(uri: string, version: number): unknown | null {
         return this.astCache.get(uri, version);
     }
 
     /**
-     * Store AST in L1 cache
+     * Store AST in L1 cache with version tracking.
      */
-    setAST(uri: string, ast: any, version: number, size: number): void {
+    setAST(uri: string, ast: unknown, version: number, size: number): void {
         this.astCache.set(uri, ast, version, size);
     }
 
     /**
-     * Get parsed file context from L2 cache
+     * Retrieve parsed file context from L2 cache.
      */
-    getFileContext(uri: string, version: number): any | null {
+    getFileContext(uri: string, version: number): unknown | null {
         return this.openFilesCache.get(uri, version);
     }
 
     /**
-     * Store parsed file context in L2 cache
+     * Store parsed file context in L2 cache.
      */
-    setFileContext(uri: string, context: any): void {
+    setFileContext(uri: string, context: ParsedFileContext): void {
         this.openFilesCache.setOpenFile(uri, context);
     }
 
     /**
-     * Mark file as opened
+     * Mark file as opened in L2 cache tracking.
      */
     openFile(uri: string): void {
         this.openFilesCache.openFile(uri);
     }
 
     /**
-     * Mark file as closed
+     * Mark file as closed and clean up L2 cache entry.
      */
     closeFile(uri: string): void {
         this.openFilesCache.closeFile(uri);
     }
 
     /**
-     * Get change delta for incremental processing
+     * Get computed change delta for incremental processing.
      */
-    getChangeDelta(uri: string): any {
+    getChangeDelta(uri: string): unknown {
         return this.changeTracker.computeDelta(uri);
     }
 
     /**
-     * Clear pending changes
+     * Clear processed changes from tracking queue.
      */
     clearPendingChanges(uri: string): void {
         this.changeTracker.clearPending(uri);
     }
 
     /**
-     * Get all open file URIs
+     * Get list of currently tracked open files.
      */
     getOpenFiles(): string[] {
         return this.openFilesCache.getOpenFiles();
     }
 
     /**
-     * Get combined cache statistics
+     * Generate comprehensive cache statistics across all tiers.
      */
     getStats(): {
-        l1: any;
-        l2: any;
-        changeTracker: any;
+        l1: unknown;
+        l2: unknown;
+        changeTracker: unknown;
     } {
         return {
             l1: this.astCache.getStats(),
@@ -137,7 +140,7 @@ export class FastCacheManager {
     }
 
     /**
-     * Clear all caches
+     * Reset all cache tiers and tracking data.
      */
     clear(): void {
         this.astCache.clear();
@@ -147,7 +150,7 @@ export class FastCacheManager {
     }
 
     /**
-     * Dispose resources
+     * Clean up event listeners and cache data.
      */
     dispose(): void {
         if (this.changeListener) {
@@ -160,7 +163,7 @@ export class FastCacheManager {
     }
 
     /**
-     * Get memory usage summary
+     * Generate memory usage summary across cache tiers.
      */
     getMemoryUsage(): {
         l1Usage: number;

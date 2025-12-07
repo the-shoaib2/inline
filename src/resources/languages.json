@@ -1,0 +1,640 @@
+{
+    "typescript": {
+        "imports": [
+            "^import\\s+(?:{([^}]+)}|(\\w+)|\\*\\s+as\\s+(\\w+))\\s+from\\s+['\"]([^'\"]+)['\"]",
+            "^import\\s+.*|^const\\s+.*=\\s*require\\(.*"
+        ],
+        "functions": [
+            "(?:export\\s+)?(?:async\\s+)?(?:function\\s+(\\w+)|(?:const|let|var)\\s+(\\w+)\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)(?:\\s*:\\s*([^{=]+))?\\s*=>)",
+            "^function\\s+\\w+\\s*\\([^)]*\\)\\s*[:{]?|^\\w+\\s*\\([^)]*\\)\\s*[:{]?|^\\w+\\s*:\\s*\\([^)]*\\)\\s*=>"
+        ],
+        "classes": [
+            "(?:export\\s+)?class\\s+(\\w+)(?:\\s+extends\\s+(\\w+))?(?:\\s+implements\\s+([\\w,\\s]+))?\\s*{",
+            "^class\\s+\\w+"
+        ],
+        "interfaces": [
+            "(?:export\\s+)?interface\\s+(\\w+)(?:\\s+extends\\s+([\\w,\\s]+))?\\s*{"
+        ],
+        "types": [
+            "(?:export\\s+)?type\\s+(\\w+)\\s*=\\s*([^;]+);"
+        ],
+        "variables": [
+            "(const|let|var)\\s+(\\w+)(?:\\s*:\\s*([^=]+))?\\s*=\\s*([^;]+);"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "javascript": {
+        "imports": [
+            "^import\\s+(?:{([^}]+)}|(\\w+)|\\*\\s+as\\s+(\\w+))\\s+from\\s+['\"]([^'\"]+)['\"]",
+            "^import\\s+.*|^const\\s+.*=\\s*require\\(.*"
+        ],
+        "functions": [
+            "(?:export\\s+)?(?:async\\s+)?(?:function\\s+(\\w+)|(?:const|let|var)\\s+(\\w+)\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)(?:\\s*:\\s*([^{=]+))?\\s*=>)",
+            "^function\\s+\\w+\\s*\\([^)]*\\)\\s*{|^\\w+\\s*:\\s*function\\s*\\([^)]*\\)\\s*{|^\\w+\\s*=\\s*\\([^)]*\\)\\s*=>"
+        ],
+        "classes": [
+            "(?:export\\s+)?class\\s+(\\w+)(?:\\s+extends\\s+(\\w+))?(?:\\s+implements\\s+([\\w,\\s]+))?\\s*{",
+            "^class\\s+\\w+"
+        ],
+        "variables": [
+            "(const|let|var)\\s+(\\w+)(?:\\s*:\\s*([^=]+))?\\s*=\\s*([^;]+);"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "python": {
+        "imports": [
+            "^from\\s+([\\w.]+)\\s+import\\s+(.+)",
+            "^import\\s+([\\w.]+)(?:\\s+as\\s+(\\w+))?",
+            "^import\\s+.*|^from\\s+.*\\s+import\\s+.*"
+        ],
+        "functions": [
+            "^(?:async\\s+)?def\\s+(\\w+)\\s*\\(([^)]*)\\)(?:\\s*->\\s*([^:]+))?:",
+            "^def\\s+\\w+\\s*\\([^)]*\\):"
+        ],
+        "classes": [
+            "^class\\s+(\\w+)(?:\\(([^)]+)\\))?:",
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "java": {
+        "imports": [
+            "^import\\s+.*;"
+        ],
+        "functions": [
+            "^(?:public|private|protected)?\\s+.*\\s+\\w+\\s*\\([^)]*\\)\\s*{"
+        ],
+        "classes": [
+            "^(?:public|private|protected)?\\s+class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "cpp": {
+        "imports": [
+            "^#include\\s+.*"
+        ],
+        "functions": [
+            "^\\w+\\s+\\w+\\s*\\([^)]*\\)\\s*{"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "c": {
+        "imports": [
+            "^#include\\s+.*"
+        ],
+        "functions": [
+            "^\\w+\\s+\\w+\\s*\\([^)]*\\)\\s*{"
+        ],
+        "classes": [
+            "^struct\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "go": {
+        "imports": [
+            "^import\\s+(\\([^)]*\\)|\\\".*\\\")"
+        ],
+        "functions": [
+            "^func\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^type\\s+\\w+\\s+struct"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "rust": {
+        "imports": [
+            "^use\\s+.*;"
+        ],
+        "functions": [
+            "^fn\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^struct\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "php": {
+        "imports": [
+            "^use\\s+.*;"
+        ],
+        "functions": [
+            "^(?:public|private|protected)?\\s*function\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/|#.*$"
+        ]
+    },
+    "ruby": {
+        "imports": [
+            "^require\\s+.*"
+        ],
+        "functions": [
+            "^def\\s+\\w+"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "swift": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^func\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "kotlin": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^fun\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "csharp": {
+        "imports": [
+            "^using\\s+.*;"
+        ],
+        "functions": [
+            "^(?:public|private|protected)?\\s+.*\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^(?:public|private|protected)?\\s+class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "scala": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^def\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "dart": {
+        "imports": [
+            "^import\\s+.*;"
+        ],
+        "functions": [
+            "^\\w+\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "haskell": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^\\w+\\s*::"
+        ],
+        "classes": [
+            "^data\\s+\\w+"
+        ],
+        "comments": [
+            "--.*$"
+        ]
+    },
+    "elixir": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^def\\s+\\w+"
+        ],
+        "classes": [
+            "^defmodule\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "erlang": {
+        "imports": [
+            "^-import\\s*\\(.*\\)"
+        ],
+        "functions": [
+            "^\\w+\\s*\\([^)]*\\)\\s*->"
+        ],
+        "classes": [
+            "^-module\\s*\\(\\w+\\)"
+        ],
+        "comments": [
+            "%.*$"
+        ]
+    },
+    "clojure": {
+        "imports": [
+            "^\\(require\\s+.*\\)"
+        ],
+        "functions": [
+            "^\\(defn\\s+\\w+"
+        ],
+        "classes": [
+            "^\\(defrecord\\s+\\w+"
+        ],
+        "comments": [
+            ";.*$"
+        ]
+    },
+    "lua": {
+        "imports": [
+            "^require\\s*\\(.*\\)"
+        ],
+        "functions": [
+            "^function\\s+\\w+"
+        ],
+        "classes": [
+            "^local\\s+\\w+\\s*=\\s*{"
+        ],
+        "comments": [
+            "--.*$"
+        ]
+    },
+    "r": {
+        "imports": [
+            "^library\\s*\\(.*\\)"
+        ],
+        "functions": [
+            "^\\w+\\s*<-\\s*function"
+        ],
+        "classes": [
+            "^setClass\\s*\\("
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "julia": {
+        "imports": [
+            "^using\\s+.*"
+        ],
+        "functions": [
+            "^function\\s+\\w+"
+        ],
+        "classes": [
+            "^struct\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "perl": {
+        "imports": [
+            "^use\\s+.*;"
+        ],
+        "functions": [
+            "^sub\\s+\\w+"
+        ],
+        "classes": [
+            "^package\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "objectivec": {
+        "imports": [
+            "^#import\\s+.*"
+        ],
+        "functions": [
+            "^[-+]\\s*\\([^)]*\\)\\s*\\w+"
+        ],
+        "classes": [
+            "^@interface\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "sql": {
+        "imports": [],
+        "functions": [
+            "^CREATE\\s+(?:OR\\s+REPLACE\\s+)?(?:FUNCTION|PROCEDURE)\\s+\\w+"
+        ],
+        "classes": [],
+        "comments": [
+            "--.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "shell": {
+        "imports": [
+            "^source\\s+.*"
+        ],
+        "functions": [
+            "^\\w+\\s*\\(\\s*\\)\\s*{"
+        ],
+        "classes": [],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "powershell": {
+        "imports": [
+            "^Import-Module\\s+.*"
+        ],
+        "functions": [
+            "^function\\s+\\w+"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "groovy": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^def\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "matlab": {
+        "imports": [],
+        "functions": [
+            "^function\\s+.*=\\s*\\w+"
+        ],
+        "classes": [
+            "^classdef\\s+\\w+"
+        ],
+        "comments": [
+            "%.*$"
+        ]
+    },
+    "fortran": {
+        "imports": [
+            "^use\\s+.*"
+        ],
+        "functions": [
+            "^(?:subroutine|function)\\s+\\w+"
+        ],
+        "classes": [
+            "^type\\s+\\w+"
+        ],
+        "comments": [
+            "!.*$"
+        ]
+    },
+    "cobol": {
+        "imports": [],
+        "functions": [
+            "^\\s*\\w+-SECTION"
+        ],
+        "classes": [],
+        "comments": [
+            "^\\*.*$"
+        ]
+    },
+    "vb": {
+        "imports": [
+            "^Imports\\s+.*"
+        ],
+        "functions": [
+            "^(?:Public|Private|Protected)?\\s*(?:Sub|Function)\\s+\\w+"
+        ],
+        "classes": [
+            "^(?:Public|Private)?\\s*Class\\s+\\w+"
+        ],
+        "comments": [
+            "'.*$"
+        ]
+    },
+    "fsharp": {
+        "imports": [
+            "^open\\s+.*"
+        ],
+        "functions": [
+            "^let\\s+\\w+"
+        ],
+        "classes": [
+            "^type\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\(\\*[\\s\\S]*?\\*\\)"
+        ]
+    },
+    "ocaml": {
+        "imports": [
+            "^open\\s+.*"
+        ],
+        "functions": [
+            "^let\\s+\\w+"
+        ],
+        "classes": [
+            "^type\\s+\\w+"
+        ],
+        "comments": [
+            "\\(\\*[\\s\\S]*?\\*\\)"
+        ]
+    },
+    "nim": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^proc\\s+\\w+"
+        ],
+        "classes": [
+            "^type\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "crystal": {
+        "imports": [
+            "^require\\s+.*"
+        ],
+        "functions": [
+            "^def\\s+\\w+"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "#.*$"
+        ]
+    },
+    "zig": {
+        "imports": [
+            "^const\\s+\\w+\\s*=\\s*@import"
+        ],
+        "functions": [
+            "^(?:pub\\s+)?fn\\s+\\w+"
+        ],
+        "classes": [
+            "^(?:pub\\s+)?const\\s+\\w+\\s*=\\s*struct"
+        ],
+        "comments": [
+            "\\/\\/.*$"
+        ]
+    },
+    "v": {
+        "imports": [
+            "^import\\s+.*"
+        ],
+        "functions": [
+            "^fn\\s+\\w+"
+        ],
+        "classes": [
+            "^struct\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "solidity": {
+        "imports": [
+            "^import\\s+.*;"
+        ],
+        "functions": [
+            "^function\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^contract\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "ada": {
+        "imports": [
+            "^with\\s+.*;"
+        ],
+        "functions": [
+            "^(?:procedure|function)\\s+\\w+"
+        ],
+        "classes": [
+            "^type\\s+\\w+"
+        ],
+        "comments": [
+            "--.*$"
+        ]
+    },
+    "pascal": {
+        "imports": [
+            "^uses\\s+.*;"
+        ],
+        "functions": [
+            "^(?:procedure|function)\\s+\\w+"
+        ],
+        "classes": [
+            "^type\\s+\\w+"
+        ],
+        "comments": [
+            "\\{[^}]*\\}|\\(\\*[\\s\\S]*?\\*\\)"
+        ]
+    },
+    "d": {
+        "imports": [
+            "^import\\s+.*;"
+        ],
+        "functions": [
+            "^\\w+\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "^class\\s+\\w+"
+        ],
+        "comments": [
+            "\\/\\/.*$|\\/\\*[\\s\\S]*?\\*\\/"
+        ]
+    },
+    "racket": {
+        "imports": [
+            "^\\(require\\s+.*\\)"
+        ],
+        "functions": [
+            "^\\(define\\s+\\([^)]+\\)"
+        ],
+        "classes": [
+            "^\\(define-struct\\s+\\w+"
+        ],
+        "comments": [
+            ";.*$"
+        ]
+    },
+    "scheme": {
+        "imports": [
+            "^\\(require\\s+.*\\)"
+        ],
+        "functions": [
+            "^\\(define\\s+\\([^)]+\\)"
+        ],
+        "classes": [],
+        "comments": [
+            ";.*$"
+        ]
+    },
+    "commonlisp": {
+        "imports": [
+            "^\\(require\\s+.*\\)"
+        ],
+        "functions": [
+            "^\\(defun\\s+\\w+"
+        ],
+        "classes": [
+            "^\\(defclass\\s+\\w+"
+        ],
+        "comments": [
+            ";.*$"
+        ]
+    }
+}

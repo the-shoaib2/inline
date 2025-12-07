@@ -1,17 +1,28 @@
 import * as vscode from 'vscode';
 import * as https from 'https';
 
+/**
+ * Monitors network connectivity and manages offline/online mode.
+ *
+ * Periodically checks connectivity to a reliable endpoint (Google).
+ * Notifies subscribers of state changes and supports manual override.
+ * Defaults to offline mode for safety.
+ */
 export class NetworkDetector {
-    private isOfflineMode: boolean = true; // Start in offline mode by default
+    private isOfflineMode: boolean = true;
     private monitoringInterval: NodeJS.Timeout | null = null;
     private statusCallback?: (isOffline: boolean) => void;
-    private checkInterval: number = 30000; // 30 seconds
-    private hasCheckedNetwork: boolean = false; // Track if we've ever checked network
+    private checkInterval: number = 30000;
+    private hasCheckedNetwork: boolean = false;
 
     constructor() {
-        // Don't check network status during construction to avoid blocking
+        // Defer network check to avoid blocking extension activation
     }
 
+    /**
+     * Start periodic network status checks.
+     * @param callback Invoked when connectivity state changes
+     */
     startMonitoring(callback?: (isOffline: boolean) => void): void {
         this.statusCallback = callback;
 
@@ -24,21 +35,27 @@ export class NetworkDetector {
         }, this.checkInterval);
     }
 
+    /**
+     * Stop network monitoring and clear callbacks.
+     */
     stopMonitoring(): void {
         if (this.monitoringInterval) {
             clearInterval(this.monitoringInterval);
             this.monitoringInterval = null;
         }
-        // Clear callback to prevent updates after stopping
         this.statusCallback = undefined;
     }
 
+    /**
+     * Check current network connectivity status.
+     * First check establishes baseline; subsequent checks only run if monitoring is active.
+     * @returns true if offline, false if online
+     */
     async checkNetworkStatus(): Promise<boolean> {
-        // If we haven't checked network before, do it once to establish baseline
+        // Initial check with shorter timeout to establish baseline
         if (!this.hasCheckedNetwork) {
             this.hasCheckedNetwork = true;
             try {
-                // Try to reach a reliable endpoint with short timeout
                 await this.makeRequest('https://www.google.com', 2000);
                 const wasOffline = this.isOfflineMode;
                 this.isOfflineMode = false;
@@ -49,7 +66,6 @@ export class NetworkDetector {
 
                 return false;
             } catch (error) {
-                // Keep offline mode if network check fails
                 if (this.statusCallback) {
                     this.statusCallback(true);
                 }
@@ -57,13 +73,12 @@ export class NetworkDetector {
             }
         }
 
-        // Subsequent checks only happen if monitoring is active
+        // Only continue monitoring if active
         if (!this.monitoringInterval) {
             return this.isOfflineMode;
         }
 
         try {
-            // Try to reach a reliable endpoint
             await this.makeRequest('https://www.google.com', 3000);
             const wasOffline = this.isOfflineMode;
             this.isOfflineMode = false;
@@ -74,7 +89,7 @@ export class NetworkDetector {
 
             return false;
         } catch (error) {
-            // Check if monitoring was stopped during request
+            // Handle case where monitoring was stopped during request
             if (!this.statusCallback) {
                 return true;
             }
@@ -90,6 +105,10 @@ export class NetworkDetector {
         }
     }
 
+    /**
+     * Make HTTPS request with timeout.
+     * @throws Error on network failure or timeout
+     */
     private makeRequest(url: string, timeout: number): Promise<void> {
         return new Promise((resolve, reject) => {
             const request = https.get(url, { timeout }, (response) => {
@@ -110,10 +129,16 @@ export class NetworkDetector {
         });
     }
 
+    /**
+     * Get current offline mode state.
+     */
     isOffline(): boolean {
         return this.isOfflineMode;
     }
 
+    /**
+     * Toggle offline mode and notify subscribers.
+     */
     toggleOfflineMode(): void {
         this.isOfflineMode = !this.isOfflineMode;
         if (this.statusCallback) {
@@ -124,6 +149,9 @@ export class NetworkDetector {
         vscode.window.showInformationMessage(`Inline: ${message}`);
     }
 
+    /**
+     * Update the interval between network checks.
+     */
     setCheckInterval(interval: number): void {
         this.checkInterval = interval;
         if (this.monitoringInterval) {
@@ -132,16 +160,20 @@ export class NetworkDetector {
         }
     }
 
+    /**
+     * Force offline mode and optionally stop monitoring.
+     * @param enabled true to force offline, false to allow auto-detection
+     */
     setForcedOffline(enabled: boolean): void {
         this.isOfflineMode = enabled;
         if (enabled) {
             // Stop monitoring to prevent auto-reconnection
             this.stopMonitoring();
         } else {
-            // Restart monitoring if disabled
+            // Resume monitoring if forced offline is disabled
             this.startMonitoring(this.statusCallback);
         }
-        
+
         if (this.statusCallback) {
             this.statusCallback(this.isOfflineMode);
         }

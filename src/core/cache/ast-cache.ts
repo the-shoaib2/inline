@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import { Logger } from '../../system/logger';
 
+/**
+ * Cache entry for parsed Abstract Syntax Trees with version tracking.
+ * Used for incremental parsing and cache invalidation.
+ */
 export interface ASTCacheEntry {
     ast: any;
     version: number;
@@ -9,6 +13,9 @@ export interface ASTCacheEntry {
     uri: string;
 }
 
+/**
+ * Performance metrics for AST cache operations.
+ */
 export interface ASTCacheStats {
     totalSize: number;
     entryCount: number;
@@ -18,23 +25,22 @@ export interface ASTCacheStats {
 }
 
 /**
- * L1 Cache: AST In-Memory Cache
- * Target: <1ms access time
- * 
+ * L1 in-memory cache for Abstract Syntax Trees with <1ms access time.
+ *
  * Features:
  * - Stores parsed AST for current and recent files
  * - Incremental updates on text changes
- * - Version tracking for invalidation
- * - Memory-limited with LRU eviction
+ * - Version tracking for cache invalidation
+ * - Memory-limited with LRU eviction policy
  */
 export class ASTCache {
     private cache: Map<string, ASTCacheEntry> = new Map();
-    private accessOrder: string[] = []; // LRU tracking
-    private maxSize: number = 100 * 1024 * 1024; // 100MB
+    private accessOrder: string[] = []; // LRU tracking - oldest at index 0
+    private maxSize: number = 100 * 1024 * 1024; // 100MB default
     private currentSize: number = 0;
     private logger: Logger;
-    
-    // Statistics
+
+    // Performance tracking
     private stats = {
         hits: 0,
         misses: 0,
@@ -47,52 +53,53 @@ export class ASTCache {
     }
 
     /**
-     * Get AST from cache
+     * Retrieve cached AST if version matches.
+     * Updates LRU order on successful hit.
      */
     get(uri: string, version: number): any | null {
         const entry = this.cache.get(uri);
-        
+
         if (!entry) {
             this.stats.misses++;
             return null;
         }
 
-        // Check version match
+        // Version mismatch indicates file was modified
         if (entry.version !== version) {
             this.logger.debug(`Version mismatch for ${uri}: cached=${entry.version}, requested=${version}`);
             this.stats.misses++;
             return null;
         }
 
-        // Update access order (move to end = most recently used)
+        // Move to end of LRU order (most recently used)
         this.updateAccessOrder(uri);
         this.stats.hits++;
-        
+
         return entry.ast;
     }
 
     /**
-     * Store AST in cache
+     * Store AST in cache with LRU eviction if needed.
+     * Replaces existing entry for same URI.
      */
     set(uri: string, ast: any, version: number, size: number): void {
-        // Check if we need to evict
+        // Evict entries until enough space is available
         while (this.currentSize + size > this.maxSize && this.cache.size > 0) {
             this.evictLRU();
         }
 
-        // If still too large after eviction, don't cache
+        // Reject oversized entries that exceed total cache capacity
         if (size > this.maxSize) {
             this.logger.warn(`AST too large to cache: ${size} bytes for ${uri}`);
             return;
         }
 
-        // Remove old entry if exists
+        // Remove existing entry to update size tracking
         const existing = this.cache.get(uri);
         if (existing) {
             this.currentSize -= existing.size;
         }
 
-        // Add new entry
         const entry: ASTCacheEntry = {
             ast,
             version,
@@ -109,7 +116,7 @@ export class ASTCache {
     }
 
     /**
-     * Invalidate cache entry
+     * Remove cache entry for specific URI.
      */
     invalidate(uri: string): void {
         const entry = this.cache.get(uri);
@@ -122,15 +129,15 @@ export class ASTCache {
     }
 
     /**
-     * Update region incrementally (for future incremental parsing)
+     * Update specific region of cached AST.
+     * Currently invalidates entire entry - incremental parsing planned for Phase 2.
      */
     updateRegion(uri: string, range: vscode.Range, newText: string): void {
-        // For now, just invalidate - incremental updates will be added in Phase 2
         this.invalidate(uri);
     }
 
     /**
-     * Clear entire cache
+     * Clear all cached entries and reset statistics.
      */
     clear(): void {
         this.cache.clear();
@@ -140,7 +147,7 @@ export class ASTCache {
     }
 
     /**
-     * Get cache statistics
+     * Calculate cache performance metrics.
      */
     getStats(): ASTCacheStats {
         const totalRequests = this.stats.hits + this.stats.misses;
@@ -154,17 +161,17 @@ export class ASTCache {
     }
 
     /**
-     * Evict least recently used entry
+     * Remove least recently used entry to free memory.
      */
     private evictLRU(): void {
         if (this.accessOrder.length === 0) {
             return;
         }
 
-        // First item is least recently used
+        // Oldest entry is at index 0
         const lruUri = this.accessOrder[0];
         const entry = this.cache.get(lruUri);
-        
+
         if (entry) {
             this.currentSize -= entry.size;
             this.cache.delete(lruUri);
@@ -175,17 +182,15 @@ export class ASTCache {
     }
 
     /**
-     * Update access order for LRU tracking
+     * Move URI to end of access order (most recently used).
      */
     private updateAccessOrder(uri: string): void {
-        // Remove from current position
         this.removeFromAccessOrder(uri);
-        // Add to end (most recently used)
         this.accessOrder.push(uri);
     }
 
     /**
-     * Remove from access order
+     * Remove URI from LRU tracking array.
      */
     private removeFromAccessOrder(uri: string): void {
         const index = this.accessOrder.indexOf(uri);
@@ -195,14 +200,15 @@ export class ASTCache {
     }
 
     /**
-     * Get memory usage percentage
+     * Calculate memory usage as percentage of max capacity.
      */
     getMemoryUsage(): number {
         return this.currentSize / this.maxSize;
     }
 
     /**
-     * Check if cache is near capacity
+     * Check if cache is approaching capacity limit.
+     * Default threshold is 80% of max size.
      */
     isNearCapacity(threshold: number = 0.8): boolean {
         return this.getMemoryUsage() > threshold;

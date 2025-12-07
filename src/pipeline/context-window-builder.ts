@@ -4,70 +4,93 @@ import { ContextEngine, CodeContext } from '../core/context/context-engine';
 import { Logger } from '../system/logger';
 
 /**
- * Context window for AI model
+ * Complete context window for AI model inference.
+ *
+ * Combines:
+ * - Code context (prefix/suffix)
+ * - Document metadata
+ * - Recent edits and cursor history
+ * - Related files and imports
+ * - User typing patterns
+ * - Project structure information
  */
 export interface ContextWindow {
-    // Core context
+    // Core code context
     prefix: string;
     suffix: string;
     language: string;
     filename: string;
-    
-    // Document context
+
+    // Current document metadata
     currentDocument: {
         uri: vscode.Uri;
         languageId: string;
         version: number;
     };
-    
-    // Recent activity
+
+    // Recent activity for pattern detection
     recentEdits: Array<{
         timestamp: number;
         type: string;
         summary: string;
     }>;
-    
+
+    // Cursor movement history
     cursorHistory: Array<{
         line: number;
         character: number;
         timestamp: number;
     }>;
-    
-    // Related files
+
+    // Related files for multi-file context
     relatedFiles: Array<{
         uri: vscode.Uri;
         reason: string;
         relevance: number;
     }>;
-    
-    // User patterns
+
+    // User behavior patterns
     userPatterns: {
         typingSpeed: number;
         commonPatterns: string[];
         preferredStyle: string;
     };
-    
-    // Project context
+
+    // Project-level information
     projectInfo: {
         hasTypeScript: boolean;
         hasJavaScript: boolean;
         framework?: string;
         dependencies: string[];
     };
-    
-    // Metadata
+
+    // Metadata for optimization
     contextSize: number;
     buildTime: number;
 }
 
 /**
- * Context window builder - assembles context from various sources
+ * Assembles complete context window from multiple sources.
+ *
+ * Responsibilities:
+ * - Gather code context from ContextEngine
+ * - Retrieve editor state from StateManager
+ * - Extract recent edits and cursor history
+ * - Identify related files
+ * - Analyze user patterns
+ * - Collect project information
+ * - Measure build time and size
  */
 export class ContextWindowBuilder {
     private logger: Logger;
     private stateManager: StateManager;
     private contextEngine: ContextEngine;
 
+    /**
+     * Initialize context window builder.
+     * @param stateManager For editor state and history
+     * @param contextEngine For code context extraction
+     */
     constructor(stateManager: StateManager, contextEngine: ContextEngine) {
         this.logger = new Logger('ContextWindowBuilder');
         this.stateManager = stateManager;
@@ -75,7 +98,8 @@ export class ContextWindowBuilder {
     }
 
     /**
-     * Build context window for current position
+     * Build complete context window for current cursor position.
+     * Gathers context from all available sources.
      */
     public async buildContextWindow(
         document: vscode.TextDocument,
@@ -141,7 +165,7 @@ export class ContextWindowBuilder {
         summary: string;
     }> {
         const recentEdits = this.stateManager.getRecentEdits(uri, 10);
-        
+
         return recentEdits.map(edit => ({
             timestamp: edit.timestamp,
             type: edit.type,
@@ -172,7 +196,7 @@ export class ContextWindowBuilder {
         timestamp: number;
     }> {
         const history = this.stateManager.getCursorHistory(5);
-        
+
         return history.map(h => ({
             line: h.position.line,
             character: h.position.character,
@@ -240,7 +264,7 @@ export class ContextWindowBuilder {
         // Calculate typing speed from recent edits
         const edits = docState.recentEdits.slice(-10);
         const timeDiffs: number[] = [];
-        
+
         for (let i = 1; i < edits.length; i++) {
             const diff = edits[i].timestamp - edits[i - 1].timestamp;
             if (diff < 5000) { // Only count edits within 5 seconds
@@ -266,13 +290,13 @@ export class ContextWindowBuilder {
      */
     private calculateContextSize(codeContext: CodeContext): number {
         let size = 0;
-        
+
         size += codeContext.prefix.length;
         size += codeContext.suffix.length;
         size += codeContext.imports.reduce((sum, imp) => sum + imp.module.length, 0);
         size += codeContext.functions.reduce((sum, fn) => sum + fn.signature.length, 0);
         size += codeContext.classes.reduce((sum, cls) => sum + cls.name.length, 0);
-        
+
         return size;
     }
 

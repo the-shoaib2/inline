@@ -1,13 +1,24 @@
-// Context Analyzer - Multi-file context analysis and dependency tracking
-// Provides project-wide understanding for accurate code generation
+/**
+ * Multi-file context analysis and dependency tracking for project-wide understanding.
+ *
+ * Features:
+ * - Import resolution and related file analysis
+ * - Symbol extraction and caching
+ * - Code pattern detection
+ * - Similar code finding
+ * - Dependency graph construction
+ */
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import type {
     ImportInfo, DependencyInfo, RelatedCodeBlock, CodingPattern,
-    SymbolInfo, FunctionInfo, ClassInfo
+    SymbolInfo
 } from './context-engine';
 
+/**
+ * Related file context with similarity scoring.
+ */
 export interface RelatedFileContext {
     filePath: string;
     symbols: SymbolInfo[];
@@ -15,13 +26,18 @@ export interface RelatedFileContext {
     similarity: number;
 }
 
+/**
+ * Analyzes project context for intelligent code generation.
+ * Provides import resolution, symbol analysis, and pattern detection.
+ */
 export class ContextAnalyzer {
     private symbolCache: Map<string, Map<string, SymbolInfo>> = new Map();
     private dependencyCache: Map<string, DependencyInfo[]> = new Map();
     private maxCacheSize: number = 500;
 
     /**
-     * Analyze related files based on imports
+     * Analyze related files based on import dependencies.
+     * Returns context for files directly imported by current file.
      */
     async analyzeRelatedFiles(
         currentFile: vscode.Uri,
@@ -29,12 +45,13 @@ export class ContextAnalyzer {
     ): Promise<RelatedFileContext[]> {
         const relatedFiles: RelatedFileContext[] = [];
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(currentFile);
-        
+
         if (!workspaceFolder) {
             return relatedFiles;
         }
 
-        for (const importInfo of imports.slice(0, 5)) { // Limit to 5 most important imports
+        // Limit analysis to 5 most important imports for performance
+        for (const importInfo of imports.slice(0, 5)) {
             try {
                 const resolvedPath = await this.resolveImportPath(
                     importInfo.module,
@@ -45,8 +62,8 @@ export class ContextAnalyzer {
                 if (resolvedPath) {
                     const document = await vscode.workspace.openTextDocument(resolvedPath);
                     const symbols = await this.getFileSymbols(document);
-                    
-                    // Extract relevant code (exported symbols that match imports)
+
+                    // Extract only code relevant to imported symbols
                     const relevantCode = this.extractRelevantCode(
                         document,
                         importInfo.imports,
@@ -57,7 +74,7 @@ export class ContextAnalyzer {
                         filePath: resolvedPath.fsPath,
                         symbols,
                         relevantCode,
-                        similarity: 1.0 // Direct import = high relevance
+                        similarity: 1.0 // Direct import = maximum relevance
                     });
                 }
             } catch (error) {
@@ -69,18 +86,19 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Resolve import path to actual file URI
+     * Resolve import module path to actual file URI.
+     * Handles relative, absolute, and workspace alias imports.
      */
     private async resolveImportPath(
         moduleName: string,
         currentFile: vscode.Uri,
         workspaceFolder: vscode.WorkspaceFolder
     ): Promise<vscode.Uri | null> {
-        // Handle relative imports
+        // Handle relative imports (./, ../)
         if (moduleName.startsWith('.')) {
             const currentDir = path.dirname(currentFile.fsPath);
             const extensions = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js'];
-            
+
             for (const ext of extensions) {
                 try {
                     const resolvedPath = path.resolve(currentDir, moduleName + ext);
@@ -93,13 +111,13 @@ export class ContextAnalyzer {
             }
         }
 
-        // Handle absolute imports (from src/, @/, etc.)
+        // Handle workspace alias imports (src/, @/, ~/)
         const srcPatterns = ['src/', '@/', '~/'];
         for (const pattern of srcPatterns) {
             if (moduleName.startsWith(pattern)) {
                 const relativePath = moduleName.substring(pattern.length);
                 const extensions = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js'];
-                
+
                 for (const ext of extensions) {
                     try {
                         const resolvedPath = path.join(
@@ -117,23 +135,24 @@ export class ContextAnalyzer {
             }
         }
 
-        // Handle node_modules (skip for now - too many files)
+        // Skip node_modules for now - too many files to analyze efficiently
         return null;
     }
 
     /**
-     * Get symbols from a file (with caching)
+     * Extract file symbols with caching for performance.
+     * Uses VS Code's symbol provider to get functions, classes, etc.
      */
     private async getFileSymbols(document: vscode.TextDocument): Promise<SymbolInfo[]> {
         const cacheKey = document.uri.toString();
-        
-        // Check cache
+
+        // Return cached symbols if available
         if (this.symbolCache.has(cacheKey)) {
             const cached = this.symbolCache.get(cacheKey)!;
             return Array.from(cached.values());
         }
 
-        // Get symbols from VS Code
+        // Extract symbols using VS Code's language services
         const symbols: SymbolInfo[] = [];
         try {
             const documentSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
@@ -145,18 +164,18 @@ export class ContextAnalyzer {
                 this.processSymbolsRecursive(documentSymbols, symbols, document);
             }
 
-            // Cache symbols
+            // Cache symbols with size management
             const symbolMap = new Map<string, SymbolInfo>();
             symbols.forEach(s => symbolMap.set(s.name, s));
-            
-            // Manage cache size
+
+            // Evict oldest cache entry if size limit reached
             if (this.symbolCache.size >= this.maxCacheSize) {
                 const firstKey = this.symbolCache.keys().next().value;
                 if (firstKey) {
                     this.symbolCache.delete(firstKey);
                 }
             }
-            
+
             this.symbolCache.set(cacheKey, symbolMap);
         } catch (error) {
             console.warn('[ContextAnalyzer] Failed to get symbols:', error);
@@ -166,7 +185,8 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Process symbols recursively
+     * Recursively process symbol hierarchy from VS Code.
+     * Flattens nested symbol structure into a simple list.
      */
     private processSymbolsRecursive(
         symbols: vscode.DocumentSymbol[],
@@ -181,6 +201,7 @@ export class ContextAnalyzer {
                 documentation: symbol.detail
             });
 
+            // Process child symbols (methods, properties, etc.)
             if (symbol.children && symbol.children.length > 0) {
                 this.processSymbolsRecursive(symbol.children, result, document);
             }
@@ -188,7 +209,8 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Extract relevant code from a file based on imported symbols
+     * Extract relevant code sections for imported symbols.
+     * Limits output to prevent context bloat.
      */
     private extractRelevantCode(
         document: vscode.TextDocument,
@@ -203,9 +225,10 @@ export class ContextAnalyzer {
             const symbol = allSymbols.find(s => s.name === symbolName);
             if (symbol) {
                 const startLine = symbol.location.range.start.line;
+                // Limit to 20 lines per symbol to prevent large context
                 const endLine = Math.min(
                     symbol.location.range.end.line,
-                    startLine + 20 // Limit to 20 lines per symbol
+                    startLine + 20
                 );
 
                 const symbolCode = lines.slice(startLine, endLine + 1).join('\n');
@@ -213,11 +236,13 @@ export class ContextAnalyzer {
             }
         }
 
-        return relevantCode.join('\n\n').substring(0, 1000); // Limit total size
+        // Limit total context size to 1000 characters
+        return relevantCode.join('\n\n').substring(0, 1000);
     }
 
     /**
-     * Build project-wide symbol table
+     * Build project-wide symbol table for global context.
+     * Processes files in batches to avoid blocking the UI.
      */
     async buildProjectSymbolTable(
         workspaceFolder: vscode.WorkspaceFolder
@@ -225,30 +250,30 @@ export class ContextAnalyzer {
         const projectSymbols = new Map<string, SymbolInfo>();
 
         try {
-            // Find all TypeScript/JavaScript files
+            // Find all TypeScript/JavaScript files, excluding node_modules
             const files = await vscode.workspace.findFiles(
                 new vscode.RelativePattern(workspaceFolder, '**/*.{ts,tsx,js,jsx}'),
                 '**/node_modules/**',
                 100 // Limit to 100 files for performance
             );
 
-            // Process files in batches
+            // Process files in batches of 10 to prevent UI blocking
             const batchSize = 10;
             for (let i = 0; i < files.length; i += batchSize) {
                 const batch = files.slice(i, i + batchSize);
-                
+
                 await Promise.all(batch.map(async (file) => {
                     try {
                         const document = await vscode.workspace.openTextDocument(file);
                         const symbols = await this.getFileSymbols(document);
-                        
+
                         symbols.forEach(symbol => {
-                            // Use fully qualified name (file:symbol)
+                            // Use fully qualified name format: filename:symbol
                             const qualifiedName = `${path.basename(file.fsPath)}:${symbol.name}`;
                             projectSymbols.set(qualifiedName, symbol);
                         });
                     } catch (error) {
-                        // Skip files that can't be opened
+                        // Skip files that can't be opened (binary files, etc.)
                     }
                 }));
             }
@@ -260,7 +285,8 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Find similar code patterns in the project
+     * Find similar code patterns using normalized text comparison.
+     * Uses Jaccard similarity algorithm for pattern matching.
      */
     async findSimilarCode(
         codeSnippet: string,
@@ -270,18 +296,18 @@ export class ContextAnalyzer {
         const similarBlocks: RelatedCodeBlock[] = [];
 
         try {
-            // Normalize the code snippet for comparison
+            // Normalize code for accurate comparison
             const normalizedSnippet = this.normalizeCode(codeSnippet);
-            
+
             if (normalizedSnippet.length < 20) {
-                return similarBlocks; // Too short to find meaningful matches
+                return similarBlocks; // Too short for meaningful matches
             }
 
-            // Search for similar code in workspace
+            // Search in relevant files only
             const files = await vscode.workspace.findFiles(
                 new vscode.RelativePattern(workspaceFolder, `**/*.{${this.getExtensions(language)}}`),
                 '**/node_modules/**',
-                50 // Limit search
+                50 // Limit search scope
             );
 
             for (const file of files) {
@@ -294,9 +320,10 @@ export class ContextAnalyzer {
                         const normalizedBlock = this.normalizeCode(block);
                         const similarity = this.calculateSimilarity(normalizedSnippet, normalizedBlock);
 
-                        if (similarity > 0.7) { // 70% similarity threshold
+                        // Only include high-quality matches (70%+ similarity)
+                        if (similarity > 0.7) {
                             similarBlocks.push({
-                                code: block.substring(0, 500), // Limit size
+                                code: block.substring(0, 500), // Limit output size
                                 filePath: file.fsPath,
                                 similarity,
                                 context: `Similar pattern found in ${path.basename(file.fsPath)}`
@@ -308,10 +335,8 @@ export class ContextAnalyzer {
                 }
             }
 
-            // Sort by similarity (highest first)
+            // Return top 3 most similar matches
             similarBlocks.sort((a, b) => b.similarity - a.similarity);
-            
-            // Return top 3 matches
             return similarBlocks.slice(0, 3);
         } catch (error) {
             console.error('[ContextAnalyzer] Failed to find similar code:', error);
@@ -320,19 +345,21 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Detect coding patterns in the project
+     * Detect common coding patterns across project files.
+     * Identifies frequently used constructs for style analysis.
      */
     async detectCodingPatterns(
         files: vscode.Uri[]
     ): Promise<CodingPattern[]> {
         const patterns: Map<string, { count: number; examples: string[] }> = new Map();
 
-        for (const file of files.slice(0, 50)) { // Limit to 50 files
+        // Analyze up to 50 files for performance
+        for (const file of files.slice(0, 50)) {
             try {
                 const document = await vscode.workspace.openTextDocument(file);
                 const text = document.getText();
 
-                // Detect common patterns
+                // Detect common JavaScript/TypeScript patterns
                 this.detectPattern(text, /async\s+function/g, 'async-functions', patterns);
                 this.detectPattern(text, /\.map\(/g, 'array-map', patterns);
                 this.detectPattern(text, /\.filter\(/g, 'array-filter', patterns);
@@ -346,24 +373,24 @@ export class ContextAnalyzer {
             }
         }
 
-        // Convert to CodingPattern array
+        // Convert pattern data to structured format
         const result: CodingPattern[] = [];
         for (const [pattern, data] of patterns.entries()) {
             result.push({
                 pattern,
                 frequency: data.count,
-                examples: data.examples.slice(0, 3) // Top 3 examples
+                examples: data.examples.slice(0, 3) // Keep top 3 examples
             });
         }
 
-        // Sort by frequency
+        // Return top 10 most frequent patterns
         result.sort((a, b) => b.frequency - a.frequency);
-        
-        return result.slice(0, 10); // Top 10 patterns
+        return result.slice(0, 10);
     }
 
     /**
-     * Detect a specific pattern in code
+     * Detect specific pattern occurrences in code text.
+     * Tracks frequency and stores example snippets.
      */
     private detectPattern(
         text: string,
@@ -375,20 +402,21 @@ export class ContextAnalyzer {
         if (matches && matches.length > 0) {
             const existing = patterns.get(patternName) || { count: 0, examples: [] };
             existing.count += matches.length;
-            
-            // Add examples (limit to prevent memory issues)
+
+            // Store up to 3 examples per pattern to avoid memory bloat
             if (existing.examples.length < 3) {
                 matches.slice(0, 3 - existing.examples.length).forEach(match => {
                     existing.examples.push(match);
                 });
             }
-            
+
             patterns.set(patternName, existing);
         }
     }
 
     /**
-     * Normalize code for comparison
+     * Normalize code by removing comments and standardizing whitespace.
+     * Enables accurate pattern matching across different code styles.
      */
     private normalizeCode(code: string): string {
         return code
@@ -400,12 +428,13 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Extract code blocks from text
+     * Extract logical code blocks from file text.
+     * Splits by function/class boundaries for pattern analysis.
      */
     private extractCodeBlocks(text: string, language: string): string[] {
         const blocks: string[] = [];
-        
-        // Split by function/class definitions
+
+        // JavaScript/TypeScript: split by major declarations
         if (language === 'typescript' || language === 'javascript') {
             const functionRegex = /(?:export\s+)?(?:async\s+)?(?:function|const|let|var)\s+\w+[\s\S]*?(?=\n(?:export\s+)?(?:async\s+)?(?:function|const|let|var|class|interface|type)\s+|\n*$)/g;
             const matches = text.match(functionRegex);
@@ -418,21 +447,24 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Calculate similarity between two code snippets
+     * Calculate Jaccard similarity between two code snippets.
+     * Measures token overlap for pattern matching accuracy.
      */
     private calculateSimilarity(code1: string, code2: string): number {
-        // Simple Jaccard similarity
+        // Split into tokens for comparison
         const tokens1 = new Set(code1.split(/\s+/));
         const tokens2 = new Set(code2.split(/\s+/));
-        
+
+        // Calculate intersection and union
         const intersection = new Set([...tokens1].filter(x => tokens2.has(x)));
         const union = new Set([...tokens1, ...tokens2]);
-        
+
+        // Jaccard similarity: |intersection| / |union|
         return union.size === 0 ? 0 : intersection.size / union.size;
     }
 
     /**
-     * Get file extensions for a language
+     * Get file extensions for supported languages.
      */
     private getExtensions(language: string): string {
         const extensionMap: Record<string, string> = {
@@ -443,27 +475,28 @@ export class ContextAnalyzer {
             'go': 'go',
             'rust': 'rs'
         };
-        
+
         return extensionMap[language] || 'ts,js';
     }
 
     /**
-     * Build dependency graph for a file
+     * Build dependency graph for import analysis.
+     * Tracks both internal and external dependencies.
      */
     async buildDependencyGraph(
         currentFile: vscode.Uri,
         imports: ImportInfo[]
     ): Promise<DependencyInfo[]> {
         const cacheKey = currentFile.toString();
-        
-        // Check cache
+
+        // Return cached dependencies if available
         if (this.dependencyCache.has(cacheKey)) {
             return this.dependencyCache.get(cacheKey)!;
         }
 
         const dependencies: DependencyInfo[] = [];
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(currentFile);
-        
+
         if (!workspaceFolder) {
             return dependencies;
         }
@@ -476,13 +509,14 @@ export class ContextAnalyzer {
             );
 
             if (resolvedPath) {
+                // Internal dependency (workspace file)
                 dependencies.push({
                     filePath: resolvedPath.fsPath,
                     symbols: importInfo.imports,
                     isExternal: false
                 });
             } else {
-                // External dependency (node_modules)
+                // External dependency (node_modules or package)
                 dependencies.push({
                     filePath: importInfo.module,
                     symbols: importInfo.imports,
@@ -491,21 +525,20 @@ export class ContextAnalyzer {
             }
         }
 
-        // Cache dependencies
+        // Cache with size management
         if (this.dependencyCache.size >= this.maxCacheSize) {
             const firstKey = this.dependencyCache.keys().next().value;
             if (firstKey) {
                 this.dependencyCache.delete(firstKey);
             }
         }
-        
-        this.dependencyCache.set(cacheKey, dependencies);
 
+        this.dependencyCache.set(cacheKey, dependencies);
         return dependencies;
     }
 
     /**
-     * Clear all caches
+     * Clear all analysis caches.
      */
     clearCache(): void {
         this.symbolCache.clear();
@@ -513,7 +546,7 @@ export class ContextAnalyzer {
     }
 
     /**
-     * Get cache statistics
+     * Get cache statistics for monitoring.
      */
     getCacheStats(): { symbolCacheSize: number; dependencyCacheSize: number } {
         return {

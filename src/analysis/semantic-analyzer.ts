@@ -1,97 +1,133 @@
-// Enhanced extraction methods for ContextEngine
-// This file contains the implementation of type-aware semantic analysis methods
+/**
+ * Semantic analyzer for type-aware code analysis.
+ *
+ * Provides language-specific extraction of:
+ * - Import statements with module resolution
+ * - Function signatures with type information
+ * - Class definitions and inheritance
+ * - Interface definitions
+ * - Type aliases and declarations
+ * - Variable declarations with type inference
+ *
+ * Uses language-specific regex patterns from LanguageConfigService.
+ */
 
 import * as vscode from 'vscode';
+import { LanguageConfigService } from '../core/config/language-config-service';
 
-// Import types from context-engine (will be available at runtime)
 import type {
     ImportInfo, FunctionInfo, ClassInfo, InterfaceInfo, TypeInfo, VariableInfo,
     ParameterInfo, PropertyInfo, SymbolInfo, ScopeInfo, CursorIntent,
     ProjectConfig, StyleGuide, EditHistory
 } from '../core/context/context-engine';
 
+/**
+ * Performs semantic analysis on code documents.
+ * Extracts structural information for context building.
+ */
 export class SemanticAnalyzer {
     /**
-     * Extract detailed import information with type awareness
+     * Extract all import statements with detailed metadata.
+     * Handles named, default, and namespace imports.
+     * Supports JavaScript, TypeScript, and Python.
+     *
+     * @param document VS Code document to analyze
+     * @returns Array of import information with module and line number
      */
     async extractImportsEnhanced(document: vscode.TextDocument): Promise<ImportInfo[]> {
         const text = document.getText();
         const imports: ImportInfo[] = [];
-        const lines = text.split('\n');
-
         const language = document.languageId;
+        const patterns = LanguageConfigService.getInstance().getPatterns(language);
+
+        if (!patterns || !patterns.imports) {
+            return imports;
+        }
 
         if (language === 'typescript' || language === 'javascript') {
-            // Match: import { foo, bar } from 'module'
-            // Match: import foo from 'module'
-            // Match: import * as foo from 'module'
-            const importRegex = /^import\s+(?:{([^}]+)}|(\w+)|\*\s+as\s+(\w+))\s+from\s+['"]([^'"]+)['"]/gm;
-            let match;
-            
-            while ((match = importRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const namedImports = match[1];
-                const defaultImport = match[2];
-                const namespaceImport = match[3];
-                const module = match[4];
+            for (const patternString of patterns.imports) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                        const namedImports = match[1];
+                        const defaultImport = match[2];
+                        const namespaceImport = match[3];
+                        const module = match[4];
 
-                if (namedImports) {
-                    const importNames = namedImports.split(',').map(i => i.trim());
-                    imports.push({
-                        module,
-                        imports: importNames,
-                        isDefault: false,
-                        lineNumber
-                    });
-                } else if (defaultImport) {
-                    imports.push({
-                        module,
-                        imports: [defaultImport],
-                        isDefault: true,
-                        lineNumber
-                    });
-                } else if (namespaceImport) {
-                    imports.push({
-                        module,
-                        imports: [namespaceImport],
-                        isDefault: false,
-                        alias: namespaceImport,
-                        lineNumber
-                    });
+                        if (module) {
+                            if (namedImports) {
+                                // Handle: import { a, b } from 'module'
+                                const importNames = namedImports.split(',').map(i => i.trim());
+                                imports.push({
+                                    module,
+                                    imports: importNames,
+                                    isDefault: false,
+                                    lineNumber
+                                });
+                            } else if (defaultImport) {
+                                // Handle: import x from 'module'
+                                imports.push({
+                                    module,
+                                    imports: [defaultImport],
+                                    isDefault: true,
+                                    lineNumber
+                                });
+                            } else if (namespaceImport) {
+                                // Handle: import * as x from 'module'
+                                imports.push({
+                                    module,
+                                    imports: [namespaceImport],
+                                    isDefault: false,
+                                    alias: namespaceImport,
+                                    lineNumber
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error(`[SemanticAnalyzer] Error in import extraction for ${language}:`, e);
                 }
             }
         } else if (language === 'python') {
-            // Match: from module import foo, bar
-            // Match: import module
-            const fromImportRegex = /^from\s+([\w.]+)\s+import\s+(.+)/gm;
-            const importRegex = /^import\s+([\w.]+)(?:\s+as\s+(\w+))?/gm;
-            
-            let match;
-            while ((match = fromImportRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const module = match[1];
-                const importNames = match[2].split(',').map(i => i.trim());
-                
-                imports.push({
-                    module,
-                    imports: importNames,
-                    isDefault: false,
-                    lineNumber
-                });
-            }
-            
-            while ((match = importRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const module = match[1];
-                const alias = match[2];
-                
-                imports.push({
-                    module,
-                    imports: [alias || module],
-                    isDefault: false,
-                    alias,
-                    lineNumber
-                });
+            for (const patternString of patterns.imports) {
+                 try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                        const fullMatch = match[0];
+
+                        // Distinguish Python import patterns (from/import)
+                        if (fullMatch.startsWith('from')) {
+                             const module = match[1];
+                             const importNames = match[2]?.split(',').map(i => i.trim());
+                             if (module && importNames) {
+                                imports.push({
+                                    module,
+                                    imports: importNames,
+                                    isDefault: false,
+                                    lineNumber
+                                });
+                             }
+                        } else {
+                            const module = match[1];
+                            const alias = match[2];
+                            if (module) {
+                                imports.push({
+                                    module,
+                                    imports: [alias || module],
+                                    isDefault: false,
+                                    alias,
+                                    lineNumber
+                                });
+                            }
+                        }
+                    }
+                 } catch (e) {
+                     console.error(`[SemanticAnalyzer] Error in import extraction for ${language}:`, e);
+                 }
             }
         }
 
@@ -105,58 +141,76 @@ export class SemanticAnalyzer {
         const text = document.getText();
         const functions: FunctionInfo[] = [];
         const language = document.languageId;
+        const patterns = LanguageConfigService.getInstance().getPatterns(language);
+
+        if (!patterns || !patterns.functions) {
+            return functions;
+        }
 
         if (language === 'typescript' || language === 'javascript') {
-            // Match: function name(param1: type1, param2: type2): returnType {
-            // Match: const name = (param1: type1) => returnType {
-            // Match: async function name(...) {
-            
-            const functionRegex = /(?:export\s+)?(?:async\s+)?(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(([^)]*)\)(?:\s*:\s*([^{=]+))?\s*=>)/gm;
-            let match;
-            
-            while ((match = functionRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const name = match[1] || match[2];
-                const paramsStr = match[3] || '';
-                const returnType = match[4]?.trim();
-                
-                const parameters = this.parseParameters(paramsStr);
-                const isAsync = match[0].includes('async');
-                const isExported = match[0].includes('export');
-                
-                functions.push({
-                    name,
-                    signature: match[0].trim(),
-                    parameters,
-                    returnType,
-                    lineNumber,
-                    isAsync,
-                    isExported
-                });
+            for (const patternString of patterns.functions) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+
+                        // Heuristic for group mapping based on the complex regex in languages.json
+                        const name = match[1] || match[2];
+                        if (!name) continue; // Skip if no name captured (e.g. simple patterns)
+
+                        const paramsStr = match[3] || '';
+                        const returnType = match[4]?.trim();
+
+                        const parameters = this.parseParameters(paramsStr);
+                        const isAsync = match[0].includes('async');
+                        const isExported = match[0].includes('export');
+
+                        functions.push({
+                            name,
+                            signature: match[0].trim(),
+                            parameters,
+                            returnType,
+                            lineNumber,
+                            isAsync,
+                            isExported
+                        });
+                    }
+                } catch (e) {
+                     console.error(`[SemanticAnalyzer] Error in function extraction for ${language}:`, e);
+                }
             }
         } else if (language === 'python') {
-            // Match: def name(param1: type1, param2: type2) -> returnType:
-            const functionRegex = /^(?:async\s+)?def\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*([^:]+))?:/gm;
-            let match;
-            
-            while ((match = functionRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const name = match[1];
-                const paramsStr = match[2];
-                const returnType = match[3]?.trim();
-                
-                const parameters = this.parseParameters(paramsStr);
-                const isAsync = match[0].includes('async');
-                
-                functions.push({
-                    name,
-                    signature: match[0].trim(),
-                    parameters,
-                    returnType,
-                    lineNumber,
-                    isAsync,
-                    isExported: false // Python doesn't have explicit exports
-                });
+            for (const patternString of patterns.functions) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+
+                        // Python regex: def name(params) -> returnType
+                        const name = match[1];
+                        if (!name) continue;
+
+                        const paramsStr = match[2];
+                        const returnType = match[3]?.trim();
+
+                        const parameters = this.parseParameters(paramsStr || '');
+                        const isAsync = match[0].includes('async');
+
+                        functions.push({
+                            name,
+                            signature: match[0].trim(),
+                            parameters,
+                            returnType,
+                            lineNumber,
+                            isAsync,
+                            isExported: false
+                        });
+                    }
+                } catch (e) {
+                    console.error(`[SemanticAnalyzer] Error in function extraction for ${language}:`, e);
+                }
             }
         }
 
@@ -170,52 +224,65 @@ export class SemanticAnalyzer {
         const text = document.getText();
         const classes: ClassInfo[] = [];
         const language = document.languageId;
+        const patterns = LanguageConfigService.getInstance().getPatterns(language);
+
+        if (!patterns || !patterns.classes) {
+            return classes;
+        }
 
         if (language === 'typescript' || language === 'javascript') {
-            // Match: class Name extends Base implements Interface {
-            const classRegex = /(?:export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+([\w,\s]+))?\s*{/gm;
-            let match;
-            
-            while ((match = classRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const name = match[1];
-                const extendsClass = match[2];
-                const implementsInterfaces = match[3]?.split(',').map(i => i.trim());
-                const isExported = match[0].includes('export');
-                
-                // Extract methods and properties (simplified - would need full AST parsing for accuracy)
-                const methods: FunctionInfo[] = [];
-                const properties: PropertyInfo[] = [];
-                
-                classes.push({
-                    name,
-                    extends: extendsClass,
-                    implements: implementsInterfaces,
-                    methods,
-                    properties,
-                    lineNumber,
-                    isExported
-                });
+            for (const patternString of patterns.classes) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                        const name = match[1];
+                        if (!name) continue;
+
+                        const extendsClass = match[2];
+                        const implementsInterfaces = match[3]?.split(',').map(i => i.trim());
+                        const isExported = match[0].includes('export');
+
+                        classes.push({
+                            name,
+                            extends: extendsClass,
+                            implements: implementsInterfaces,
+                            methods: [],
+                            properties: [],
+                            lineNumber,
+                            isExported
+                        });
+                    }
+                } catch (e) {
+                     console.error(`[SemanticAnalyzer] Error in class extraction for ${language}:`, e);
+                }
             }
         } else if (language === 'python') {
-            // Match: class Name(Base):
-            const classRegex = /^class\s+(\w+)(?:\(([^)]+)\))?:/gm;
-            let match;
-            
-            while ((match = classRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const name = match[1];
-                const bases = match[2]?.split(',').map(b => b.trim());
-                
-                classes.push({
-                    name,
-                    extends: bases?.[0],
-                    implements: bases?.slice(1),
-                    methods: [],
-                    properties: [],
-                    lineNumber,
-                    isExported: false
-                });
+            for (const patternString of patterns.classes) {
+                 try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                        const name = match[1];
+                        if (!name) continue;
+
+                        const bases = match[2]?.split(',').map(b => b.trim());
+
+                        classes.push({
+                            name,
+                            extends: bases?.[0],
+                            implements: bases?.slice(1),
+                            methods: [],
+                            properties: [],
+                            lineNumber,
+                            isExported: false
+                        });
+                    }
+                 } catch (e) {
+                     console.error(`[SemanticAnalyzer] Error in class extraction for ${language}:`, e);
+                 }
             }
         }
 
@@ -229,24 +296,35 @@ export class SemanticAnalyzer {
         const text = document.getText();
         const interfaces: InterfaceInfo[] = [];
         const language = document.languageId;
+        const patterns = LanguageConfigService.getInstance().getPatterns(language);
+
+        if (!patterns || !patterns.interfaces) {
+            return interfaces;
+        }
 
         if (language === 'typescript') {
-            // Match: interface Name extends Base {
-            const interfaceRegex = /(?:export\s+)?interface\s+(\w+)(?:\s+extends\s+([\w,\s]+))?\s*{/gm;
-            let match;
-            
-            while ((match = interfaceRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const name = match[1];
-                const extendsInterfaces = match[2]?.split(',').map(i => i.trim());
-                
-                interfaces.push({
-                    name,
-                    extends: extendsInterfaces,
-                    properties: [],
-                    methods: [],
-                    lineNumber
-                });
+            for (const patternString of patterns.interfaces) {
+               try {
+                   const regex = new RegExp(patternString, 'gm');
+                   let match;
+                   while ((match = regex.exec(text)) !== null) {
+                       const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                       const name = match[1];
+                       if (!name) continue;
+
+                       const extendsInterfaces = match[2]?.split(',').map(i => i.trim());
+
+                       interfaces.push({
+                           name,
+                           extends: extendsInterfaces,
+                           properties: [],
+                           methods: [],
+                           lineNumber
+                       });
+                   }
+               } catch (e) {
+                   console.error(`[SemanticAnalyzer] Error in interface extraction for ${language}:`, e);
+               }
             }
         }
 
@@ -260,22 +338,33 @@ export class SemanticAnalyzer {
         const text = document.getText();
         const types: TypeInfo[] = [];
         const language = document.languageId;
+        const patterns = LanguageConfigService.getInstance().getPatterns(language);
+
+        if (!patterns || !patterns.types) {
+            return types;
+        }
 
         if (language === 'typescript') {
-            // Match: type Name = definition
-            const typeRegex = /(?:export\s+)?type\s+(\w+)\s*=\s*([^;]+);/gm;
-            let match;
-            
-            while ((match = typeRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const name = match[1];
-                const definition = match[2].trim();
-                
-                types.push({
-                    name,
-                    definition,
-                    lineNumber
-                });
+             for (const patternString of patterns.types) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                        const name = match[1];
+                        if (!name) continue;
+
+                        const definition = match[2].trim();
+
+                        types.push({
+                            name,
+                            definition,
+                            lineNumber
+                        });
+                    }
+                } catch (e) {
+                    console.error(`[SemanticAnalyzer] Error in type extraction for ${language}:`, e);
+                }
             }
         }
 
@@ -289,27 +378,38 @@ export class SemanticAnalyzer {
         const text = document.getText();
         const variables: VariableInfo[] = [];
         const language = document.languageId;
+        const patterns = LanguageConfigService.getInstance().getPatterns(language);
+
+        if (!patterns || !patterns.variables) {
+            return variables;
+        }
 
         if (language === 'typescript' || language === 'javascript') {
-            // Match: const/let/var name: type = value
-            const varRegex = /(const|let|var)\s+(\w+)(?:\s*:\s*([^=]+))?\s*=\s*([^;]+);/gm;
-            let match;
-            
-            while ((match = varRegex.exec(text)) !== null) {
-                const lineNumber = text.substring(0, match.index).split('\n').length - 1;
-                const isConst = match[1] === 'const';
-                const name = match[2];
-                const type = match[3]?.trim();
-                const value = match[4]?.trim();
-                
-                variables.push({
-                    name,
-                    type,
-                    value,
-                    isConst,
-                    lineNumber
-                });
-            }
+            for (const patternString of patterns.variables) {
+                try {
+                    const regex = new RegExp(patternString, 'gm');
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const lineNumber = text.substring(0, match.index).split('\n').length - 1;
+                        const isConst = match[1] === 'const';
+                        const name = match[2];
+                        if (!name) continue;
+
+                        const type = match[3]?.trim();
+                        const value = match[4]?.trim();
+
+                        variables.push({
+                            name,
+                            type,
+                            value,
+                            isConst,
+                            lineNumber
+                        });
+                    }
+                } catch (e) {
+                    console.error(`[SemanticAnalyzer] Error in variable extraction for ${language}:`, e);
+                }
+             }
         }
 
         return variables;
@@ -328,7 +428,7 @@ export class SemanticAnalyzer {
             // Match: name: type = defaultValue
             // Match: name?: type
             const match = param.match(/(\w+)(\?)?(?:\s*:\s*([^=]+))?(?:\s*=\s*(.+))?/);
-            
+
             if (match) {
                 return {
                     name: match[1],
@@ -337,7 +437,7 @@ export class SemanticAnalyzer {
                     defaultValue: match[4]?.trim()
                 };
             }
-            
+
             return {
                 name: param,
                 type: undefined,
@@ -375,7 +475,7 @@ export class SemanticAnalyzer {
     ): void {
         for (const symbol of symbols) {
             const location = new vscode.Location(document.uri, symbol.range);
-            
+
             symbolTable.set(symbol.name, {
                 name: symbol.name,
                 kind: symbol.kind,
@@ -568,7 +668,7 @@ export class SemanticAnalyzer {
      */
     detectStyleGuide(text: string): StyleGuide | null {
         const lines = text.split('\n');
-        
+
         // Detect indentation
         let tabCount = 0;
         let spaceCount = 0;
@@ -587,7 +687,7 @@ export class SemanticAnalyzer {
         }
 
         const indentation: 'tabs' | 'spaces' = tabCount > spaceCount ? 'tabs' : 'spaces';
-        const indentSize = indentation === 'spaces' 
+        const indentSize = indentation === 'spaces'
             ? Math.round(spaceSizes.reduce((a, b) => a + b, 0) / spaceSizes.length) || 2
             : 4;
 
@@ -616,7 +716,7 @@ export class SemanticAnalyzer {
      */
     async getRecentEditsEnhanced(currentUri: vscode.Uri): Promise<EditHistory[]> {
         const edits: EditHistory[] = [];
-        
+
         // Get visible text editors (other tabs)
         for (const editor of vscode.window.visibleTextEditors) {
             if (editor.document.uri.toString() !== currentUri.toString()) {
@@ -630,7 +730,7 @@ export class SemanticAnalyzer {
                 }
             }
         }
-        
+
         return edits.slice(0, 3); // Limit to top 3 files
     }
 }

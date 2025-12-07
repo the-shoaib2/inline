@@ -1,5 +1,9 @@
 import { Logger } from './logger';
 
+/**
+ * Performance metrics for a single code completion.
+ * Breaks down time spent in context gathering, inference, and rendering.
+ */
 export interface CompletionMetrics {
     contextGatherTime: number;
     inferenceTime: number;
@@ -10,6 +14,10 @@ export interface CompletionMetrics {
     tokensGenerated: number;
 }
 
+/**
+ * Statistical summary of performance metrics.
+ * Includes percentiles (p50, p95, p99) and aggregates.
+ */
 export interface PerformanceStats {
     count: number;
     p50: number;
@@ -20,6 +28,16 @@ export interface PerformanceStats {
     max: number;
 }
 
+/**
+ * Monitors completion performance metrics and detects degradation.
+ *
+ * Responsibilities:
+ * - Record completion timing metrics
+ * - Calculate percentiles and statistics
+ * - Alert on slow completions (>500ms)
+ * - Warn on above-target completions (>325ms)
+ * - Maintain rolling history of metrics
+ */
 export class PerformanceMonitor {
     private logger: Logger;
     private metrics: CompletionMetrics[] = [];
@@ -35,7 +53,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * Enable or disable performance monitoring
+     * Enable or disable performance metric collection.
      */
     public setEnabled(enabled: boolean): void {
         this.enabled = enabled;
@@ -46,7 +64,12 @@ export class PerformanceMonitor {
     }
 
     /**
-     * Record a completion performance metric
+     * Record a completion performance metric.
+     * Logs warnings if performance exceeds thresholds.
+     *
+     * Thresholds:
+     * - >500ms: Slow completion warning
+     * - >325ms: Above target warning (target: 210-325ms)
      */
     public record(metric: CompletionMetrics): void {
         if (!this.enabled) {
@@ -55,12 +78,12 @@ export class PerformanceMonitor {
 
         this.metrics.push(metric);
 
-        // Keep only recent metrics
+        // Keep only recent metrics to avoid unbounded growth
         if (this.metrics.length > this.maxMetrics) {
             this.metrics.shift();
         }
 
-        // Log if performance is degraded
+        // Alert on performance degradation
         if (metric.totalTime > 500) {
             this.logger.warn(`Slow completion: ${metric.totalTime}ms (context: ${metric.contextGatherTime}ms, inference: ${metric.inferenceTime}ms, render: ${metric.renderTime}ms)`);
         } else if (metric.totalTime > 325) {
@@ -69,7 +92,8 @@ export class PerformanceMonitor {
     }
 
     /**
-     * Get statistics for a specific metric
+     * Calculate percentile and aggregate statistics from values.
+     * Sorts values and computes p50, p95, p99, average, min, max.
      */
     private getStats(values: number[]): PerformanceStats {
         if (values.length === 0) {
@@ -138,10 +162,10 @@ export class PerformanceMonitor {
     private calculateTokensPerSec(): number {
         const recent = this.metrics.filter(m => !m.cacheHit && m.inferenceTime > 0);
         if (recent.length === 0) return 0;
-        
+
         const totalTokens = recent.reduce((sum, m) => sum + (m.tokensGenerated || 0), 0);
         const totalTimeSec = recent.reduce((sum, m) => sum + m.inferenceTime, 0) / 1000;
-        
+
         return totalTimeSec > 0 ? totalTokens / totalTimeSec : 0;
     }
 

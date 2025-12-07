@@ -2,7 +2,8 @@ import * as path from 'path';
 
 export const Uri = {
     file: (path: string) => ({ fsPath: path, scheme: 'file' }),
-    parse: (path: string) => ({ fsPath: path, scheme: 'file' })
+    parse: (path: string) => ({ fsPath: path, scheme: 'file' }),
+    joinPath: (uri: any, ...pathSegments: string[]) => ({ fsPath: path.join(uri.fsPath, ...pathSegments), scheme: 'file' })
 };
 
 export class Position {
@@ -47,7 +48,8 @@ export const window = {
     createOutputChannel: () => ({
         appendLine: () => {},
         dispose: () => {}
-    })
+    }),
+    visibleTextEditors: []
 };
 
 export const workspace = {
@@ -64,7 +66,11 @@ export const workspace = {
     getConfiguration: () => ({
         get: (key: string, defaultValue: any) => defaultValue,
         update: () => Promise.resolve()
-    })
+    }),
+    fs: {
+        stat: async () => ({}),
+        readFile: async () => new Uint8Array()
+    }
 };
 
 export const StatusBarAlignment = {
@@ -103,6 +109,50 @@ export enum DiagnosticSeverity {
     Hint = 3
 }
 
+export const commands = {
+    executeCommand: async () => undefined
+};
+
+export function createMockContext(): any {
+    return {
+        subscriptions: [],
+        workspaceState: {
+            get: () => undefined,
+            update: () => Promise.resolve()
+        },
+        globalState: {
+            get: () => undefined,
+            update: () => Promise.resolve(),
+            setKeysForSync: () => {}
+        },
+        extensionPath: '/mock/extension/path',
+        asAbsolutePath: (relativePath: string) => path.join('/mock/extension/path', relativePath),
+        storagePath: '/mock/storage/path',
+        globalStoragePath: '/mock/global/storage/path',
+        logPath: '/mock/log/path',
+        extensionUri: { fsPath: '/mock/extension/path', scheme: 'file' },
+        environmentVariableCollection: {
+            replace: () => {},
+            append: () => {},
+            prepend: () => {},
+            get: () => undefined,
+            forEach: () => {},
+            delete: () => {},
+            clear: () => {}
+        },
+        extensionMode: 1, // Development
+        secrets: {
+            get: () => Promise.resolve(undefined),
+            store: () => Promise.resolve(),
+            delete: () => Promise.resolve(),
+            onDidChange: () => ({ dispose: () => {} })
+        },
+        storageUri: { fsPath: '/mock/storage/path', scheme: 'file' },
+        globalStorageUri: { fsPath: '/mock/global/storage/path', scheme: 'file' },
+        logUri: { fsPath: '/mock/log/path', scheme: 'file' }
+    };
+}
+
 // Keep default if needed by some other test, but usually named is better
 export default {
     Uri,
@@ -116,5 +166,7 @@ export default {
     InlineCompletionTriggerKind,
     CodeActionKind,
     CodeAction,
-    DiagnosticSeverity
+    DiagnosticSeverity,
+    commands,
+    createMockContext
 };

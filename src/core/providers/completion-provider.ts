@@ -11,8 +11,12 @@ import { SmartFilter } from '../context/smart-filter';
 import { DuplicationDetector } from '../../analysis/duplication-detector';
 import { CompletionValidator } from '../../analysis/completion-validator';
 import { FunctionCompleter } from '../../features/code-generation/function-completer';
+import { SmartCompletionEnhancer } from './smart-completion-enhancer';
 
-// LRU Cache implementation
+/**
+ * In-memory LRU cache for completion results.
+ * Evicts least recently used entries when size limit is reached.
+ */
 class LRUCache<K, V> {
     private cache = new Map<K, V>();
     private maxSize: number;
@@ -21,6 +25,9 @@ class LRUCache<K, V> {
         this.maxSize = maxSize;
     }
 
+    /**
+     * Get value and mark as recently used.
+     */
     get(key: K): V | undefined {
         const value = this.cache.get(key);
         if (value !== undefined) {
@@ -31,6 +38,9 @@ class LRUCache<K, V> {
         return value;
     }
 
+    /**
+     * Set value, evicting oldest entry if at capacity.
+     */
     set(key: K, value: V): void {
         if (this.cache.has(key)) {
             this.cache.delete(key);
@@ -44,15 +54,24 @@ class LRUCache<K, V> {
         this.cache.set(key, value);
     }
 
+    /**
+     * Clear all cached entries.
+     */
     clear(): void {
         this.cache.clear();
     }
 
+    /**
+     * Get current number of cached entries.
+     */
     get size(): number {
         return this.cache.size;
     }
 }
 
+/**
+ * Cached completion with context metadata.
+ */
 interface CompletionCache {
     key: string;
     completion: string;
@@ -60,6 +79,10 @@ interface CompletionCache {
     context: string;
 }
 
+/**
+ * Queue for managing concurrent completion requests.
+ * Cancels stale requests when new ones arrive.
+ */
 class CompletionQueue {
     private pending: {
         id: number;
@@ -70,20 +93,22 @@ class CompletionQueue {
         position: vscode.Position;
         context: vscode.InlineCompletionContext;
     } | null = null;
-    
+
     private processing: boolean = false;
     private idCounter: number = 0;
 
+    /**
+     * Add completion request to queue.
+     * Cancels previous pending request if not yet processing.
+     */
     add(
         document: vscode.TextDocument,
         position: vscode.Position,
         context: vscode.InlineCompletionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.InlineCompletionItem[]> {
-        // Cancel previous pending request if checks haven't started
+        // Cancel stale request
         if (this.pending) {
-             // We don't necessarily reject; we just drop it or resolve empty.
-             // Copilot behavior: Stale requests resolve to []
              this.pending.resolve([]);
         }
 
@@ -122,34 +147,35 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private statusBarManager: StatusBarManager;
     private networkDetector: NetworkDetector;
     private resourceManager: ResourceManager;
-    private cacheManager: CacheManager; 
+    private cacheManager: CacheManager;
     private contextEngine: ContextEngine;
     private performanceMonitor: PerformanceMonitor;
     private smartFilter: SmartFilter;
     private duplicationDetector: DuplicationDetector;
     private completionValidator: CompletionValidator;
     private functionCompleter: FunctionCompleter;
+    private smartCompletionEnhancer: SmartCompletionEnhancer;
     private requestQueue: CompletionQueue = new CompletionQueue();
-    
+
     // Multi-level caching
     private exactCache: LRUCache<string, CompletionCache> = new LRUCache(2000);
     private prefixCache: LRUCache<string, CompletionCache[]> = new LRUCache(1000);
     private patternCache: LRUCache<string, CompletionCache[]> = new LRUCache(1000);
-    
+
     private isProcessing: boolean = false;
     private debounceTimer: NodeJS.Timeout | null = null;
     private currentCancellation: vscode.CancellationTokenSource | null = null;
 
     private predictiveCache: LRUCache<string, CompletionCache> = new LRUCache(100);
     private prefetchCancellation: vscode.CancellationTokenSource | null = null;
-    
+
     // Streaming support for real-time token display
     private currentStreamingTokens: string = '';
     private streamingCallback: ((tokens: string) => void) | null = null;
-    
+
     // NEW: Fast Cache Manager for L1/L2 caching
     private fastCacheManager: any; // Will be imported from fast-cache-manager
-    
+
     constructor(
         modelManager: ModelManager,
         statusBarManager: StatusBarManager,
@@ -167,6 +193,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.smartFilter = new SmartFilter();
         this.completionValidator = new CompletionValidator();
         this.functionCompleter = new FunctionCompleter();
+        this.smartCompletionEnhancer = new SmartCompletionEnhancer(this.contextEngine);
 
         // Enable performance monitoring based on config
         const config = vscode.workspace.getConfiguration('inline');
@@ -237,7 +264,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         // 1. Add to queue (this implicitly cancels previous headers)
         const pendingPromise = this.requestQueue.add(document, position, context, token);
-        
+
         // 2. Schedule processing if not already running (or just reset debounce)
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
@@ -246,7 +273,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         const config = vscode.workspace.getConfiguration('inline');
         // Dynamic debounce based on context
         const debounceInterval = this.calculateDynamicDebounce(document, position, config);
-        
+
         this.debounceTimer = setTimeout(async () => {
             await this.processQueue();
         }, debounceInterval);
@@ -268,9 +295,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         try {
             const result = await this.provideCompletionInternal(
-                request.document, 
-                request.position, 
-                request.context, 
+                request.document,
+                request.position,
+                request.context,
                 request.token
             );
             request.resolve(result);
@@ -279,10 +306,16 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         }
     }
 
-    private createCompletionItem(completion: string, position: vscode.Position, suggestionId?: string): vscode.InlineCompletionItem {
-        const cleanedCompletion = this.cleanCompletion(completion);
+    private createCompletionItem(completion: string, position: vscode.Position, suggestionId?: string, document?: vscode.TextDocument): vscode.InlineCompletionItem {
+        let enhancedCompletion = this.cleanCompletion(completion);
+
+        // Apply smart enhancements if document is available (synchronous)
+        if (document) {
+            enhancedCompletion = this.smartCompletionEnhancer.enhanceSync(document, position, enhancedCompletion);
+        }
+
         const item = new vscode.InlineCompletionItem(
-            cleanedCompletion,
+            enhancedCompletion,
             new vscode.Range(position, position)
         );
 
@@ -337,7 +370,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         try {
             const cacheKey = this.generateCacheKey(document, position);
-            
+
             // 1. Check caches first (CRITICAL: Must be sequential to avoid waiting for context if cache hits)
             const cachedResult = await this.checkAllCaches(cacheKey, position);
 
@@ -348,10 +381,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 resultCount = cachedResult.length;
                 this.recordPerformance({
                     totalTime: Date.now() - startTime,
-                    contextGatherTime: 0, 
+                    contextGatherTime: 0,
                     inferenceTime: 0,
                     renderTime: 0,
-                    tokensGenerated: 0, 
+                    tokensGenerated: 0,
                     cacheHit: true,
                     timestamp: Date.now()
                 });
@@ -375,23 +408,23 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 // NEW: Enhance with function completer
                 const config = vscode.workspace.getConfiguration('inline');
                 const functionCompletionEnabled = config.get<boolean>('functionCompletion.enabled', true);
-                
+
                 if (functionCompletionEnabled) {
                     const enhanced = await this.functionCompleter.enhanceCompletion(
                         completion,
                         codeContext,
                         config.get<number>('maxTokens', 512)
                     );
-                    
+
                     if (enhanced !== completion) {
                         console.log('[INLINE] 🔧 Function completion enhanced');
                         completion = enhanced;
                     }
                 }
-                
+
                 console.log('[INLINE] ✅ Valid completion, caching and returning');
                 this.cacheCompletion(cacheKey, completion, codeContext);
-                
+
                 // Trigger predictive prefetching for the NEXT token block
                 this.schedulePrefetch(document, position, completion, codeContext, config);
 
@@ -411,8 +444,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
                 const items = [this.createCompletionItem(completion, position, suggestionId)];
                 resultCount = items.length;
-                
-                
+
+
                 this.recordPerformance({
                     totalTime: Date.now() - startTime,
                     contextGatherTime: 0, // TODO: Track properly
@@ -437,16 +470,16 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         } finally {
             this.isProcessing = false;
             this.statusBarManager.setLoading(false);
-            
+
             // Record metrics
             const duration = Date.now() - startTime;
             // Estimate tokens if not tracked explicitly during streaming
-            // If streaming, tokenCount variable in generateCompletion scope... 
+            // If streaming, tokenCount variable in generateCompletion scope...
             // but we can just use result length / 4 as approx
             // OR use the returned completion length.
             // We don't have easy access to completion result here in finally block if we returned early.
             // Actually, we can track it in variables.
-            
+
             // Re-implement tracking in main flow or use state variables?
             // Since we return early, 'finally' is best, but we need variables in outer scope.
         }
@@ -499,18 +532,18 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 // Generate cache key for the FUTURE state
                 const lines = currentCompletion.split('\n');
                 const lastLineCompletion = lines[lines.length - 1];
-                
+
                 // If multiline, the new line is just the last line of completion.
                 // If single line, it's current line prefix + completion.
                 let futurePrefix = '';
                 let futureLine = position.line + lines.length - 1;
-                
+
                 if (lines.length > 1) {
                     futurePrefix = lastLineCompletion;
                 } else {
                     futurePrefix = currentLineText + lastLineCompletion;
                 }
-                
+
                 const futureKey = `${document.uri.fsPath}:${futureLine}:${futurePrefix}`;
                 console.log(`[INLINE] 🔮 Predictive Key: ${futureKey.substring(0, 50)}...`);
 
@@ -519,15 +552,15 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 // Get template for current model
                 const templateId = this.modelManager.getFimTemplateId();
                 const prompt = await this.contextEngine.generatePrompt(nextContext, templateId);
-                
+
                 const prediction = await inferenceEngine.generateCompletion(
-                    prompt, 
+                    prompt,
                     {
                         maxTokens: 32, // Prefetch small chunks
                         temperature: 0.1,
                         stop: ['\n'] // Limit prediction to single line for speed? Or let config decide?
-                    }, 
-                    undefined, 
+                    },
+                    undefined,
                     token
                 );
 
@@ -561,14 +594,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         const line = document.lineAt(position.line);
         const lineText = line.text.substring(0, position.character);
-        
+
         // Allow completions in most cases, including after comments (Copilot-like behavior)
         // Only block if line is completely empty or just whitespace
         if (lineText.trim().length === 0 && position.line > 0) {
             // Check if previous line is a comment - if so, generate code!
             const prevLine = document.lineAt(position.line - 1);
             const prevText = prevLine.text.trim();
-            
+
             // If previous line is a comment, allow completion (this is the Copilot pattern)
             if (this.isCommentLine(prevText, document.languageId)) {
                 return true;
@@ -643,7 +676,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         return Date.now() - cache.timestamp < maxAge;
     }
 
-    private cacheCompletion(key: string, completion: string, context: CodeContext, isPredictive: boolean = false): void {
+    private async cacheCompletion(key: string, completion: string, context: CodeContext, isPredictive: boolean = false): Promise<void> {
         const cacheEntry = {
             key,
             completion,
@@ -658,7 +691,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         // Store in exact cache
         this.exactCache.set(key, cacheEntry);
-        
+
         // Store in prefix cache
         const prefixKey = key.substring(0, Math.min(100, key.length));
         const existing = this.prefixCache.get(prefixKey) || [];
@@ -668,9 +701,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             existing.shift();
         }
         this.prefixCache.set(prefixKey, existing);
-        
-        // Persist to disk
-        this.cacheManager.set(key, cacheEntry);
+
+        // Persist to disk (now async)
+        await this.cacheManager.set(key, cacheEntry);
     }
 
     // --- AI Context Tracker Integration ---
@@ -687,26 +720,26 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Phase 11: Combined - Use shared optimized regex from Inference engine
         // This acts as a secondary safety net if the model output them unexpectedly
         cleaned = cleaned.replace(LlamaInference.FIM_TOKEN_REGEX, '');
-        
+
         // Also clean specifics
         cleaned = cleaned.replace(/obj\['middle'\]/g, ''); // Specific fix for user report
-        
+
         // 3. Remove leading newlines if excessive
         cleaned = cleaned.replace(/^\n{2,}/, '\n');
 
         // 4. SMART DEDUPLICATION using DuplicationDetector
         const config = vscode.workspace.getConfiguration('inline');
         const deduplicationEnabled = config.get<boolean>('deduplication.enabled', true);
-        
+
         if (deduplicationEnabled) {
             // Get language from context (fallback to 'javascript')
-            const language = this.contextEngine ? 
-                (this.contextEngine as any).lastLanguage || 'javascript' : 
+            const language = this.contextEngine ?
+                (this.contextEngine as any).lastLanguage || 'javascript' :
                 'javascript';
-            
+
             try {
                 const report = this.duplicationDetector.detectDuplicates(cleaned, language);
-                
+
                 if (report.hasDuplicates) {
                     console.log(`[DEDUP] Found ${report.duplicatesRemoved} duplicate(s), cleaning...`);
                     cleaned = report.cleanedCode;
@@ -776,7 +809,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // 1. Split into "paragraphs" (separated by blank lines)
         const blocks = text.split(/\n{2,}/);
         // Do not return early if only 1 block, need to check line-level dedup
-        
+
         const seenBlocks = new Set<string>();
         const resultBlocks: string[] = [];
         const isHeaderBlock = (block: string) => /^(?:\/\/|#|<!--|\/\*).{0,100}$/s.test(block.trim());
@@ -791,7 +824,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 if (isHeaderBlock(trimmed)) {
                     continue; // Skip repeated header
                 }
-                
+
                 // For code blocks, dedup if it's a direct neighbor (stutter)
                 // OR if it's a large block (> 50 chars) that repeated?
                 // For now, let's just avoid "Function A", "Function B", "Function A" loops
@@ -799,7 +832,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 // But usually AI doesn't write duplicate identical blocks in one completion.
                 // Let's safe-guard: if length > 20, deduplicate.
                 if (trimmed.length > 20) {
-                    continue; 
+                    continue;
                 }
             }
 
@@ -809,12 +842,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         // Rejoin with double newlines
         let result = resultBlocks.join('\n\n');
-        
+
         // 2. Fallback: Line-based dedup (neighboring lines)
         const lines = result.split('\n');
         const uniqueLines: string[] = [];
         if (lines.length > 0) uniqueLines.push(lines[0]);
-        
+
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i];
             const prev = lines[i-1];
@@ -824,12 +857,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
             uniqueLines.push(line);
         }
-        
+
         return uniqueLines.join('\n');
     }
 
     private async generateCompletion(
-        context: CodeContext, 
+        context: CodeContext,
         token: vscode.CancellationToken,
         document: vscode.TextDocument,
         position: vscode.Position
@@ -843,7 +876,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 const resources = this.resourceManager.getCurrentUsage();
                 const memoryThreshold = config.get<number>('resourceMonitoring.memoryThreshold', 0.98);
                 console.log(`[INLINE] 💾 Memory usage: ${(resources.memory * 100).toFixed(1)}% (threshold: ${(memoryThreshold * 100).toFixed(0)}%)`);
-                
+
                 if (resources.memory > memoryThreshold) {
                     console.warn(`[INLINE] ⚠️  High memory usage: ${(resources.memory * 100).toFixed(1)}% (threshold: ${(memoryThreshold * 100).toFixed(0)}%)`);
                     // Don't throw error, just log warning and continue
@@ -875,7 +908,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // Dynamic FIM Template
             const templateId = this.modelManager.getFimTemplateId();
             console.log(`[INLINE] 📝 Using FIM Template: ${templateId}`);
-            
+
             const prompt = await this.contextEngine.generatePrompt(context, templateId);
             const inferenceEngine = this.modelManager.getInferenceEngine();
 
@@ -898,9 +931,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             const streamingEnabled = config.get<boolean>('streaming.enabled', true);
             const showPartial = config.get<boolean>('streaming.showPartial', true);
             const maxLines = config.get<number>('maxCompletionLines', 5);
-            
+
             let tokenCount = 0;
-            
+
             // Streaming callback to update status bar with real-time token count
             const onToken = streamingEnabled && showPartial ? (token: string, total: number) => {
                 tokenCount = total;
@@ -909,7 +942,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
             // Generate completion with streaming support
             const maxTokens = this.calculateDynamicMaxTokens(document, position, config);
-            
+
             const completion = await inferenceEngine.generateCompletion(
                 prompt,
                 {
@@ -946,9 +979,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     ): number {
         const line = document.lineAt(position.line);
         const text = line.text.substring(0, position.character);
-        
+
         // --- SMART TRIGGERS (Instant Response) ---
-        
+
         // 1. Syntactic Triggers: . (dot), ( (paren), { (brace), [ (bracket), = (assignment), : (type/colon), , (comma), <space>
         // "Every line cursor detect" implies we should run almost always.
         // Spaces are crucial for next-word prediction.
@@ -967,11 +1000,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         if (hasError) return 0;
 
         // --- Standard Logic ---
-        
+
         // If typing a word, wait slightly to let them finish the word?
         // Actually, for "inline", we want to predict the REST of the word too.
         // So aggressive 10ms or 0ms is better than 25ms.
-        
+
         return config.get<number>('debounce.min', 10); // Reduced default from 25 to 10
     }
 
@@ -986,26 +1019,26 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // If explicit value set in user workspace settings (not default), respect it?
         // Actually, config.get returns effective value.
         // We want to override the "default" large block if we detect small edit.
-        
+
         const line = document.lineAt(position.line);
         const textAfter = line.text.substring(position.character);
         const lineText = line.text.trim();
-        
+
         // 1. If inside a line (text after cursor > 0 and not just specialized chars)
         if (textAfter.trim().length > 0) {
             // Check if we are inside a function call or string?
             // Simple heuristic: restricted completion
-            return 32; 
+            return 32;
         }
 
         // 2. If opening a block
         if (lineText.endsWith('{') || lineText.endsWith(':') || lineText.endsWith('(')) {
             return config.get<number>('maxTokens', 128);
         }
-        
+
         // 3. Default (e.g. at end of empty line)
         // Check indentation level?
-        return 64; 
+        return 64;
     }
 
     /**
@@ -1038,8 +1071,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
         }
 
-        // 3. Disk cache
-        const diskCached = this.cacheManager.get(cacheKey) as CompletionCache | null;
+        // 3. Disk cache (now async)
+        const diskCached = await this.cacheManager.get(cacheKey) as CompletionCache | null;
         if (diskCached && this.isCacheValid(diskCached)) {
             // Promote to exact cache
             this.exactCache.set(cacheKey, diskCached);
@@ -1057,9 +1090,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         position: vscode.Position
     ): Promise<vscode.Diagnostic[]> {
         const allDiagnostics = vscode.languages.getDiagnostics(document.uri);
-        
+
         // Get diagnostics near the cursor (within 5 lines)
-        return allDiagnostics.filter(d => 
+        return allDiagnostics.filter(d =>
             Math.abs(d.range.start.line - position.line) <= 5
         );
     }

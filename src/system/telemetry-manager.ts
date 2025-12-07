@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
 
-
+/**
+ * Telemetry event tracking for the extension.
+ *
+ * Respects VS Code's telemetry settings and includes platform/version metadata.
+ * Events are buffered locally and sent to analytics service (if enabled).
+ * Opt-in based on user's VS Code telemetry configuration.
+ */
 export class TelemetryManager {
     private events: TelemetryEvent[] = [];
     private sessionId: string;
@@ -11,12 +17,18 @@ export class TelemetryManager {
         this.checkTelemetryConsent();
     }
 
+    /**
+     * Check if telemetry is enabled via VS Code settings.
+     */
     private checkTelemetryConsent(): void {
-        // Respect VS Code's telemetry settings
         const config = vscode.workspace.getConfiguration('telemetry');
         this.enabled = config.get('enableTelemetry', false);
     }
 
+    /**
+     * Track a generic event with optional properties.
+     * Only sends if telemetry is enabled.
+     */
     public trackEvent(eventName: string, properties?: Record<string, unknown>): void {
         if (!this.enabled) {
             return;
@@ -30,11 +42,12 @@ export class TelemetryManager {
         };
 
         this.events.push(event);
-
-        // In production, send to analytics service
         this.sendEvent(event);
     }
 
+    /**
+     * Add platform and version metadata to all events.
+     */
     private getCommonProperties(): Record<string, unknown> {
         return {
             platform: process.platform,
@@ -43,6 +56,9 @@ export class TelemetryManager {
         };
     }
 
+    /**
+     * Track code completion performance metrics.
+     */
     public trackCompletion(language: string, duration: number, cached: boolean): void {
         this.trackEvent('completion', {
             language,
@@ -52,6 +68,9 @@ export class TelemetryManager {
         });
     }
 
+    /**
+     * Track model download events with success/failure status.
+     */
     public trackModelDownload(modelId: string, success: boolean, duration: number): void {
         this.trackEvent('model_download', {
             modelId,
@@ -60,6 +79,9 @@ export class TelemetryManager {
         });
     }
 
+    /**
+     * Track errors with context for debugging.
+     */
     public trackError(error: Error, context: string): void {
         this.trackEvent('error', {
             message: error.message,
@@ -68,12 +90,17 @@ export class TelemetryManager {
         });
     }
 
+    /**
+     * Send event to analytics service (stub for production integration).
+     */
     private sendEvent(event: TelemetryEvent): void {
-        // In production, send to analytics service
-        // For now, just log
+        // TODO: Integrate with analytics service
         console.log('[Telemetry]', event);
     }
 
+    /**
+     * Generate unique session identifier.
+     */
     private generateSessionId(): string {
         return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }

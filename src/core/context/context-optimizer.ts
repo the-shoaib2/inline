@@ -1,7 +1,19 @@
+/**
+ * Context optimizer for reducing token overhead and improving efficiency.
+ *
+ * Features:
+ * - Whitespace normalization
+ * - Import deduplication
+ * - Comment removal when necessary
+ * - Token-aware truncation
+ * - Progressive optimization strategies
+ */
+
 import { Logger } from '../../system/logger';
 
 /**
- * Context optimizer for reducing token overhead
+ * Optimizes code context to minimize token usage while preserving essential information.
+ * Applies multiple optimization strategies in order of increasing aggressiveness.
  */
 export class ContextOptimizer {
     private logger: Logger;
@@ -11,24 +23,26 @@ export class ContextOptimizer {
     }
 
     /**
-     * Optimize context to reduce token count
+     * Optimize context to reduce token count using progressive strategies.
+     *
+     * @param context - Raw context string to optimize
+     * @param maxTokens - Maximum allowed tokens (default: 2048)
+     * @returns Optimized context string
      */
     public optimize(context: string, maxTokens: number = 2048): string {
         let optimized = context;
 
-        // 1. Remove excessive whitespace
+        // Apply optimizations in order of increasing aggressiveness
         optimized = this.removeExcessiveWhitespace(optimized);
-
-        // 2. Deduplicate imports
         optimized = this.deduplicateImports(optimized);
 
-        // 3. Remove comments if over token limit
+        // Remove comments only if still over token limit
         const estimatedTokens = this.estimateTokens(optimized);
         if (estimatedTokens > maxTokens) {
             optimized = this.removeComments(optimized);
         }
 
-        // 4. Truncate if still over limit
+        // Final truncation if necessary
         if (this.estimateTokens(optimized) > maxTokens) {
             optimized = this.truncateToTokenLimit(optimized, maxTokens);
         }
@@ -38,17 +52,23 @@ export class ContextOptimizer {
     }
 
     /**
-     * Remove excessive whitespace
+     * Normalize excessive whitespace to reduce token count.
+     *
+     * @param text - Text to normalize
+     * @returns Text with normalized whitespace
      */
     private removeExcessiveWhitespace(text: string): string {
         return text
-            .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
-            .replace(/[ \t]{2,}/g, ' ') // Max 1 space
+            .replace(/\n{3,}/g, '\n\n') // Limit to 2 consecutive newlines
+            .replace(/[ \t]{2,}/g, ' ') // Limit to 1 space
             .trim();
     }
 
     /**
-     * Deduplicate import statements
+     * Remove duplicate import statements to reduce redundancy.
+     *
+     * @param text - Text containing import statements
+     * @returns Text with deduplicated imports
      */
     private deduplicateImports(text: string): string {
         const lines = text.split('\n');
@@ -70,7 +90,11 @@ export class ContextOptimizer {
     }
 
     /**
-     * Remove comments to save tokens
+     * Remove comments to save tokens when context is too large.
+     * Supports multiple comment styles (JS, TS, Python).
+     *
+     * @param text - Text to remove comments from
+     * @returns Text without comments
      */
     private removeComments(text: string): string {
         return text
@@ -80,15 +104,23 @@ export class ContextOptimizer {
     }
 
     /**
-     * Estimate token count (rough approximation)
+     * Estimate token count using character-based approximation.
+     * Uses 1 token ≈ 4 characters as a rough estimate.
+     *
+     * @param text - Text to estimate tokens for
+     * @returns Estimated token count
      */
     private estimateTokens(text: string): number {
-        // Rough estimate: 1 token ≈ 4 characters
         return Math.ceil(text.length / 4);
     }
 
     /**
-     * Truncate to token limit
+     * Truncate text to fit within token limit.
+     * Attempts to truncate at line boundaries for better readability.
+     *
+     * @param text - Text to truncate
+     * @param maxTokens - Maximum allowed tokens
+     * @returns Truncated text
      */
     private truncateToTokenLimit(text: string, maxTokens: number): string {
         const maxChars = maxTokens * 4; // Rough estimate
@@ -99,7 +131,8 @@ export class ContextOptimizer {
         // Try to truncate at a line boundary
         const truncated = text.substring(0, maxChars);
         const lastNewline = truncated.lastIndexOf('\n');
-        
+
+        // Prefer truncation at line boundary if not too much loss
         if (lastNewline > maxChars * 0.8) {
             return truncated.substring(0, lastNewline);
         }
@@ -108,7 +141,11 @@ export class ContextOptimizer {
     }
 
     /**
-     * Compress context by removing redundant information
+     * Compress context by removing redundant information.
+     * Eliminates duplicate lines and empty lines.
+     *
+     * @param context - Context to compress
+     * @returns Compressed context
      */
     public compress(context: string): string {
         let compressed = context;
@@ -125,7 +162,13 @@ export class ContextOptimizer {
     }
 
     /**
-     * Smart context selection - keep most relevant parts
+     * Smart context selection - keep most relevant parts based on cursor position.
+     * Uses relevance scoring to prioritize important lines.
+     *
+     * @param context - Full context text
+     * @param cursorPosition - Current cursor position in characters
+     * @param maxTokens - Maximum allowed tokens
+     * @returns Most relevant context within token limit
      */
     public selectRelevant(
         context: string,
@@ -142,13 +185,14 @@ export class ContextOptimizer {
             score: this.calculateRelevance(line, index, cursorLine)
         }));
 
-        // Sort by relevance
+        // Sort by relevance (highest first)
         scored.sort((a, b) => b.score - a.score);
 
         // Take top lines until token limit
-        let selected: typeof scored = [];
+        const selected: typeof scored = [];
         let tokenCount = 0;
 
+        // Accumulate selected lines until token limit reached
         for (const item of scored) {
             const lineTokens = this.estimateTokens(item.line);
             if (tokenCount + lineTokens <= maxTokens) {
@@ -159,28 +203,33 @@ export class ContextOptimizer {
             }
         }
 
-        // Sort back to original order
+        // Restore original line order for readability
         selected.sort((a, b) => a.index - b.index);
 
         return selected.map(s => s.line).join('\n');
     }
 
     /**
-     * Calculate relevance score for a line
+     * Calculate relevance score for a line based on multiple factors.
+     *
+     * @param line - Line content to score
+     * @param lineIndex - Line index in the file
+     * @param cursorLine - Current cursor line
+     * @returns Relevance score (higher = more relevant)
      */
     private calculateRelevance(line: string, lineIndex: number, cursorLine: number): number {
         let score = 0;
 
-        // Proximity to cursor
+        // Proximity to cursor (closer = higher score)
         const distance = Math.abs(lineIndex - cursorLine);
         score += Math.max(0, 100 - distance);
 
-        // Code vs whitespace
+        // Non-empty lines get bonus
         if (line.trim().length > 0) {
             score += 50;
         }
 
-        // Important keywords
+        // Important keywords increase relevance
         const keywords = ['function', 'class', 'const', 'let', 'var', 'import', 'export', 'interface', 'type'];
         for (const keyword of keywords) {
             if (line.includes(keyword)) {

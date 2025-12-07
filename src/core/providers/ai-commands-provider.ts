@@ -10,6 +10,20 @@ import { TerminalAssistant } from '../../features/terminal/terminal-assistant';
 import { RefactoringEngine } from '../../features/code-analysis/refactoring-engine';
 import { ContextEngine } from '../context/context-engine';
 
+/**
+ * Provides AI-powered VS Code commands for code assistance.
+ *
+ * Features:
+ * - Test generation from code
+ * - Documentation generation
+ * - Error explanation and fixing
+ * - Security scanning
+ * - PR description generation
+ * - Terminal assistance
+ * - Code refactoring
+ *
+ * Integrates with ModelManager for AI inference.
+ */
 export class AICommandsProvider {
     private testGenerator: TestGenerator;
     private docGenerator: DocGenerator;
@@ -22,9 +36,14 @@ export class AICommandsProvider {
     private modelManager: ModelManager;
     private contextEngine?: ContextEngine;
 
+    /**
+     * Initialize AI commands provider with inference engines.
+     * @param modelManager For model access and status checking
+     * @param contextEngine Optional context engine for code analysis
+     */
     constructor(modelManager: ModelManager, contextEngine?: ContextEngine) {
         const inference = modelManager.getInferenceEngine();
-        
+
         this.modelManager = modelManager;
         this.contextEngine = contextEngine;
         this.testGenerator = new TestGenerator(inference);
@@ -38,12 +57,15 @@ export class AICommandsProvider {
     }
 
     /**
-     * Check if model is loaded and show warning if not
+     * Verify AI model is loaded before executing commands.
+     * Shows warning with option to load model if not available.
+     *
+     * @returns true if model is loaded, false otherwise
      */
     private checkModelStatus(): boolean {
         const inference = this.modelManager.getInferenceEngine();
         const status = inference.getModelStatus();
-        
+
         if (!status.loaded) {
             vscode.window.showWarningMessage(
                 'No AI model loaded. Using offline mode with placeholder responses. Load a model for AI-powered features.',
@@ -55,19 +77,23 @@ export class AICommandsProvider {
             });
             return false;
         }
-        
+
         return true;
     }
 
     /**
-     * Set Context Engine
+     * Set context engine for enhanced code analysis.
+     * @param contextEngine Context engine instance
      */
     public setContextEngine(contextEngine: ContextEngine): void {
         this.contextEngine = contextEngine;
     }
 
     /**
-     * Register all AI-powered commands
+     * Register all AI-powered commands with VS Code.
+     * Includes test generation, documentation, error fixing, and more.
+     *
+     * @param context Extension context for command registration
      */
     public registerCommands(context: vscode.ExtensionContext): void {
         // Test Generation Commands
@@ -167,9 +193,9 @@ export class AICommandsProvider {
      * Handle Smart Actions (Fix, Optimize, Refactor, Format)
      */
     private async handleSmartAction(
-        document: vscode.TextDocument, 
-        range: vscode.Range, 
-        type: 'fix' | 'optimize' | 'refactor' | 'format', 
+        document: vscode.TextDocument,
+        range: vscode.Range,
+        type: 'fix' | 'optimize' | 'refactor' | 'format',
         diagnostics?: vscode.Diagnostic[]
     ): Promise<void> {
         if (!this.checkModelStatus()) return;
@@ -178,7 +204,7 @@ export class AICommandsProvider {
             const selectedCode = document.getText(range);
             let instruction = '';
             let title = '';
-            
+
             // Build Context Actions
             let contextContext = '';
             if (this.contextEngine) {
@@ -219,10 +245,10 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
             }, async () => {
                 const inference = this.modelManager.getInferenceEngine();
                 const result = await inference.generateImprovement(selectedCode, instruction);
-                
+
                 // Clean result
                 let cleanResult = result.replace(/```[\w]*\n?|```$/g, '').trim();
-                
+
                 if (cleanResult) {
                     const edit = new vscode.WorkspaceEdit();
                     edit.replace(document.uri, range, cleanResult);
@@ -244,7 +270,7 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
          try {
             const selectedCode = document.getText(range);
             let contextContext = '';
-            
+
             if (this.contextEngine) {
                  const context = await this.contextEngine.buildContext(document, range.start);
                  contextContext = `\nContext:\n- Variables in scope: ${context.variables.map(v => v.name).join(', ')}`;
@@ -259,7 +285,7 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
             }, async () => {
                 const inference = this.modelManager.getInferenceEngine();
                 const result = await inference.generateImprovement(selectedCode, instruction, { maxTokens: 512 });
-                
+
                 const doc = await vscode.workspace.openTextDocument({ content: result, language: 'markdown' });
                 await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
             });
@@ -299,11 +325,11 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                 // Create new test file
                 const testFileName = this.getTestFileName(editor.document.fileName);
                 const testUri = vscode.Uri.file(testFileName);
-                
+
                 const edit = new vscode.WorkspaceEdit();
                 edit.createFile(testUri, { ignoreIfExists: true });
                 edit.insert(testUri, new vscode.Position(0, 0), result.code);
-                
+
                 await vscode.workspace.applyEdit(edit);
                 const doc = await vscode.workspace.openTextDocument(testUri);
                 await vscode.window.showTextDocument(doc);
@@ -338,11 +364,11 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
 
                 const testFileName = this.getTestFileName(editor.document.fileName);
                 const testUri = vscode.Uri.file(testFileName);
-                
+
                 const edit = new vscode.WorkspaceEdit();
                 edit.createFile(testUri, { overwrite: true });
                 edit.insert(testUri, new vscode.Position(0, 0), testCode);
-                
+
                 await vscode.workspace.applyEdit(edit);
                 const doc = await vscode.workspace.openTextDocument(testUri);
                 await vscode.window.showTextDocument(doc);
@@ -386,7 +412,7 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                 const insertPosition = new vscode.Position(selection.start.line, 0);
                 const edit = new vscode.WorkspaceEdit();
                 edit.insert(editor.document.uri, insertPosition, result.documentation + '\n');
-                
+
                 await vscode.workspace.applyEdit(edit);
 
                 vscode.window.showInformationMessage(
@@ -440,7 +466,7 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
 
         // Find diagnostic at cursor position
         const diagnostic = diagnostics.find(d => d.range.contains(position));
-        
+
         if (!diagnostic) {
             vscode.window.showInformationMessage('No error found at cursor position');
             return;
@@ -575,14 +601,14 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
     private getTestFileName(sourceFile: string): string {
         const ext = sourceFile.substring(sourceFile.lastIndexOf('.'));
         const base = sourceFile.substring(0, sourceFile.lastIndexOf('.'));
-        
+
         // Common test file patterns
         if (ext === '.ts' || ext === '.js') {
             return `${base}.test${ext}`;
         } else if (ext === '.py') {
             return `test_${sourceFile.substring(sourceFile.lastIndexOf('/') + 1)}`;
         }
-        
+
         return `${base}.test${ext}`;
     }
 
@@ -594,7 +620,7 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
         content += `## Error\n\n\`\`\`\n${explanation.error}\n\`\`\`\n\n`;
         content += `## Explanation\n\n${explanation.explanation}\n\n`;
         content += `## Suggested Fixes\n\n`;
-        
+
         for (let i = 0; i < explanation.suggestedFixes.length; i++) {
             content += `${i + 1}. ${explanation.suggestedFixes[i]}\n`;
         }
