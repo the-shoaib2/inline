@@ -1,7 +1,7 @@
 {
-  "name": "inline-extension",
+  "name": "inline",
   "displayName": "Inline",
-  "description": "AI-powered inline code completion extension",
+  "description": "Inline code completion extension",
   "version": "0.1.0",
   "publisher": "ratulhasan",
   "engines": {
@@ -19,12 +19,12 @@
   ],
   "contributes": {
     "configuration": {
-      "title": "Inline AI",
+      "title": "Inline",
       "properties": {
         "inline.enableRealTimeInference": {
           "type": "boolean",
           "default": true,
-          "description": "Enable real-time AI code completion"
+          "description": "Enable real-time code completion"
         },
         "inline.resourceMonitoring": {
           "type": "boolean",
@@ -39,7 +39,8 @@
     "bundle": "node esbuild.js",
     "compile": "node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "pretest": "pnpm compile",
+    "compile:tests": "tsc -p ../../.config/build/tsconfig.json --outDir ../../out",
+    "pretest": "pnpm compile && pnpm compile:tests",
     "check-types": "tsc --noEmit -p ../../.config/build/tsconfig.json",
     "lint": "eslint src --ext ts --config ../../.config/lint/.eslintrc.yml",
     "test": "node ../../out/packages/extension/test/runTest.js",

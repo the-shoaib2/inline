@@ -38,7 +38,7 @@ async function main() {
             "@inline/native-rust", // Treat native module as external
             "@inline/native-cpp", // Treat native module as external
             "node-llama-cpp", // Depends on native bindings
-            "web-tree-sitter" // Often has issues being bundled
+            "web-tree-sitter"
         ],
         logLevel: "silent",
         plugins: [

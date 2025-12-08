@@ -18,7 +18,7 @@ async function main() {
         TEST_PATTERN: process.argv[2]
       },
       launchArgs: [
-        path.resolve(__dirname, '../../fixtures/sample-workspace')
+        path.resolve(__dirname, './fixtures/sample-workspace')
       ]
     });
   } catch (err) {

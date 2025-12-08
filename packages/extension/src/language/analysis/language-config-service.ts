@@ -78,7 +78,7 @@ export class LanguageConfigService {
 
     private loadPatterns(): void {
         if (!this.context) {
-            console.warn('[LanguageConfigService] Context not set, cannot load patterns');
+            // console.warn('[LanguageConfigService] Context not set, cannot load patterns');
             return;
         }
 
@@ -105,10 +105,10 @@ export class LanguageConfigService {
 
                     this.patterns.set(lang, patterns as LanguagePatterns);
                 }
-                console.log(`[LanguageConfigService] Loaded patterns for ${this.patterns.size} languages`);
-                console.log(`[LanguageConfigService] Loaded ${this.extensionMap.size} extension mappings`);
+                // console.log(`[LanguageConfigService] Loaded patterns for ${this.patterns.size} languages`);
+                // console.log(`[LanguageConfigService] Loaded ${this.extensionMap.size} extension mappings`);
             } else {
-                console.warn(`[LanguageConfigService] Config file not found at ${configPath}`);
+                // console.warn(`[LanguageConfigService] Config file not found at ${configPath}`);
             }
         } catch (error) {
             console.error(`[LanguageConfigService] Failed to load patterns: ${error}`);
@@ -128,7 +128,7 @@ export class LanguageConfigService {
 
         // Try fallback patterns for unknown languages
         if (this.fallbackPatterns) {
-            console.log(`[LanguageConfigService] Using fallback patterns for ${languageId}`);
+            // console.log(`[LanguageConfigService] Using fallback patterns for ${languageId}`);
             return this.fallbackPatterns;
         }
 
@@ -212,7 +212,6 @@ export class LanguageConfigService {
      */
     public clearRegexCache(): void {
         this.regexCache.clear();
-        console.log('[LanguageConfigService] Regex cache cleared');
     }
 
     /**

@@ -233,7 +233,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Only check fast in-memory layers
          const predicted = this.predictiveCache.get(cacheKey);
          if (predicted && this.isCacheValid(predicted)) {
-             console.log('[INLINE] ⚡ Fast Path: Predictive HIT');
+             // console.log('[INLINE] ⚡ Fast Path: Predictive HIT');
              // Emit event for tracking even on cache hit
              let suggestionId: string | undefined;
              const tracker = (this as any).aiContextTracker;
@@ -359,9 +359,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         const config = vscode.workspace.getConfiguration('inline');
         const realTimeEnabled = config.get<boolean>('enableRealTimeInference', true);
-        console.log(`[INLINE] 🔧 enableRealTimeInference: ${realTimeEnabled}`);
+        // console.log(`[INLINE] 🔧 enableRealTimeInference: ${realTimeEnabled}`);
         if (!realTimeEnabled) {
-            console.log('[INLINE] ⛔ Real-time inference disabled in config');
+            // console.log('[INLINE] ⛔ Real-time inference disabled in config');
             return [];
         }
 
@@ -402,11 +402,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // Enhance context with diagnostics
             const enhancedContext = this.enhanceContextWithDiagnostics(codeContext, diagnostics);
 
-            console.log('[INLINE] 🤖 Generating completion...');
+            // console.log('[INLINE] 🤖 Generating completion...');
             const inferenceStartTime = Date.now();
             let completion = await this.generateCompletion(enhancedContext, token, document, position);
             const inferenceTime = Date.now() - inferenceStartTime;
-            console.log(`[INLINE] 🤖 Generated completion (${completion?.length || 0} chars):`, completion?.substring(0, 100));
+            // console.log(`[INLINE] 🤖 Generated completion (${completion?.length || 0} chars):`, completion?.substring(0, 100));
 
             if (completion && completion.length > 0) {
                 // NEW: Enhance with function completer
@@ -421,12 +421,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                     );
 
                     if (enhanced !== completion) {
-                        console.log('[INLINE] 🔧 Function completion enhanced');
+                        // console.log('[INLINE] 🔧 Function completion enhanced');
                         completion = enhanced;
                     }
                 }
 
-                console.log('[INLINE] ✅ Valid completion, caching and returning');
+                // console.log('[INLINE] ✅ Valid completion, caching and returning');
                 this.cacheCompletion(cacheKey, completion, codeContext);
 
                 // Trigger predictive prefetching for the NEXT token block
@@ -463,7 +463,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 return items;
             }
 
-            console.log('[INLINE] ⚠️  Empty completion returned');
+            // console.log('[INLINE] ⚠️  Empty completion returned');
             return [];
         } catch (error) {
             console.error('[INLINE] ❌ ERROR generating completion:', error);
@@ -523,7 +523,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 await new Promise(resolve => setTimeout(resolve, 100));
                 if (token.isCancellationRequested) return;
 
-                console.log('[INLINE] 🔮 Starting predictive prefetch...');
+                // console.log('[INLINE] 🔮 Starting predictive prefetch...');
 
                 // Calculate predicted position and context
                 const newPrefix = currentContext.prefix + currentCompletion;
@@ -549,7 +549,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 }
 
                 const futureKey = `${document.uri.fsPath}:${futureLine}:${futurePrefix}`;
-                console.log(`[INLINE] 🔮 Predictive Key: ${futureKey.substring(0, 50)}...`);
+                // console.log(`[INLINE] 🔮 Predictive Key: ${futureKey.substring(0, 50)}...`);
 
                 // Generate!
                 const inferenceEngine = this.modelManager.getInferenceEngine();
@@ -569,17 +569,17 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 );
 
                 if (prediction && prediction.trim().length > 0 && !token.isCancellationRequested) {
-                    console.log(`[INLINE] 🔮 Prediction captured: "${prediction.substring(0, 20)}..."`);
+                    // console.log(`[INLINE] 🔮 Prediction captured: "${prediction.substring(0, 20)}..."`);
                     this.cacheCompletion(futureKey, prediction, nextContext, true);
                 }
             } catch (err) {
-                console.log('[INLINE] 🔮 Prefetch aborted/failed', err);
+                // console.log('[INLINE] 🔮 Prefetch aborted/failed', err);
             }
         })();
     }
 
     private shouldProvideCompletion(document: vscode.TextDocument, position: vscode.Position, context?: vscode.InlineCompletionContext): boolean {
-        console.log('[INLINE] 🔍 Checking shouldProvideCompletion...');
+        // console.log('[INLINE] 🔍 Checking shouldProvideCompletion...');
 
         // 0. Use Smart Filter (Intelligent decision matrix)
         // If triggerKind is undefined (e.g. from tests), assume automatic
@@ -591,10 +591,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Exclude certain file types
         const excludedLanguages = ['plaintext', 'log'];
         if (excludedLanguages.includes(document.languageId)) {
-            console.log(`[INLINE] ⛔ Excluded language: ${document.languageId}`);
+            // console.log(`[INLINE] ⛔ Excluded language: ${document.languageId}`);
             return false;
         }
-        console.log(`[INLINE] ✓ Language allowed: ${document.languageId}`);
+        // console.log(`[INLINE] ✓ Language allowed: ${document.languageId}`);
 
         const line = document.lineAt(position.line);
         const lineText = line.text.substring(0, position.character);
@@ -745,7 +745,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 const report = this.duplicationDetector.detectDuplicates(cleaned, language);
 
                 if (report.hasDuplicates) {
-                    console.log(`[DEDUP] Found ${report.duplicatesRemoved} duplicate(s), cleaning...`);
+                    // console.log(`[DEDUP] Found ${report.duplicatesRemoved} duplicate(s), cleaning...`);
                     cleaned = report.cleanedCode;
                 } else {
                     // Fallback for small duplicates/lines that DuplicationDetector ignores (minBlockSize)
@@ -771,7 +771,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             );
 
             if (!quickCheckPassed) {
-                console.log('[VALIDATION] Quick check failed, attempting fixes...');
+                // console.log('[VALIDATION] Quick check failed, attempting fixes...');
                 // Apply simple fixes for bracket/paren matching
                 cleaned = this.applyQuickFixes(cleaned);
             }
@@ -796,14 +796,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         if (openBraces > closeBraces) {
             const missing = openBraces - closeBraces;
             fixed += '\n' + '}'.repeat(missing);
-            console.log(`[VALIDATION] Added ${missing} missing closing brace(s)`);
+            // console.log(`[VALIDATION] Added ${missing} missing closing brace(s)`);
         }
 
         // Add missing closing parentheses
         if (openParens > closeParens) {
             const missing = openParens - closeParens;
             fixed += ')'.repeat(missing);
-            console.log(`[VALIDATION] Added ${missing} missing closing parenthesis(es)`);
+            // console.log(`[VALIDATION] Added ${missing} missing closing parenthesis(es)`);
         }
 
         return fixed;
@@ -871,7 +871,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         document: vscode.TextDocument,
         position: vscode.Position
     ): Promise<string> {
-        console.log('[INLINE] 🤖 generateCompletion called');
+        // console.log('[INLINE] 🤖 generateCompletion called');
         try {
             const config = vscode.workspace.getConfiguration('inline');
 
@@ -888,11 +888,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
 
             // Get current model
-            console.log('[INLINE] 🔍 Getting current model...');
+            // console.log('[INLINE] 🔍 Getting current model...');
             const model = this.modelManager.getCurrentModel();
-            console.log('[INLINE] 📦 Current model:', model ? model.name : 'NONE');
+            // console.log('[INLINE] 📦 Current model:', model ? model.name : 'NONE');
             if (!model) {
-                console.log('[INLINE] ⚠️  No current model, trying to find best model...');
+                // console.log('[INLINE] ⚠️  No current model, trying to find best model...');
                 // Try to get best available downloaded model
                 const bestModel = this.modelManager.getBestModel({
                     language: context.language,
@@ -900,10 +900,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 });
 
                 if (bestModel) {
-                    console.log(`[INLINE] ✓ Found best model: ${bestModel.name}`);
                     await this.modelManager.setCurrentModel(bestModel.id);
+                    // console.log(`[INLINE] ✓ Found best model: ${bestModel.name}`);
                 } else {
-                    console.log('[INLINE] ❌ NO MODEL AVAILABLE - Cannot generate completion');
+                    // console.log('[INLINE] ❌ NO MODEL AVAILABLE - Cannot generate completion');
                     return ''; // No model available
                 }
             }
@@ -911,7 +911,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // Generate prompt
             // Dynamic FIM Template
             const templateId = this.modelManager.getFimTemplateId();
-            console.log(`[INLINE] 📝 Using FIM Template: ${templateId}`);
+            // console.log(`[INLINE] 📝 Using FIM Template: ${templateId}`);
 
             const prompt = await this.contextEngine.generatePrompt(context, templateId);
             const inferenceEngine = this.modelManager.getInferenceEngine();
@@ -1060,7 +1060,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // 0. Predictive match (Highest priority)
         const predicted = this.predictiveCache.get(cacheKey);
         if (predicted && this.isCacheValid(predicted)) {
-            console.log('[INLINE] 🔮 Prediction HIT');
+            // console.log('[INLINE] 🔮 Prediction HIT');
             return [this.createCompletionItem(predicted.completion, position)];
         }
 
@@ -1116,7 +1116,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // For now, just return context as-is
         // Diagnostics are logged and can be used for prompt generation later
         if (diagnostics.length > 0) {
-            console.log(`[INLINE] 🔧 Found ${diagnostics.length} diagnostic(s) near cursor`);
+            // console.log(`[INLINE] 🔧 Found ${diagnostics.length} diagnostic(s) near cursor`);
         }
         return context;
     }

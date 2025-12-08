@@ -52,6 +52,15 @@ export class LlamaInference {
     private currentModelPath: string | null = null;
     private prefixCache: Map<string, any> = new Map();
     private maxPrefixCacheSize: number = 100;
+    private _generating: boolean = false;
+
+    // Constants
+    private static readonly DEFAULT_MAX_TOKENS = 512;
+    private static readonly DEFAULT_TEMPERATURE = 0.7;
+    private static readonly DEFAULT_TOP_P = 0.95;
+    private static readonly DEFAULT_TOP_K = 40;
+    private static readonly DEFAULT_REPEAT_PENALTY = 1.2;
+    private static readonly DEFAULT_CONTEXT_SIZE = 16384;
 
     constructor() {
         this.logger = new Logger('LlamaInference');
@@ -239,9 +248,9 @@ export class LlamaInference {
             const optimizedThreads = options.threads || systemThreads;
 
             this.context = await this.model!.createContext({
-                contextSize: options.contextSize || 16384,
+                contextSize: options.contextSize || LlamaInference.DEFAULT_CONTEXT_SIZE,
                 threads: optimizedThreads,
-                batchSize: 1024, // Increased from 512 for faster prompt processing
+                batchSize: 1024,
                 sequences: 4,
             });
             this.logger.info('Context created successfully');
@@ -317,16 +326,16 @@ export class LlamaInference {
         }
 
         // Simple mutex to prevent concurrent sequence usage
-        while ((this as any)._generating) {
+        while (this._generating) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
-        (this as any)._generating = true;
+        this._generating = true;
 
         let sequence: any = null;
 
         try {
-            const maxTokens = options.maxTokens || 512;
-            const temperature = options.temperature || 0.7;
+            const maxTokens = options.maxTokens || LlamaInference.DEFAULT_MAX_TOKENS;
+            const temperature = options.temperature || LlamaInference.DEFAULT_TEMPERATURE;
             // Phase 11: Add standard FIM stop sequences by default
             const defaultStop = [
                 '<|file_separator|>', '<|fim_prefix|>', '<|fim_suffix|>', '<|fim_middle|>', '<|endoftext|>',
@@ -343,16 +352,10 @@ export class LlamaInference {
             const tokens = this.model.tokenize(trimmedPrompt);
             this.logger.info(`Tokenized prompt: ${tokens.length} tokens`);
             
-            // Log full prompt for debugging (masked to avoid huge logs if needed, but useful now)
-            console.log(`[LlamaInference] 🟢 PROMPT START 🟢`);
-            console.log(trimmedPrompt);
-            
-            // DEBUG: Log hex of prompt tail
+            // Debug hex chars at end of prompt (only in debug level)
             const promptTail = trimmedPrompt.slice(-100);
-            console.log(`[LlamaInference] Prompt Tail HEX: ${Array.from(promptTail).map(c => c.charCodeAt(0).toString(16).padStart(4, '0')).join(' ')}`);
             
-            console.log(`[LlamaInference] 🔴 PROMPT END 🔴`);
-            console.log(`[LlamaInference] Input Tokens: ${tokens.length}, Max Output: ${maxTokens}, Temp: ${temperature}`);
+            // this.logger.debug(`[LlamaInference] Input Tokens: ${tokens.length}, Max Output: ${maxTokens}, Temp: ${temperature}`);
 
             // Ensure we have a persistent sequence
             if (!this.activeSequence) {
@@ -368,9 +371,9 @@ export class LlamaInference {
             this.logger.info('Starting token evaluation...');
             const stream = await sequence.evaluate(tokens, {
                 temperature,
-                topP: options.topP || 0.95,
-                topK: options.topK || 40,
-                repeatPenalty: options.repeatPenalty || 1.2, // Phase 12: Increased default to 1.2 to prevent loops
+                topP: options.topP || LlamaInference.DEFAULT_TOP_P,
+                topK: options.topK || LlamaInference.DEFAULT_TOP_K,
+                repeatPenalty: options.repeatPenalty || LlamaInference.DEFAULT_REPEAT_PENALTY, // Phase 12: Increased default to 1.2 to prevent loops
                 yieldEogToken: false
             });
 
@@ -390,10 +393,9 @@ export class LlamaInference {
 
             for await (const token of stream) {
                 loopIterations++;
-                loopIterations++;
-                // DEBUG: Log every token to see what is happening
-                const debugText = this.model.detokenize([token]);
-                console.log(`[LlamaInference] Stream token [${loopIterations}]: ${JSON.stringify(debugText)} (id: ${token})`);
+                // DEBUG: Log every token to see what is happening (debug level only)
+                // const debugText = this.model.detokenize([token]);
+                // this.logger.debug(`[LlamaInference] Stream token [${loopIterations}]: ${JSON.stringify(debugText)}`);
 
                 if (loopIterations === 1) {
                     this.logger.info('First token received from stream');
@@ -652,11 +654,8 @@ export class LlamaInference {
 
             this.logger.info(`Token generation loop completed. Iterations: ${loopIterations}, Tokens: ${tokensGenerated}`);
 
-            this.logger.info(`Token generation loop completed. Iterations: ${loopIterations}, Tokens: ${tokensGenerated}`);
-
             if (tokensGenerated === 0) {
                  this.logger.error('⚠️  Stream produced NO tokens! Model declined to generate or failed immediately.');
-                 console.log('[LlamaInference] ⚠️ Model returned empty response immediately.');
                  this.logger.warn('Prompt might be malformed or model refused to generate.');
             }
 
@@ -666,7 +665,7 @@ export class LlamaInference {
             this.logger.info('Sequence retained for KV cache');
 
             // Clean up any remaining FIM tokens from the final completion using comprehensive patterns
-            console.log(`[DEBUG] Raw completion (len=${completion.length}):`, JSON.stringify(completion));
+            // this.logger.debug(`[DEBUG] Raw completion (len=${completion.length}):`, JSON.stringify(completion));
             let cleanedCompletion = completion;
 
             // PASS 1: Apply all FIM token patterns from the static regex
@@ -715,7 +714,7 @@ export class LlamaInference {
             cleanedCompletion = cleanedCompletion.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
             // cleanedCompletion = cleanedCompletion.replace(/^[\s\n]+/, ''); // Remove leading whitespace (Disabled to support indentation)
 
-            console.log(`[DEBUG] Cleaned completion (len=${cleanedCompletion.trimEnd().length}):`, JSON.stringify(cleanedCompletion.trimEnd()));
+            // this.logger.debug(`[DEBUG] Cleaned completion (len=${cleanedCompletion.trimEnd().length}):`, JSON.stringify(cleanedCompletion.trimEnd()));
             return cleanedCompletion.trimEnd();
         } catch (error) {
             this.logger.error(`Completion generation failed: ${error}`);
@@ -733,7 +732,7 @@ export class LlamaInference {
 
             throw error;
         } finally {
-            (this as any)._generating = false;
+            this._generating = false;
         }
     }
 

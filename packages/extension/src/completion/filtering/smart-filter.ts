@@ -45,23 +45,66 @@ export class SmartFilter {
             return true;
         }
 
-        // Typing too fast → suppress suggestions to avoid distraction
-        this.updateTypingSpeed(now);
-        if (this.isTypingTooFast(now)) {
-            console.log('[SmartFilter] ⛔ Fast typing, suppressing');
+        // Detect fast typing (bursts)
+        const timeSinceLastKeystroke = now - this.lastKeystrokeTime;
+        if (triggerKind === vscode.InlineCompletionTriggerKind.Automatic && timeSinceLastKeystroke < 50) {
+            // console.log('[SmartFilter] ⛔ Fast typing, suppressing');
             return false;
         }
 
         const line = document.lineAt(position.line);
         const textBeforeCursor = line.text.substring(0, position.character);
 
-        // Skip suggestions inside string literals (basic heuristic)
-        if (this.isInsideString(textBeforeCursor)) {
-            console.log('[SmartFilter] ⛔ Inside string literal');
-            return false;
+        // Detect if inside string/comment
+        if (this.isInsideStringOrComment(document, position)) {
+             // console.log('[SmartFilter] ⛔ Inside string literal');
+             // return false; // Maybe we DO want to complete inside strings? Copilot does.
         }
 
+        this.lastKeystrokeTime = now;
         return true;
+    }
+
+    /**
+     * Detects if cursor is inside a string literal or comment.
+     * This is a basic heuristic and might not cover all cases.
+     *
+     * @param document - Current text document
+     * @param position - Current cursor position
+     * @returns true if cursor is inside a string literal or comment
+     */
+    private isInsideStringOrComment(document: vscode.TextDocument, position: vscode.Position): boolean {
+        const line = document.lineAt(position.line);
+        const textBeforeCursor = line.text.substring(0, position.character);
+
+        // Basic string literal detection (odd number of quotes before cursor)
+        const doubleQuotes = (textBeforeCursor.match(/"/g) || []).length;
+        const singleQuotes = (textBeforeCursor.match(/'/g) || []).length;
+        const backticks = (textBeforeCursor.match(/`/g) || []).length;
+
+        if (doubleQuotes % 2 !== 0 || singleQuotes % 2 !== 0 || backticks % 2 !== 0) {
+            return true;
+        }
+
+        // Basic comment detection (line comment //)
+        if (textBeforeCursor.includes('//')) {
+            const lastDoubleSlashIndex = textBeforeCursor.lastIndexOf('//');
+            // Ensure it's not part of a string
+            if (lastDoubleSlashIndex > -1 && !this.isInsideString(textBeforeCursor.substring(0, lastDoubleSlashIndex))) {
+                return true;
+            }
+        }
+
+        // Basic comment detection (block comment /*)
+        if (textBeforeCursor.includes('/*')) {
+            const lastBlockCommentStart = textBeforeCursor.lastIndexOf('/*');
+            const lastBlockCommentEnd = textBeforeCursor.lastIndexOf('*/');
+            if (lastBlockCommentStart > lastBlockCommentEnd) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

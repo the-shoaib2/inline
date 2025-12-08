@@ -5,7 +5,7 @@
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "compile": "pnpm --filter inline-extension run compile",
+    "compile": "pnpm --filter inline compile",
     "lint": "pnpm -r run lint",
     "reset": "./scripts/reset.sh",
     "dev": "pnpm run compile --watch"

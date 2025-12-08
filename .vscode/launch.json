@@ -2,11 +2,25 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run Extension (Sample Workspace)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "${workspaceFolder}/packages/extension/test/fixtures/sample-workspace",
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/extension"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+            ],
+            "preLaunchTask": "${workspaceFolder}/npm: compile"
+        },
+        {
             "name": "Run Extension",
             "type": "extensionHost",
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/extension"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
+                "${workspaceFolder}"
             ],
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"

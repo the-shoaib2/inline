@@ -11,11 +11,7 @@ async function runSuite(pattern: string, ui: 'tdd' | 'bdd', testsRoot: string): 
       timeout: 20000
     });
 
-    glob(pattern, { cwd: testsRoot }, (err, files) => {
-      if (err) {
-        return reject(err);
-      }
-
+    glob(pattern, { cwd: testsRoot }).then((files: string[]) => {
       // Add files to the test suite
       files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
 
@@ -32,6 +28,8 @@ async function runSuite(pattern: string, ui: 'tdd' | 'bdd', testsRoot: string): 
         console.error(err);
         reject(err);
       }
+    }, (error: any) => {
+        reject(error);
     });
   });
 }

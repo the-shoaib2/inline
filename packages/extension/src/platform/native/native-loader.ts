@@ -1,5 +1,5 @@
 import { Logger } from '@platform/system/logger';
-import type * as NativeBindings from '@inline/native-rust';
+// import type * as NativeBindings from '@inline/native-rust';
 
 /**
  * Native module loader with graceful fallback to TypeScript implementations.
@@ -14,7 +14,7 @@ import type * as NativeBindings from '@inline/native-rust';
 export class NativeLoader {
     private static instance: NativeLoader;
     private logger: Logger;
-    private native: typeof NativeBindings | null = null;
+    private native: any | null = null;
     private nativeCpp: any | null = null;
     private available: boolean = false;
     private availableCpp: boolean = false;
@@ -97,7 +97,7 @@ export class NativeLoader {
     /**
      * Get native module (throws if not available)
      */
-    private getNative(): typeof NativeBindings {
+    private getNative(): any {
         if (!this.isAvailable() || !this.native) {
             throw new Error('Native module not available');
         }

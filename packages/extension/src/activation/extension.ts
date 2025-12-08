@@ -85,9 +85,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const treeSitterService = TreeSitterService.getInstance();
         try {
             await treeSitterService.initialize(context);
-            console.log('[Inline] Tree-sitter initialized successfully');
         } catch (error) {
-            console.warn('[Inline] Tree-sitter initialization failed, falling back to regex:', error);
+            logger?.warn('Tree-sitter initialization failed, falling back to regex');
         }
 
         // Initialize core services
@@ -103,7 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Performance tuning deferred to avoid blocking startup
         setTimeout(() => {
-            PerformanceTuner.tune().catch(err => console.error('Tuning failed:', err));
+            PerformanceTuner.tune().catch(err => logger?.error('Performance tuning failed', err));
         }, 5000);
 
         // Initialize core components
@@ -518,7 +517,7 @@ export async function deactivate(): Promise<void> {
             try {
                 networkDetector.stopMonitoring();
             } catch (error) {
-                console.warn('Error stopping network detector:', error);
+                logger?.warn('Error stopping network detector');
             }
         }
 
@@ -527,7 +526,7 @@ export async function deactivate(): Promise<void> {
             try {
                 await modelManager.cleanup();
             } catch (error) {
-                console.warn('Error cleaning up model manager:', error);
+                logger?.warn('Error cleaning up model manager');
             }
         }
 
@@ -536,7 +535,7 @@ export async function deactivate(): Promise<void> {
             try {
                 statusBarManager.dispose();
             } catch (error) {
-                console.warn('Error disposing status bar:', error);
+                logger?.warn('Error disposing status bar');
             }
         }
 
@@ -545,7 +544,7 @@ export async function deactivate(): Promise<void> {
             try {
                 eventTrackingManager.dispose();
             } catch (error) {
-                console.warn('Error disposing event tracking manager:', error);
+                logger?.warn('Error disposing event tracking manager');
             }
         }
 
@@ -554,7 +553,7 @@ export async function deactivate(): Promise<void> {
             try {
                 logger.dispose();
             } catch (error) {
-                console.warn('Error disposing logger:', error);
+                // Silently ignore logger disposal errors
             }
         }
 
@@ -567,7 +566,6 @@ export async function deactivate(): Promise<void> {
 
         logger?.info('Inline extension deactivated');
     } catch (error) {
-        console.error('Error during deactivation:', error);
-        // Don't throw - allow deactivation to complete
+        // Silently handle deactivation errors
     }
 }

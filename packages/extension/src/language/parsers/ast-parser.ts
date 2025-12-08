@@ -1,4 +1,4 @@
-import Parser from 'web-tree-sitter';
+import { Parser } from 'web-tree-sitter';
 
 import { TreeSitterService } from '@language/parsers/tree-sitter-service';
 import { NativeLoader } from '@platform/native/native-loader';
@@ -419,7 +419,7 @@ export class ASTParser {
     /**
      * Convert Tree-sitter syntax node to internal ASTNode format
      */
-    private convertTreeSitterToASTNode(node: Parser.SyntaxNode): ASTNode {
+    private convertTreeSitterToASTNode(node: any): ASTNode {
         const astNode: ASTNode = {
             type: node.type,
             value: node.text.length < 100 ? node.text : undefined,

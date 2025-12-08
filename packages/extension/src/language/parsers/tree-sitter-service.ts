@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import Parser from 'web-tree-sitter';
+import { Parser, Language, Tree } from 'web-tree-sitter';
 import { Logger } from '@platform/system/logger';
 import { NativeLoader } from '@platform/native/native-loader';
 
@@ -17,7 +17,7 @@ export interface QueryMatch {
  */
 export interface QueryCapture {
     name: string;
-    node: Parser.SyntaxNode;
+    node: any;
 }
 
 /**
@@ -55,7 +55,7 @@ export interface TreeSitterConfig {
 export class TreeSitterService {
     private static instance: TreeSitterService;
     private parsers: Map<string, Parser> = new Map();
-    private languages: Map<string, Parser.Language> = new Map();
+    private languages: Map<string, Language> = new Map();
     private queries: Map<string, LanguageQueries> = new Map();
     private logger: Logger;
     private context: vscode.ExtensionContext | null = null;
@@ -175,7 +175,7 @@ export class TreeSitterService {
     /**
      * Load a Tree-sitter language grammar
      */
-    private async loadLanguage(languageId: string): Promise<Parser.Language | null> {
+    private async loadLanguage(languageId: string): Promise<Language | null> {
         if (this.languages.has(languageId)) {
             return this.languages.get(languageId)!;
         }
@@ -254,7 +254,7 @@ export class TreeSitterService {
             const wasmPath = path.join(this.wasmDir, `${wasmFileName}.wasm`);
             
             // Load the language from WASM file
-            const language = await Parser.Language.load(wasmPath);
+            const language = await Language.load(wasmPath);
             this.languages.set(languageId, language);
             
             this.logger.info(`Loaded Tree-sitter grammar for ${languageId}`);
@@ -340,7 +340,7 @@ export class TreeSitterService {
     /**
      * Parse code to AST (Native with WASM fallback)
      */
-    public async parse(code: string, languageId: string): Promise<Parser.Tree | null> {
+    public async parse(code: string, languageId: string): Promise<Tree | null> {
         const native = NativeLoader.getInstance();
         
         if (native.isAvailable()) {
@@ -364,7 +364,7 @@ export class TreeSitterService {
     /**
      * Parse code to AST using WASM (Fallback)
      */
-    public async parseWasm(code: string, languageId: string): Promise<Parser.Tree | null> {
+    public async parseWasm(code: string, languageId: string): Promise<Tree | null> {
         const parser = await this.getParser(languageId);
         if (!parser) {
             return null;
@@ -382,9 +382,9 @@ export class TreeSitterService {
     /**
      * Execute Tree-sitter query on AST
      */
-    public query(tree: Parser.Tree, queryString: string): QueryMatch[] {
+    public query(tree: Tree, queryString: string): QueryMatch[] {
         try {
-            const query = tree.getLanguage().query(queryString);
+            const query = tree.language.query(queryString);
             const matches = query.matches(tree.rootNode);
 
             return matches.map((match: any) => ({
