@@ -1,223 +1,114 @@
-# Inline - Offline Code Completion
+# Inline - Offline AI Code Completion
 
-Inline is a VS Code extension that delivers intelligent code completion entirely offline. It provides context-aware suggestions and manages local models for optimal performance, ensuring privacy without internet dependency.
+**Inline** is a privacy-first VS Code extension that delivers intelligent, AI-powered code completion entirely offline. All processing happens locally on your machine—your code never leaves your device.
 
-## Features
+![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
 
-- **Offline-First**: Works completely without internet connection
-- **Automatic Model Management**: Download and manage local models through a simple UI
-- **URL Download**: Download models directly from Hugging Face or other URLs
-- **Drag & Drop Import**: Easily import local GGUF models
-- **Language-Specific Optimization**: Optimized models for different programming languages
-- **Smart Context Building**: Understands your codebase and learns from patterns
-- **Resource Monitoring**: Monitors CPU/memory usage and adjusts accordingly
-- **Privacy-Focused**: All processing happens locally on your machine
-- **Modern UI**: Premium VS Code-compliant webview with dark/light theme support
-- **Performance Optimized**: <500ms completion latency with intelligent caching
+---
 
-## Quick Start
+## ✨ Features
 
-**Prerequisites:**
-- Node.js 18+ 
-- pnpm (install with `npm install -g pnpm`)
+### Core Features
+- **🔒 Offline-First**: Works completely without internet connection
+- **🚀 High Performance**: Native Rust & C++ modules for fast inference
+- **🤖 Smart Model Management**: Download, import, and manage local GGUF models
+- **🧠 Context-Aware**: Tree-sitter syntax analysis for intelligent suggestions
+- **⚡ Resource Efficient**: Dynamic monitoring and adaptive optimization
+- **🎨 Modern UI**: Beautiful VS Code-native webview with dark/light theme
 
-**Automated Setup:**
-```bash
-./scripts/setup.sh
-```
+### Model Management
+- One-click downloads for recommended models (DeepSeek, CodeLlama, Phi-3)
+- Drag & drop `.gguf` file import
+- URL-based model downloads from Hugging Face
+- Automatic model validation and metadata detection
 
-**Manual Setup:**
-1. Clone and install dependencies:
-   ```bash
-   git clone <repository>
-   cd inline
-   pnpm install
-   pnpm run build
-   ```
+### Code Intelligence
+- **Completions**: Context-aware inline suggestions
+- **Hover Info**: Type information and documentation
+- **Code Actions**: AI-powered quick fixes and refactoring
+- **Diagnostics**: Error detection and vulnerability scanning
+- **Caching**: Smart LRU cache for performance
 
-2. Install the extension from VS Code Marketplace
-3. Open the Model Manager with `Ctrl+Shift+P` → "Inline: Model Manager"
-4. Download a model or import one:
-   - **Recommended**: Click "Download" on any model in the "Recommended Models" list (DeepSeek, CodeLlama, etc.)
-   - **URL**: Paste a Hugging Face GGUF link
-   - **Import**: Drag & drop a `.gguf` file or click "Select File"
-5. Start coding! Inline will automatically provide completions
+### Supported Languages (38+)
 
-For detailed setup instructions, see [SETUP.md](SETUP.md)
+<p>
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black"/>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white"/>
+  <img src="https://img.shields.io/badge/TSX-3178C6?style=flat&logo=typescript&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Java-007396?style=flat&logo=java&logoColor=white"/>
+  <img src="https://img.shields.io/badge/C-00599C?style=flat&logo=c&logoColor=white"/>
+  <img src="https://img.shields.io/badge/C%2B%2B-00599C?style=flat&logo=c%2B%2B&logoColor=white"/>
+  <img src="https://img.shields.io/badge/C%23-239120?style=flat&logo=c-sharp&logoColor=white"/>
+  <img src="https://img.shields.io/badge/PHP-777BB4?style=flat&logo=php&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Rust-CE422B?style=flat&logo=rust&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat&logo=kotlin&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Swift-FA7343?style=flat&logo=swift&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Ruby-CC342D?style=flat&logo=ruby&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Dart-0175C2?style=flat&logo=dart&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Scala-DC322F?style=flat&logo=scala&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Elixir-4B275F?style=flat&logo=elixir&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Lua-2C2D72?style=flat&logo=lua&logoColor=white"/>
+  <img src="https://img.shields.io/badge/HTML-E34C26?style=flat&logo=html5&logoColor=white"/>
+  <img src="https://img.shields.io/badge/CSS-1572B6?style=flat&logo=css3&logoColor=white"/>
+  <img src="https://img.shields.io/badge/JSON-000000?style=flat&logo=json&logoColor=white"/>
+  <img src="https://img.shields.io/badge/YAML-CB171E?style=flat&logo=yaml&logoColor=white"/>
+  <img src="https://img.shields.io/badge/TOML-9C4121?style=flat&logo=toml&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Bash-4EAA25?style=flat&logo=gnu-bash&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Objective--C-438EFF?style=flat&logo=objective-c&logoColor=white"/>
+  <img src="https://img.shields.io/badge/OCaml-EC6813?style=flat&logo=ocaml&logoColor=white"/>
+  <img src="https://img.shields.io/badge/ReScript-FF5733?style=flat&logo=rescript&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Solidity-363636?style=flat&logo=solidity&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Elm-60B5CC?style=flat&logo=elm&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Lisp-3FB674?style=flat&logo=lisp&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Vue-4FC08D?style=flat&logo=vue.js&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Zig-F7A41D?style=flat&logo=zig&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Regex-FF6B6B?style=flat&logo=regex&logoColor=white"/>
+  <img src="https://img.shields.io/badge/CodeQL-2D5AA8?style=flat&logo=github&logoColor=white"/>
+  <img src="https://img.shields.io/badge/TLA%2B-4B0082?style=flat&logoColor=white"/>
+  <img src="https://img.shields.io/badge/SystemRDL-FF6B35?style=flat&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Embedded%20Template-FF6B6B?style=flat&logoColor=white"/>
+</p>
 
-## Supported Models
-- **GGUF Support**: Import any `.gguf` model compatible with `llama.cpp`
-- **Auto-Detection**: Automatically detects model architecture and parameters
+---
 
-### Lightweight Models (2-4GB VRAM)
-- **CodeGemma-2B**: Great for Python/JavaScript
-- **StableCode-3B**: Fast, multi-language support
-- **Phi-3-mini**: Microsoft's efficient model
+See [SETUP.md](SETUP.md) for detailed instructions.
 
-### Mid-tier Models (6-8GB VRAM)
-- **DeepSeek-Coder-6.7B**: Excellent for complex patterns
-- **StarCoder2-7B**: Strong across languages
-- **CodeLlama-7B**: Meta's proven model
+---
 
-### Custom Models
-You can import your own GGUF models directly through the Model Manager:
-1. Open Model Manager
-2. Drag and drop your `.gguf` file into the import zone
-3. Or paste a download URL (e.g., from Hugging Face)
-4. The model will be validated and added to your local library
+## 🦾 Supported Models
 
-## Commands
+| Tier | VRAM | Recommended Models |
+|------|------|-------------------|
+| **Lightweight** | 2-4 GB | CodeGemma-2B, StableCode-3B, Phi-3-mini |
+| **Mid-Tier** | 6-8 GB | DeepSeek-Coder-6.7B, StarCoder2-7B, CodeLlama-7B |
+| **Heavy** | 12GB+ | CodeLlama-13B, Mixtral (Quantized) |
 
-- `Inline: Model Manager` - Open model management UI
-- `Inline: Toggle Offline Mode` - Switch between online/offline
-- `Inline: Clear Cache` - Clear completion cache
-- `Inline: Download Model` - Quick model download
-- `Inline: Download Model from URL` - Download directly from a URL
-- `Inline: Open Models Folder` - Open the local models directory
-- `Inline: Check for Model Updates` - Check for updates
-- `Inline: Settings` - Open extension settings
-- `Inline: Show Logs` - Show extension logs
+All models use **GGUF** format via `llama.cpp`.
 
-## Settings
+---
 
-- `inline.autoOffline`: Automatically activate offline mode
-- `inline.defaultModel`: Default model for completions
-- `inline.maxTokens`: Maximum tokens for generation
-- `inline.temperature`: Model temperature (0-1)
-- `inline.cacheSize`: Maximum cache entries
-- `inline.resourceMonitoring`: Enable resource monitoring
+## 🛠️ Commands
 
-## Development
+Press `Ctrl+Shift+P` and search for **Inline**:
 
-### Setup
+- **Model Manager** - Manage and download models
+- **Toggle Offline Mode** - Switch offline/online
+- **Clear Cache** - Free memory
+- **Download Model from URL** - Download from Hugging Face
+- **Show Logs** - View debug information
 
-```bash
-# Install dependencies
-pnpm install
+---
 
-# Compile in watch mode
-pnpm run compile:watch
+##  Documentation
 
-# Run tests
-pnpm test
-```
+- [**Setup Guide**](SETUP.md): Detailed installation and build instructions.
+- [**Folder Structure**](docs/FOLDER_STRUCTURE.md): Explanation of the codebase layout.
+- [**Contributing**](docs/guides/CONTRIBUTING.md): Guidelines for submitting PRs.
+- [**Testing**](docs/guides/testing.md): How to run the comprehensive test suite.
 
-### Testing
+## 📄 License
 
-```bash
-# Run all tests
-pnpm test
-
-# Run specific test suites
-pnpm run test:unit          # Unit tests
-pnpm run test:integration   # Integration tests
-pnpm run test:e2e           # End-to-end tests
-
-# Run with coverage
-pnpm run test:coverage
-```
-
-See [docs/guides/testing.md](docs/guides/testing.md) for detailed testing guide.
-
-### Building
-
-```bash
-# Build extension
-pnpm run build
-
-# Package extension
-pnpm run package
-
-# Clean build artifacts
-pnpm run clean
-```
-
-### Releasing
-
-```bash
-# Automated release (patch version)
-./scripts/release.sh patch "Bug fixes and improvements"
-
-# Minor version release
-./scripts/release.sh minor "New features added"
-
-# Major version release
-./scripts/release.sh major "Breaking changes"
-```
-
-The release script automatically:
-- Bumps version in package.json
-- Updates CHANGELOG.md
-- Updates CATALOG.md
-- Runs tests
-- Builds and packages the extension
-- Creates git tags
-- Optionally creates GitHub releases
-
-### Contributing
-
-See [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) for contribution guidelines.
-
-## Requirements
-
-- VS Code 1.85.0 or higher
-- Node.js 18.x or higher
-- Minimum 4GB RAM (8GB+ recommended)
-- Optional: GPU with 6GB+ VRAM for better performance
-
-## Troubleshooting
-
-### Installation Issues
-If you encounter errors during installation related to `node-llama-cpp`:
-1. Ensure you have C++ build tools installed:
-   - **Windows**: Install Visual Studio Build Tools with "Desktop development with C++"
-   - **Mac**: Run `xcode-select --install`
-   - **Linux**: Install `build-essential` and `cmake`
-2. Try rebuilding the dependency: `npm rebuild node-llama-cpp`
-
-### Model Loading Failed
-- Verify the model file is a valid `.gguf` file
-- Ensure you have enough RAM/VRAM to load the model
-- Check the "Inline" output channel for detailed error logs
-
-## Architecture
-
-- **E2E Testing**: Comprehensive test suite with 50+ tests
-- **VS Code UI Standards**: Modern webview with theme support
-- **Performance**: <500ms completion latency with caching
-- **Multi-Language**: TypeScript, Python, JavaScript, and more
-
-See [docs/FOLDER_STRUCTURE.md](docs/FOLDER_STRUCTURE.md) for project organization.
-
-## Documentation
-
-### Quick Start
-- [Quick Reference](QUICK_REFERENCE.md) - Common commands and structure overview
-
-### Project Documentation
-- [Folder Structure](docs/FOLDER_STRUCTURE.md) - Project organization
-- [Changelog](CHANGELOG.md) - Version history and release notes
-
-### Guides
-- [Testing Guide](docs/guides/testing.md) - How to write and run tests
-- [Contributing](docs/guides/CONTRIBUTING.md) - Contribution guidelines
-- [Release Guide](docs/guides/RELEASE.md) - How to create releases
-
-### Architecture
-- [Model Integration](docs/architecture/MODEL_INTEGRATION.md) - Model integration strategy
-- [Performance Optimization](docs/architecture/PERFORMANCE_OPTIMIZATION.md) - Performance guide
-- [Project Plan](docs/architecture/PROJECT_PLAN.md) - Project roadmap
-
-## License
-
-Apache License 2.0 - see LICENSE file for details
-
-## Contributing
-
-Contributions are welcome! Please read our [contributing guidelines](docs/guides/CONTRIBUTING.md) and submit pull requests.
-
-## Support
-
-- Report issues on GitHub
-- Check documentation in `/docs`
-- Join our community discussions
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
