@@ -1,0 +1,25 @@
+# Test coverage reports
+coverage/
+.nyc_output/
+*.lcov
+htmlcov/
+.coverage
+
+# Test output
+.test-results/
+test-results/
+playwright-report/
+
+# Temporary test files
+*.test.tmp
+*.spec.tmp
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+
+# Logs
+*.log

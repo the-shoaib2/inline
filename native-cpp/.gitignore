@@ -1,0 +1,27 @@
+# Build output
+build/
+*.node
+
+# Compiled object files
+*.o
+*.obj
+*.a
+*.lib
+
+# Shared libraries
+*.so
+*.dylib
+*.dll
+
+# Dependencies
+node_modules/
+
+# node-gyp
+.node-gyp/
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store

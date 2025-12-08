@@ -1,5 +1,7 @@
 import Parser from 'web-tree-sitter';
+
 import { TreeSitterService } from './tree-sitter-service';
+import { NativeLoader } from '../native/native-loader';
 
 /**
  * Abstract Syntax Tree node
@@ -55,7 +57,21 @@ export class ASTParser {
      * Tries Tree-sitter first for accurate parsing, falls back to regex.
      */
     public async parse(code: string, language: string): Promise<ASTNode | null> {
-        // Try Tree-sitter first
+        // Try Native first (Fastest)
+        const native = NativeLoader.getInstance();
+        if (native.isAvailable()) {
+            try {
+                // native.parseAst returns the object directly (via JSON.parse)
+                const ast = await native.parseAst(code, language);
+                if (ast) {
+                    return ast as ASTNode;
+                }
+            } catch (error) {
+                console.warn(`Native parsing failed for ${language}, falling back to next method:`, error);
+            }
+        }
+
+        // Try Tree-sitter (WASM)
         if (this.treeSitterService.isSupported(language)) {
             try {
                 const tree = await this.treeSitterService.parse(code, language);

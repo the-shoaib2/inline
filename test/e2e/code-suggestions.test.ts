@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { activateExtension, createTestDocument, sleep, getExtension } from '../helpers/test-utils';
 
 suite('Code Suggestions E2E Test', () => {
-    const extensionId = 'inline.inline';
+    const extensionId = 'ratulhasan.inline-ai-codes';
     let extension: vscode.Extension<any>;
 
     suiteSetup(async () => {

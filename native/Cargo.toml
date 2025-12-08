@@ -1,0 +1,55 @@
+[package]
+name = "inline-native"
+version = "0.1.0"
+edition = "2021"
+authors = ["Inline Team"]
+license = "Apache-2.0"
+description = "Native Rust modules for Inline VS Code extension"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# N-API bindings for Node.js
+napi = "2.16"
+napi-derive = "2.16"
+
+# Tree-sitter for AST parsing
+tree-sitter = "0.20"
+tree-sitter-typescript = "0.20"
+tree-sitter-python = "0.20"
+tree-sitter-rust = "0.20"
+tree-sitter-javascript = "0.20"
+tree-sitter-go = "0.20"
+tree-sitter-java = "0.20"
+tree-sitter-cpp = "0.20"
+tree-sitter-c-sharp = "0.20"
+tree-sitter-ruby = "0.20"
+tree-sitter-php = "0.20"
+
+# High-performance utilities
+regex = "1.10"
+rayon = "1.8"  # Parallel processing
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+memchr = "2.7"  # Fast string searching
+aho-corasick = "1.1"  # Multiple pattern matching
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+[build-dependencies]
+napi-build = "2.1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.dev]
+opt-level = 0

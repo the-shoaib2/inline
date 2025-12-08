@@ -12,7 +12,7 @@ suite('Memory Management E2E Tests', () => {
     
     suiteSetup(async () => {
         // Get extension context
-        const ext = vscode.extensions.getExtension('inline.inline');
+        const ext = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
         if (!ext) {
             throw new Error('Extension not found');
         }
@@ -78,7 +78,7 @@ suite('Cache Management E2E Tests', () => {
     let context: vscode.ExtensionContext;
     
     suiteSetup(async () => {
-        const ext = vscode.extensions.getExtension('inline.inline');
+        const ext = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
         if (!ext) {
             throw new Error('Extension not found');
         }
@@ -272,7 +272,7 @@ function example() {
 suite('Integration Tests', () => {
     test('Memory pressure triggers cache cleanup', async () => {
         const memoryManager = new MemoryManager();
-        const context = (vscode.extensions.getExtension('inline.inline')!.exports as any).context;
+        const context = (vscode.extensions.getExtension('ratulhasan.inline-ai-codes')!.exports as any).context;
         const cacheManager = new CacheManager(context, memoryManager);
         
         // Add many entries to cache

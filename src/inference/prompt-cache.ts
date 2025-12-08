@@ -1,4 +1,5 @@
 import { Logger } from '../system/logger';
+import { NativeLoader } from '../native/native-loader';
 
 /**
  * Prompt cache entry
@@ -30,6 +31,11 @@ export class PromptCache {
      * Generate cache key from prompt
      */
     private generateHash(prompt: string): string {
+        const native = NativeLoader.getInstance();
+        if (native.isAvailable()) {
+            return native.hashPrompt(prompt);
+        }
+
         // Simple hash function (could use crypto for production)
         let hash = 0;
         for (let i = 0; i < prompt.length; i++) {

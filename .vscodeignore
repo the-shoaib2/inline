@@ -26,6 +26,8 @@ docs/
 
 # Package management
 node_modules/
+!node_modules/@inline/native
+!node_modules/@inline/native-cpp
 pnpm-lock.yaml
 package-lock.json
 yarn.lock

@@ -18,7 +18,15 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "incremental": true,
-    "tsBuildInfoFile": "./out/.tsbuildinfo"
+    "tsBuildInfoFile": "./out/.tsbuildinfo",
+    "paths": {
+      "@inline/native": [
+        "./native/index.d.ts"
+      ],
+      "@inline/native-cpp": [
+        "./native-cpp/index.d.ts"
+      ]
+    }
   },
   "include": [
     "src/**/*",

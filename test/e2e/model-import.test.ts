@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 
 suite('Model Import E2E Test', () => {
-    const extensionId = 'inline.inline';
+    const extensionId = 'ratulhasan.inline-ai-codes';
     let extension: vscode.Extension<any>;
 
     suiteSetup(async () => {
@@ -21,7 +21,7 @@ suite('Model Import E2E Test', () => {
         }
 
         const dummyModelPath = path.join(tempDir, 'imported_test-model.gguf'); // Use imported_ prefix
-        const magic = Buffer.from('GGUF'); // Magic header
+        const magic = new Uint8Array(Buffer.from('GGUF')); // Magic header
         fs.writeFileSync(dummyModelPath, magic);
 
         const api = extension.exports;
@@ -103,7 +103,7 @@ suite('Model Import E2E Test', () => {
 
         const modelName = 'imported_workspace_test.gguf';
         const dummyModelPath = path.join(modelsDir, modelName);
-        fs.writeFileSync(dummyModelPath, Buffer.from('GGUF'));
+        fs.writeFileSync(dummyModelPath, new Uint8Array(Buffer.from('GGUF')));
 
         try {
             // Mock vscode.workspace.workspaceFolders

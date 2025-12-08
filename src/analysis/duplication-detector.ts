@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { NativeLoader } from '../native/native-loader';
 
 /**
  * Code fingerprint for duplicate detection
@@ -81,7 +82,7 @@ export class DuplicationDetector {
 
         // Step 3: Detect distributed repetition patterns (A-B-A-B)
         const distributedPatterns = this.detectDistributed 
-            ? this.detectDistributedRepetition(lines)
+            ? this.detectDistributedRepetition(lines, language)
             : [];
 
         // Step 4: Remove duplicates
@@ -115,24 +116,42 @@ export class DuplicationDetector {
     /**
      * Generate code fingerprint for fast duplicate detection
      */
-    public generateFingerprint(code: string): CodeFingerprint {
+    public generateFingerprint(code: string, language: string = 'javascript'): CodeFingerprint {
         // Check cache first
         const cached = this.fingerprintCache.get(code);
         if (cached) {
             return cached;
         }
 
-        // Normalize code (remove whitespace, comments)
-        const normalized = this.normalizeCode(code);
+        const native = NativeLoader.getInstance();
+        let normalized = '';
+        let md5 = '';
+        let tokens: string[] = [];
 
-        // Generate MD5 hash for exact matching
-        const md5 = crypto.createHash('md5').update(normalized).digest('hex');
+        if (native.isAvailable()) {
+            // Native Optimization
+            try {
+                const noComments = native.removeComments(code, language);
+                normalized = native.normalizeWhitespace(noComments).toLowerCase();
+                md5 = native.hashPrompt(normalized);
+                const tokenResult = native.tokenizeCode(code, language);
+                tokens = tokenResult.texts;
+            } catch (e) {
+                // Fallback handled below/mixed
+                normalized = this.normalizeCode(code);
+                md5 = crypto.createHash('md5').update(normalized).digest('hex');
+                tokens = this.tokenize(code);
+            }
+        } else {
+             // Fallback
+            normalized = this.normalizeCode(code);
+            md5 = crypto.createHash('md5').update(normalized).digest('hex');
+            tokens = this.tokenize(code);
+        }
 
         // Generate SimHash for near-duplicate detection
-        const simhash = this.generateSimHash(normalized);
-
-        // Tokenize
-        const tokens = this.tokenize(code);
+        // We reuse the native/JS tokens here
+        const simhash = this.generateSimHashFromTokens(tokens);
 
         const fingerprint: CodeFingerprint = {
             md5,
@@ -189,13 +208,13 @@ export class DuplicationDetector {
     /**
      * Detect distributed repetition patterns (A-B-A-B, A-B-C-A-B-C, etc.)
      */
-    public detectDistributedRepetition(lines: string[]): RepetitionPattern[] {
+    public detectDistributedRepetition(lines: string[], language: string = 'javascript'): RepetitionPattern[] {
         const patterns: RepetitionPattern[] = [];
         const windowSize = 10; // Check last 10 lines for patterns
 
         // Use fingerprints for comparison
         const lineFingerprints = lines.map(line => 
-            line.trim().length > 5 ? this.generateFingerprint(line.trim()).md5 : null
+            line.trim().length > 5 ? this.generateFingerprint(line.trim(), language).md5 : null
         );
 
         // Sliding window to detect patterns
@@ -292,7 +311,7 @@ export class DuplicationDetector {
                 continue;
             }
 
-            const fingerprint = this.generateFingerprint(block.content);
+            const fingerprint = this.generateFingerprint(block.content, language);
 
             // Check for exact match
             if (seen.has(fingerprint.md5)) {
@@ -311,7 +330,7 @@ export class DuplicationDetector {
             // Check for near-duplicates using SimHash
             let foundNearDuplicate = false;
             for (const [hash, original] of seen.entries()) {
-                const originalFingerprint = this.generateFingerprint(original.content);
+                const originalFingerprint = this.generateFingerprint(original.content, language);
                 const similarity = this.hammingDistance(fingerprint.simhash, originalFingerprint.simhash);
                 
                 if (similarity >= this.similarityThreshold) {
@@ -364,6 +383,10 @@ export class DuplicationDetector {
      */
     private generateSimHash(text: string): string {
         const tokens = this.tokenize(text);
+        return this.generateSimHashFromTokens(tokens);
+    }
+
+    private generateSimHashFromTokens(tokens: string[]): string {
         const hashSize = 64;
         const vector = new Array(hashSize).fill(0);
 

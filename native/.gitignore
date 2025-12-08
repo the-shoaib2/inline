@@ -1,0 +1,23 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# Cargo lock (library project)
+Cargo.lock
+
+# Compiled native modules
+*.node
+*.so
+*.dylib
+*.dll
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store

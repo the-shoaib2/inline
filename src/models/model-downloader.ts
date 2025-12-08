@@ -383,7 +383,7 @@ export class ModelDownloader {
                     // Validate GGUF magic number
                     const fd = fs.openSync(filePath, 'r');
                     const magicBuffer = Buffer.alloc(4);
-                    fs.readSync(fd, magicBuffer, 0, 4, 0);
+                    fs.readSync(fd, magicBuffer as any, 0, 4, 0);
                     fs.closeSync(fd);
 
                     if (magicBuffer.toString('utf8') !== 'GGUF') {

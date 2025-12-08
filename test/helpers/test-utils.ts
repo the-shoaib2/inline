@@ -81,7 +81,7 @@ export async function closeAllEditors(): Promise<void> {
  * Get extension by ID
  */
 export function getExtension(): vscode.Extension<any> | undefined {
-  return vscode.extensions.getExtension('inline.inline');
+  return vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
 }
 
 /**

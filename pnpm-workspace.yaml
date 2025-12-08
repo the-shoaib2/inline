@@ -1,4 +1,4 @@
-ignoredBuiltDependencies:
-  - '@vscode/vsce-sign'
-  - keytar
-  - node-llama-cpp
+packages:
+  - 'webview'
+  - 'native'
+  - 'native-cpp'

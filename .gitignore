@@ -1,50 +1,117 @@
+# ============================================
 # Dependencies
+# ============================================
 node_modules/
 package-lock.json
+yarn.lock
 
-# Build output
+# ============================================
+# Build Outputs
+# ============================================
 out/
 dist/
+build/
 *.vsix
 
-# Test coverage
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# C++ build artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.node
+
+# ============================================
+# Cargo & Rust
+# ============================================
+.cargo/
+Cargo.lock
+
+# ============================================
+# Test Coverage & Reports
+# ============================================
 coverage/
 .nyc_output/
+*.lcov
+.coverage
+htmlcov/
 
+# ============================================
 # VS Code
+# ============================================
 .vscode-test/
 .vscode-test-web/
 
-# OS files
+# ============================================
+# OS Files
+# ============================================
 .DS_Store
 Thumbs.db
-
-# IDE
-.idea/
+desktop.ini
 *.swp
 *.swo
 *~
 
+# ============================================
+# IDE
+# ============================================
+.idea/
+*.iml
+.vscode/settings.json.local
+
+# ============================================
 # Logs
+# ============================================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Environment
+# ============================================
+# Environment & Secrets
+# ============================================
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
+# ============================================
 # Resources (runtime generated)
+# ============================================
 resources/cache/*
 resources/models/*
 !resources/cache/.gitkeep
 !resources/models/.gitkeep
 
-# Temporary files
-*.tmp
-.temp/
+# ============================================
+# Models Directory
+# ============================================
+/models/*
+!models/.gitkeep
 
-#Models
-models/
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+.temp/
+.cache/
+
+# ============================================
+# Misc
+# ============================================
+*.bak
+*.orig
+*.rej
+.eslintcache

@@ -11,7 +11,7 @@ suite('Tree-sitter E2E Tests', () => {
         this.timeout(30000); // 30 seconds for initialization
         
         // Get extension context
-        const extension = vscode.extensions.getExtension('your-extension-id');
+        const extension = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
         if (!extension) {
             throw new Error('Extension not found');
         }
@@ -431,7 +431,12 @@ async function createTestDocument(content: string, languageId: string): Promise<
     const document = await vscode.workspace.openTextDocument(uri);
     
     const edit = new vscode.WorkspaceEdit();
-    edit.insert(uri, new vscode.Position(0, 0), content);
+    // Replace entire document content
+    const fullRange = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(document.getText().length)
+    );
+    edit.replace(uri, fullRange, content);
     await vscode.workspace.applyEdit(edit);
     
     return document;

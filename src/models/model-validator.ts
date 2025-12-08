@@ -84,7 +84,7 @@ export class ModelValidator {
             const buffer = Buffer.alloc(1024);
 
             // Read magic number (4 bytes)
-            fs.readSync(fd, buffer, 0, 4, 0);
+            fs.readSync(fd, buffer as any, 0, 4, 0);
             const magic = buffer.toString('utf8', 0, 4);
 
             if (magic !== 'GGUF') {
@@ -95,7 +95,7 @@ export class ModelValidator {
             }
 
             // Read version (4 bytes)
-            fs.readSync(fd, buffer, 0, 4, 4);
+            fs.readSync(fd, buffer as any, 0, 4, 4);
             const version = buffer.readUInt32LE(0);
 
             if (version < 1 || version > 3) {
@@ -126,11 +126,11 @@ export class ModelValidator {
             const buffer = Buffer.alloc(8);
 
             // Read tensor count (8 bytes at offset 8)
-            fs.readSync(fd, buffer, 0, 8, 8);
+            fs.readSync(fd, buffer as any, 0, 8, 8);
             metadata.tensorCount = Number(buffer.readBigUInt64LE(0));
 
             // Read metadata count (8 bytes at offset 16)
-            fs.readSync(fd, buffer, 0, 8, 16);
+            fs.readSync(fd, buffer as any, 0, 8, 16);
             const metadataCount = Number(buffer.readBigUInt64LE(0));
 
             // Infer quantization from filename
@@ -186,7 +186,7 @@ export class ModelValidator {
             const buffer = Buffer.alloc(8);
 
             // Read version
-            fs.readSync(fd, buffer, 0, 4, 4);
+            fs.readSync(fd, buffer as any, 0, 4, 4);
             const version = buffer.readUInt32LE(0);
 
             const metadata = this.extractGGUFMetadata(fd, version, modelPath);

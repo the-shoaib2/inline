@@ -15,6 +15,7 @@
 import * as vscode from 'vscode';
 import { LanguageConfigService } from '../core/config/language-config-service';
 import { TreeSitterService } from './tree-sitter-service';
+import { NativeLoader } from '../native/native-loader';
 
 import type {
     ImportInfo, FunctionInfo, ClassInfo, InterfaceInfo, TypeInfo, VariableInfo,
@@ -61,6 +62,15 @@ export class SemanticAnalyzer {
      * @returns Array of import information with module and line number
      */
     async extractImportsEnhanced(document: vscode.TextDocument): Promise<ImportInfo[]> {
+        const native = NativeLoader.getInstance();
+        if (native.isAvailable()) {
+            try {
+                return native.extractImports(document.getText(), document.languageId);
+            } catch (error) {
+                console.warn('[SemanticAnalyzer] Native extraction failed, fallback to regex:', error);
+            }
+        }
+
         const text = document.getText();
         const imports: ImportInfo[] = [];
         const language = document.languageId;
@@ -164,6 +174,15 @@ export class SemanticAnalyzer {
      * Extract detailed function information with parameters and types
      */
     async extractFunctionsEnhanced(document: vscode.TextDocument): Promise<FunctionInfo[]> {
+        const native = NativeLoader.getInstance();
+        if (native.isAvailable()) {
+            try {
+                return native.extractFunctions(document.getText(), document.languageId);
+            } catch (error) {
+                console.warn('[SemanticAnalyzer] Native extraction failed, fallback to regex:', error);
+            }
+        }
+
         const text = document.getText();
         const functions: FunctionInfo[] = [];
         const language = document.languageId;
@@ -770,6 +789,15 @@ export class SemanticAnalyzer {
      * This was impossible with regex due to complex syntax variations.
      */
     async extractDecorators(document: vscode.TextDocument): Promise<DecoratorInfo[]> {
+        const native = NativeLoader.getInstance();
+        if (native.isAvailable()) {
+            try {
+                return native.extractDecorators(document.getText(), document.languageId);
+            } catch (error) {
+                console.warn('[SemanticAnalyzer] Native extraction failed, fallback to Tree-sitter:', error);
+            }
+        }
+
         const decorators: DecoratorInfo[] = [];
         const language = document.languageId;
 
@@ -798,12 +826,12 @@ export class SemanticAnalyzer {
             // Process matches
             for (const match of matches) {
                 for (const capture of match.captures) {
-                    if (capture.name === 'decorator.name' || capture.name === 'decorator.simple_name') {
+                    if (['decorator.name', 'decorator.simple_name', 'attribute.name', 'annotation.name'].includes(capture.name)) {
                         const lineNumber = capture.node.startPosition.row;
                         const name = capture.node.text;
 
                         // Find corresponding args if any
-                        const argsCapture = match.captures.find(c => c.name === 'decorator.args');
+                        const argsCapture = match.captures.find(c => ['decorator.args', 'attribute.args', 'annotation.args'].includes(c.name));
                         const args = argsCapture?.node.text;
 
                         decorators.push({
