@@ -1,7 +1,7 @@
 {
     "name": "@inline/native-cpp",
     "version": "0.1.0",
-    "description": "C++ Native Modules for Inline AI",
+    "description": "C++ Native Modules for Inline ",
     "main": "build/Release/inline_native_cpp.node",
     "scripts": {
         "install": "node-gyp rebuild",
@@ -9,10 +9,10 @@
         "clean": "node-gyp clean"
     },
     "dependencies": {
-        "node-addon-api": "^7.0.0"
+        "node-addon-api": "^8.5.0"
     },
     "devDependencies": {
-        "node-gyp": "^10.0.0"
+        "node-gyp": "^12.1.0"
     },
     "gypfile": true
 }

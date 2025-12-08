@@ -35,35 +35,44 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ../../.config/build/tsconfig.json && node ../../scripts/resolve_aliases.js",
-    "watch": "tsc -watch -p ../../.config/build/tsconfig.json",
-    "pretest": "npm run compile",
+    "vscode:prepublish": "node esbuild.js --production",
+    "bundle": "node esbuild.js",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "pretest": "pnpm compile",
     "check-types": "tsc --noEmit -p ../../.config/build/tsconfig.json",
     "lint": "eslint src --ext ts --config ../../.config/lint/.eslintrc.yml",
     "test": "node ../../out/packages/extension/test/runTest.js",
-    "build:native:rust": "pnpm --filter @inline/native build",
+    "build:native:rust": "pnpm --filter @inline/native-rust build",
     "build:native:cpp": "pnpm --filter @inline/native-cpp build",
-    "build:native": "pnpm run build:native:rust && pnpm run build:native:cpp",
-    "build": "pnpm run build:native && npm run compile",
-    "postinstall": "pnpm run build:native"
+    "build:native": "pnpm build:native:rust && pnpm build:native:cpp",
+    "build": "pnpm build:native && pnpm compile",
+    "postinstall": "pnpm build:native"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "20.2.5",
-    "@types/vscode": "^1.80.0",
-    "@typescript-eslint/eslint-plugin": "^5.59.8",
-    "@typescript-eslint/parser": "^5.59.8",
-    "@vscode/test-electron": "^2.3.2",
-    "eslint": "^8.41.0",
-    "glob": "^8.1.0",
-    "mocha": "^10.2.0",
+    "@types/chai": "^5.2.3",
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/module-alias": "^2.0.4",
+    "@types/node": "24.10.1",
+    "@types/vscode": "^1.106.1",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "@vscode/test-electron": "^2.5.2",
+    "chai": "^6.2.1",
+    "esbuild": "^0.27.1",
+    "eslint": "^9.39.1",
+    "glob": "^13.0.0",
+    "mocha": "^11.7.5",
+    "module-alias": "^2.2.3",
+    "node-llama-cpp": "^3.14.4",
     "tsc-alias": "^1.8.16",
-    "typescript": "^5.1.3"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@inline/native": "workspace:*",
-    "web-tree-sitter": "^0.20.8"
+    "@inline/native-rust": "workspace:*",
+    "@types/tar": "^6.1.13",
+    "tar": "^7.5.2",
+    "web-tree-sitter": "^0.25.10"
   }
 }

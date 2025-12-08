@@ -6,9 +6,11 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "compile": "pnpm --filter inline-extension run compile",
-    "lint": "pnpm -r run lint"
+    "lint": "pnpm -r run lint",
+    "reset": "./scripts/reset.sh",
+    "dev": "pnpm run compile --watch"
   },
   "devDependencies": {
-    "typescript": "^5.1.3"
+    "typescript": "^5.9.3"
   }
 }

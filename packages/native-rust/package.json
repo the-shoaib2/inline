@@ -1,21 +1,18 @@
 {
-    "name": "@inline/native",
+    "name": "@inline/native-rust",
     "version": "0.1.0",
     "description": "Native Rust modules for Inline VS Code extension",
     "main": "index.js",
     "types": "index.d.ts",
     "napi": {
-        "name": "inline-native",
-        "triples": {
-            "defaults": true,
-            "additional": [
-                "aarch64-apple-darwin",
-                "x86_64-apple-darwin",
-                "x86_64-unknown-linux-gnu",
-                "aarch64-unknown-linux-gnu",
-                "x86_64-pc-windows-msvc"
-            ]
-        }
+        "binaryName": "inline-native-rust",
+        "targets": [
+            "aarch64-apple-darwin",
+            "x86_64-apple-darwin",
+            "x86_64-unknown-linux-gnu",
+            "aarch64-unknown-linux-gnu",
+            "x86_64-pc-windows-msvc"
+        ]
     },
     "scripts": {
         "artifacts": "napi artifacts",
@@ -27,7 +24,7 @@
         "version": "napi version"
     },
     "devDependencies": {
-        "@napi-rs/cli": "^2.18.0"
+        "@napi-rs/cli": "^3.5.0"
     },
     "engines": {
         "node": ">= 18"

@@ -1,0 +1,10 @@
+{
+    "extends": "../../.config/build/tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../../out/packages/extension"
+    },
+    "include": [
+        "src/**/*",
+        "test/**/*"
+    ]
+}

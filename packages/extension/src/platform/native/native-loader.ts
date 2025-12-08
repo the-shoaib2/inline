@@ -1,5 +1,5 @@
 import { Logger } from '@platform/system/logger';
-import type * as NativeBindings from '@inline/native';
+import type * as NativeBindings from '@inline/native-rust';
 
 /**
  * Native module loader with graceful fallback to TypeScript implementations.
@@ -23,6 +23,20 @@ export class NativeLoader {
 
     private constructor() {
         this.logger = new Logger('NativeLoader');
+
+        try {
+            // @ts-ignore
+            this.native = require('@inline/native-rust');
+        } catch (error) {
+            console.warn('Failed to load Rust native bindings:', error);
+        }
+
+        try {
+            // @ts-ignore
+            this.nativeCpp = require('@inline/native-cpp');
+        } catch (error) {
+            console.warn('Failed to load C++ native bindings:', error);
+        }
     }
 
     public static getInstance(): NativeLoader {
@@ -51,7 +65,7 @@ export class NativeLoader {
         try {
             // Try to load the Rust native module
             // @ts-ignore
-            this.native = require('@inline/native');
+            this.native = require('@inline/native-rust');
             
             if (this.native && this.native.isAvailable()) {
                 this.available = true;
@@ -148,7 +162,7 @@ export class NativeLoader {
         try {
             const results = this.getNative().parseFilesParallel(files);
             this.trackPerformance('parseFilesParallel', performance.now() - start);
-            return results.map(r => r ? JSON.parse(r) : null);
+            return results.map((r: any) => r ? JSON.parse(r) : null);
         } catch (error) {
             this.logger.debug('Native parseFilesParallel failed', error as Error);
             throw error;

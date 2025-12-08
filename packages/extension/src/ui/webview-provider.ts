@@ -48,7 +48,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             enableScripts: true,
             localResourceRoots: [
                 vscode.Uri.joinPath(this._extensionUri, 'resources'),
-                vscode.Uri.joinPath(this._extensionUri, 'out', 'webview')
+                vscode.Uri.joinPath(this._extensionUri, 'media', 'webview')
             ]
         };
 
@@ -180,14 +180,14 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         try {
             if (fs.existsSync(modelsDir)) {
                 const files = fs.readdirSync(modelsDir);
-                const importedFiles = files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf'));
+                const importedFiles = files.filter((f: string) => f.startsWith('imported_') && f.endsWith('.gguf'));
 
                 for (const file of importedFiles) {
                     const modelId = path.basename(file, '.gguf');
                     const filePath = path.join(modelsDir, file);
 
                     // Check if this model is already in the list
-                    if (!allModels.some(m => m.id === modelId)) {
+                    if (!allModels.some((m: any) => m.id === modelId)) {
                         const stats = fs.statSync(filePath);
                         const modelName = modelId.replace('imported_', '').replace(/_/g, ' ');
 
@@ -230,14 +230,14 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         // These might not be in our hardcoded lists or global registry
         const managerModels = this.modelManager.getAllModels();
         for (const model of managerModels) {
-             if (!allModels.some(m => m.id === model.id)) {
+             if (!allModels.some((m: any) => m.id === model.id)) {
                  allModels.push(model as any);
              }
         }
 
         return allModels.map(model => ({
             ...model,
-            isDownloaded: downloadedModels.some(dm => dm.id === model.id) || !!(model.path && fs.existsSync(model.path)),
+            isDownloaded: downloadedModels.some((dm: any) => dm.id === model.id) || !!(model.path && fs.existsSync(model.path)),
             isImported: (model as any).isImported || model.id.startsWith('imported_')
         })).filter(m => m.size > 1024 * 1024); // Filter out models smaller than 1MB (dummy/corrupted)
     }
@@ -265,7 +265,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 progress: { progress: 0, speed: 0 }
             });
 
-            await this._modelDownloader.downloadModel(model, (progressPercent) => {
+            await this._modelDownloader.downloadModel(model, (progressPercent: number) => {
                 // Get detailed progress including speed
                 const progressData = this._modelDownloader.getDownloadProgress(modelId);
 
@@ -322,14 +322,14 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             await this._downloadManager.download({
                 url,
                 destPath,
-                onProgress: (progress) => {
+                onProgress: (progress: any) => {
                     this._view?.webview.postMessage({
                         command: 'downloadProgress',
                         modelId,
                         progress
                     });
                 },
-                onComplete: async (filePath) => {
+                onComplete: async (filePath: string) => {
                     // Import the downloaded model
                     try {
                         const importedModel = await this._modelDownloader.importModel(filePath);
@@ -357,7 +357,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                         });
                     }
                 },
-                onError: (error) => {
+                onError: (error: any) => {
                     this._view?.webview.postMessage({
                         command: 'notification',
                         message: `Download failed: ${error.message}`,
@@ -741,7 +741,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
     private _getHtmlForWebview(webview: vscode.Webview) {
         const extensionUri = this._extensionUri;
-        const webviewUri = vscode.Uri.joinPath(extensionUri, 'out', 'webview');
+        const webviewUri = vscode.Uri.joinPath(extensionUri, 'media', 'webview');
         const indexPath = vscode.Uri.joinPath(webviewUri, 'index.html');
 
         try {
