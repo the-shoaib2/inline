@@ -25,6 +25,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable real-time AI code completion"
+        },
+        "inline.resourceMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable resource monitoring"
         }
       }
     }

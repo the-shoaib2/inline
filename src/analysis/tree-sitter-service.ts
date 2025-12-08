@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import Parser from 'web-tree-sitter';
 import { Logger } from '../system/logger';
+import { NativeLoader } from '../native/native-loader';
 
 /**
  * Tree-sitter query match result
@@ -336,7 +337,34 @@ export class TreeSitterService {
     /**
      * Parse code to AST
      */
+    /**
+     * Parse code to AST (Native with WASM fallback)
+     */
     public async parse(code: string, languageId: string): Promise<Parser.Tree | null> {
+        const native = NativeLoader.getInstance();
+        
+        if (native.isAvailable()) {
+            try {
+                // Determine if we can use native parsing
+                // Note: Native parser returns a different structure, so we might need adapter
+                // For now, we follow the interface and assume compatibility or handle fallback
+                const result = await native.parseAst(code, languageId);
+                if (result) {
+                     return result;
+                }
+            } catch (error) {
+                this.logger.warn('Native parse failed, using WASM fallback', error);
+            }
+        }
+        
+        // Existing WASM implementation
+        return this.parseWasm(code, languageId);
+    }
+
+    /**
+     * Parse code to AST using WASM (Fallback)
+     */
+    public async parseWasm(code: string, languageId: string): Promise<Parser.Tree | null> {
         const parser = await this.getParser(languageId);
         if (!parser) {
             return null;

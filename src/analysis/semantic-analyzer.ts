@@ -808,7 +808,7 @@ export class SemanticAnalyzer {
 
         try {
             const code = document.getText();
-            const tree = await this.treeSitterService.parse(code, language);
+            const tree = await this.treeSitterService.parseWasm(code, language);
             
             if (!tree) {
                 return decorators;
@@ -870,7 +870,7 @@ export class SemanticAnalyzer {
 
         try {
             const code = document.getText();
-            const tree = await this.treeSitterService.parse(code, language);
+            const tree = await this.treeSitterService.parseWasm(code, language);
             
             if (!tree) {
                 return generics;

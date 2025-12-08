@@ -14,6 +14,9 @@ async function main() {
       version: '1.93.0',
       extensionDevelopmentPath,
       extensionTestsPath,
+      extensionTestsEnv: {
+        TEST_PATTERN: process.argv[2]
+      },
       launchArgs: [
         path.resolve(__dirname, '../fixtures/sample-workspace')
       ]

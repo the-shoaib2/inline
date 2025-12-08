@@ -40,14 +40,24 @@ export async function run(): Promise<void> {
   const testsRoot = path.resolve(__dirname, '..');
 
   try {
-    // Run E2E tests (TDD style)
-    await runSuite('e2e/**/*.test.js', 'tdd', testsRoot);
-    
-    // Run Unit tests (BDD style)
-    await runSuite('unit/**/*.test.js', 'bdd', testsRoot);
-    
-    // Run Native tests (TDD style)
-    await runSuite('native/**/*.test.js', 'tdd', testsRoot);
+    // Check for test pattern from env
+    const pattern = process.env['TEST_PATTERN'];
+
+    if (pattern) {
+      console.log(`Running tests matching pattern: ${pattern}`);
+      // Default to TDD for targeted tests (works for most) or detect based on file?
+      // For now assume TDD as most suites use 'suite'
+      await runSuite(pattern, 'tdd', testsRoot);
+    } else {
+      // Run E2E tests (TDD style)
+      await runSuite('e2e/**/*.test.js', 'tdd', testsRoot);
+      
+      // Run Unit tests (BDD style)
+      await runSuite('unit/**/*.test.js', 'bdd', testsRoot);
+      
+      // Run Native tests (TDD style)
+      await runSuite('native/**/*.test.js', 'tdd', testsRoot);
+    }
     
   } catch (err) {
     console.error('Test execution failed:', err);
