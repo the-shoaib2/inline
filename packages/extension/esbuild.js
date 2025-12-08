@@ -32,12 +32,12 @@ async function main() {
         sourcemap: !production,
         sourcesContent: false,
         platform: "node",
-        outfile: "../../out/packages/extension/src/extension.js",
+        outfile: "dist/extension.js",
         external: [
             "vscode",
-            "@inline/native-rust", // Treat native module as external
-            "@inline/native-cpp", // Treat native module as external
-            "node-llama-cpp", // Depends on native bindings
+            "@inline/native-rust",
+            "@inline/native-cpp",
+            "node-llama-cpp",
             "web-tree-sitter"
         ],
         logLevel: "silent",

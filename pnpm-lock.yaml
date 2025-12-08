@@ -20,6 +20,9 @@ importers:
       '@types/tar':
         specifier: ^6.1.13
         version: 6.1.13
+      node-llama-cpp:
+        specifier: ^3.14.4
+        version: 3.14.4(typescript@5.9.3)
       tar:
         specifier: ^7.5.2
         version: 7.5.2
@@ -72,9 +75,6 @@ importers:
       module-alias:
         specifier: ^2.2.3
         version: 2.2.3
-      node-llama-cpp:
-        specifier: ^3.14.4
-        version: 3.14.4(typescript@5.9.3)
       tsc-alias:
         specifier: ^1.8.16
         version: 1.8.16
