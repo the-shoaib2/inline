@@ -240,21 +240,21 @@ export class QuantizationManager {
                     contextSize: 4096,
                     batchSize: 512,
                     threads: 4,
-                    useMlock: true
+                    useMlock: false
                 };
             case 'Q5_K':
                 return {
                     contextSize: 4096,
                     batchSize: 512,
                     threads: 4,
-                    useMlock: true
+                    useMlock: false
                 };
             case 'Q6_K':
                 return {
                     contextSize: 4096,
                     batchSize: 256,
                     threads: 6,
-                    useMlock: true
+                    useMlock: false
                 };
             case 'Q8_0':
             case 'F16':
@@ -270,7 +270,7 @@ export class QuantizationManager {
                     contextSize: 2048,
                     batchSize: 256,
                     threads: 4,
-                    useMlock: true
+                    useMlock: false
                 };
         }
     }

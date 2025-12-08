@@ -235,7 +235,8 @@ export class LlamaInference {
             this.logger.info('Loading model into memory...');
             this.model = await llama.loadModel({
                 modelPath: modelPath,
-                useMlock: true,
+                useMlock: false, 
+                useMmap: true,   
                 gpuLayers: gpuLayers,
             });
             this.logger.info('Model loaded into memory');

@@ -615,18 +615,56 @@ export class ModelManager {
     }
 
     async optimizeModel(language: string): Promise<void> {
-        // Implement model optimization for specific languages
-        const optimizations: Record<string, { temperature: number; topP: number; maxTokens: number }> = {
-            'python': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
-            'javascript': { temperature: 0.3, topP: 0.95, maxTokens: 512 },
-            'typescript': { temperature: 0.3, topP: 0.95, maxTokens: 512 },
-            'java': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
-            'cpp': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
-            'rust': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
-            'go': { temperature: 0.2, topP: 0.9, maxTokens: 512 }
+        // Dynamic language optimization with intelligent categorization
+        const languageCategories = {
+            // Statically-typed, strict languages (lower temperature for precision)
+            strict: ['python', 'java', 'cpp', 'c', 'rust', 'go', 'kotlin', 'swift', 'csharp', 'c#', 'scala', 'haskell', 'ocaml', 'fsharp', 'f#'],
+            // Dynamically-typed, flexible languages (moderate temperature)
+            dynamic: ['javascript', 'typescript', 'jsx', 'tsx', 'ruby', 'perl', 'lua', 'php', 'groovy', 'clojure', 'lisp', 'elisp'],
+            // Web markup and data formats (lower temperature)
+            markup: ['html', 'html5', 'css', 'css3', 'xml', 'json', 'yaml', 'toml', 'markdown', 'md'],
+            // Functional languages (moderate-high temperature)
+            functional: ['haskell', 'elixir', 'erlang', 'clojure', 'scheme', 'racket', 'lisp'],
+            // Systems programming (low temperature)
+            systems: ['rust', 'cpp', 'c', 'zig', 'nim', 'crystal', 'fortran', 'cobol'],
+            // Data science (moderate temperature)
+            datascience: ['python', 'r', 'julia', 'sql'],
+            // Mobile (moderate temperature)
+            mobile: ['swift', 'kotlin', 'dart', 'objective-c', 'objc'],
+            // Scripting (high temperature for flexibility)
+            scripting: ['shell', 'bash', 'powershell', 'perl', 'lua', 'groovy'],
+            // Blockchain/Smart contracts (low temperature)
+            blockchain: ['solidity', 'vyper'],
+            // Query languages (low temperature)
+            query: ['sql', 'codeql', 'ql', 'graphql']
         };
-        
-        const config = optimizations[language] || { temperature: 0.3, topP: 0.95, maxTokens: 512 };
+
+        // Determine language category and apply optimized config
+        const normalizedLang = language.toLowerCase();
+        let config = { temperature: 0.3, topP: 0.95, maxTokens: 512 };
+
+        if (languageCategories.strict.includes(normalizedLang)) {
+            config = { temperature: 0.2, topP: 0.9, maxTokens: 512 };
+        } else if (languageCategories.dynamic.includes(normalizedLang)) {
+            config = { temperature: 0.3, topP: 0.95, maxTokens: 512 };
+        } else if (languageCategories.markup.includes(normalizedLang)) {
+            config = { temperature: 0.15, topP: 0.85, maxTokens: 256 };
+        } else if (languageCategories.functional.includes(normalizedLang)) {
+            config = { temperature: 0.35, topP: 0.95, maxTokens: 512 };
+        } else if (languageCategories.systems.includes(normalizedLang)) {
+            config = { temperature: 0.15, topP: 0.85, maxTokens: 512 };
+        } else if (languageCategories.datascience.includes(normalizedLang)) {
+            config = { temperature: 0.25, topP: 0.9, maxTokens: 512 };
+        } else if (languageCategories.mobile.includes(normalizedLang)) {
+            config = { temperature: 0.25, topP: 0.9, maxTokens: 512 };
+        } else if (languageCategories.scripting.includes(normalizedLang)) {
+            config = { temperature: 0.4, topP: 0.98, maxTokens: 512 };
+        } else if (languageCategories.blockchain.includes(normalizedLang)) {
+            config = { temperature: 0.15, topP: 0.85, maxTokens: 512 };
+        } else if (languageCategories.query.includes(normalizedLang)) {
+            config = { temperature: 0.2, topP: 0.9, maxTokens: 256 };
+        }
+
         this.logger.info(`Optimizing model for ${language}: temp=${config.temperature}, topP=${config.topP}, maxTokens=${config.maxTokens}`);
         vscode.window.showInformationMessage(`Optimizing model for ${language}...`);
     }
