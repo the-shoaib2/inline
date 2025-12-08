@@ -35,34 +35,27 @@
 ### Supported Languages (40+)
 
 <!-- Most Popular --> 
-<p align="center">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black"/>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white"/>
   <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Java-007396?style=flat&logo=java&logoColor=white"/>
   <img src="https://img.shields.io/badge/C%23-239120?style=flat&logo=c-sharp&logoColor=white"/>
   <img src="https://img.shields.io/badge/PHP-777BB4?style=flat&logo=php&logoColor=white"/>
-</p>
 <!-- Systems & Performance -->
-<p align="center">
   <img src="https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white"/>
   <img src="https://img.shields.io/badge/Rust-CE422B?style=flat&logo=rust&logoColor=white"/>
   <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=c%2B%2B&logoColor=white"/>
   <img src="https://img.shields.io/badge/C-00599C?style=flat&logo=c&logoColor=white"/>
   <img src="https://img.shields.io/badge/Fortran-734F96?style=flat&logo=fortran&logoColor=white"/>
   <img src="https://img.shields.io/badge/COBOL-1572B6?style=flat&logo=ibm&logoColor=white"/>
-</p>
 
 <!-- Mobile & Cross-Platform -->
-<p align="center">
   <img src="https://img.shields.io/badge/Swift-FA7343?style=flat&logo=swift&logoColor=white"/>
   <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat&logo=kotlin&logoColor=white"/>
   <img src="https://img.shields.io/badge/Dart-0175C2?style=flat&logo=dart&logoColor=white"/>
   <img src="https://img.shields.io/badge/Objective--C-438EFF?style=flat&logo=apple&logoColor=white"/>
-</p>
 
 <!-- Functional & Academic -->
-<p align="center">
   <img src="https://img.shields.io/badge/Scala-DC322F?style=flat&logo=scala&logoColor=white"/>
   <img src="https://img.shields.io/badge/Haskell-5D4F85?style=flat&logo=haskell&logoColor=white"/>
   <img src="https://img.shields.io/badge/Elixir-4B275F?style=flat&logo=elixir&logoColor=white"/>
@@ -70,42 +63,33 @@
   <img src="https://img.shields.io/badge/Clojure-DB5855?style=flat&logo=clojure&logoColor=white"/>
   <img src="https://img.shields.io/badge/OCaml-EC6813?style=flat&logo=ocaml&logoColor=white"/>
   <img src="https://img.shields.io/badge/F%23-378BBA?style=flat&logo=fsharp&logoColor=white"/>
-</p>
 
 <!-- Data Science & Analytics -->
-<p align="center">
   <img src="https://img.shields.io/badge/R-276DC3?style=flat&logo=r&logoColor=white"/>
   <img src="https://img.shields.io/badge/Julia-9558B2?style=flat&logo=julia&logoColor=white"/>
   <img src="https://img.shields.io/badge/SQL-4479A1?style=flat&logo=postgresql&logoColor=white"/>
-</p>
 
 <!-- Web & Markup -->
-<p align="center">
   <img src="https://img.shields.io/badge/HTML5-E34C26?style=flat&logo=html5&logoColor=white"/>
   <img src="https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white"/>
   <img src="https://img.shields.io/badge/JSON-000000?style=flat&logo=json&logoColor=white"/>
   <img src="https://img.shields.io/badge/YAML-CB171E?style=flat&logo=yaml&logoColor=white"/>
   <img src="https://img.shields.io/badge/TOML-9C4121?style=flat&logo=toml&logoColor=white"/>
-</p>
 
 <!-- Scripting & Automation -->
-<p align="center">
   <img src="https://img.shields.io/badge/Shell-4EAA25?style=flat&logo=gnu-bash&logoColor=white"/>
   <img src="https://img.shields.io/badge/PowerShell-5391FE?style=flat&logo=powershell&logoColor=white"/>
   <img src="https://img.shields.io/badge/Perl-39457E?style=flat&logo=perl&logoColor=white"/>
   <img src="https://img.shields.io/badge/Ruby-CC342D?style=flat&logo=ruby&logoColor=white"/>
   <img src="https://img.shields.io/badge/Lua-2C2D72?style=flat&logo=lua&logoColor=white"/>
   <img src="https://img.shields.io/badge/Groovy-4298B8?style=flat&logo=apache-groovy&logoColor=white"/>
-</p>
 
 <!-- Modern & Emerging -->
-<p align="center">
   <img src="https://img.shields.io/badge/Zig-F7A41D?style=flat&logo=zig&logoColor=white"/>
   <img src="https://img.shields.io/badge/Nim-FFE953?style=flat&logo=nim&logoColor=black"/>
   <img src="https://img.shields.io/badge/Crystal-000000?style=flat&logo=crystal&logoColor=white"/>
   <img src="https://img.shields.io/badge/Solidity-363636?style=flat&logo=solidity&logoColor=white"/>
   <img src="https://img.shields.io/badge/Visual%20Basic-5C2D91?style=flat&logo=visual-studio&logoColor=white"/>
-</p>
 
 ---
 
