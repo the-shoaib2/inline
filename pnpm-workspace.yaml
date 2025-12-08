@@ -1,7 +1,6 @@
 packages:
-  - webview
-  - native
-  - native-cpp
+  - 'packages/*'
+
 
 ignoredBuiltDependencies:
   - esbuild
