@@ -34,6 +34,7 @@
 
 ### Supported Languages (40+)
 
+<p align="center">
 <!-- Most Popular --> 
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black"/>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white"/>
@@ -90,6 +91,7 @@
   <img src="https://img.shields.io/badge/Crystal-000000?style=flat&logo=crystal&logoColor=white"/>
   <img src="https://img.shields.io/badge/Solidity-363636?style=flat&logo=solidity&logoColor=white"/>
   <img src="https://img.shields.io/badge/Visual%20Basic-5C2D91?style=flat&logo=visual-studio&logoColor=white"/>
+</p>
 
 ---
 

@@ -6,8 +6,7 @@
             "type": "extensionHost",
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}",
-                "${workspaceFolder}/test/fixtures/sample-workspace"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/extension"
             ],
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"
