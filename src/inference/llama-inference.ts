@@ -97,8 +97,8 @@ export class LlamaInference {
         '\\[\\s*MIDDLE\\s*\\]',
 
         // CRITICAL: Curly brace pipe format (DeepSeek, Qwen, etc.)
-        '\\{\\s*\\|\\s*\\}',                          // {|}
-        '\\{\\s*\\|\\s*fim\\s*\\|\\s*\\}',            // {|fim|}  ← THE BUG!
+        '\\{\\s*\\|\\s*\\}\\s*',                      // {|} + optional space
+        // '\\{\\s*\\|\\s*fim\\s*\\|\\s*\\}',            // REMOVED: potentially buggy/greedy
         '\\{\\s*\\|\\s*fim_prefix\\s*\\|\\s*\\}',     // {|fim_prefix|}
         '\\{\\s*\\|\\s*fim_suffix\\s*\\|\\s*\\}',     // {|fim_suffix|}
         '\\{\\s*\\|\\s*fim_middle\\s*\\|\\s*\\}',     // {|fim_middle|}
@@ -106,8 +106,11 @@ export class LlamaInference {
         '\\{\\s*\\|\\s*fim_begin\\s*\\|\\s*\\}',      // {|fim_begin|}
         '\\{\\s*\\|\\s*fim_hole\\s*\\|\\s*\\}',       // {|fim_hole|}
 
-        // Catch-all for any {|...|} pattern
+        // catch-all for any {|...|} pattern
         '\\{\\s*\\|[^}]*\\|\\s*\\}',                 // {|anything|}
+
+        // Combined FIM keywords (e.g. prefix|suffix) which overlap on the pipe
+        '\\b(?:prefix|suffix|middle)\\s*\\|\\s*(?:prefix|suffix|middle)\\b',
 
         // Standalone FIM keywords with pipes (simpler patterns without lookbehind/lookahead)
         '\\bprefix\\s*\\|',                          // "prefix|" or "prefix |"
@@ -339,6 +342,17 @@ export class LlamaInference {
             // Tokenize the prompt
             const tokens = this.model.tokenize(trimmedPrompt);
             this.logger.info(`Tokenized prompt: ${tokens.length} tokens`);
+            
+            // Log full prompt for debugging (masked to avoid huge logs if needed, but useful now)
+            console.log(`[LlamaInference] 🟢 PROMPT START 🟢`);
+            console.log(trimmedPrompt);
+            
+            // DEBUG: Log hex of prompt tail
+            const promptTail = trimmedPrompt.slice(-100);
+            console.log(`[LlamaInference] Prompt Tail HEX: ${Array.from(promptTail).map(c => c.charCodeAt(0).toString(16).padStart(4, '0')).join(' ')}`);
+            
+            console.log(`[LlamaInference] 🔴 PROMPT END 🔴`);
+            console.log(`[LlamaInference] Input Tokens: ${tokens.length}, Max Output: ${maxTokens}, Temp: ${temperature}`);
 
             // Ensure we have a persistent sequence
             if (!this.activeSequence) {
@@ -376,6 +390,11 @@ export class LlamaInference {
 
             for await (const token of stream) {
                 loopIterations++;
+                loopIterations++;
+                // DEBUG: Log every token to see what is happening
+                const debugText = this.model.detokenize([token]);
+                console.log(`[LlamaInference] Stream token [${loopIterations}]: ${JSON.stringify(debugText)} (id: ${token})`);
+
                 if (loopIterations === 1) {
                     this.logger.info('First token received from stream');
                 }
@@ -633,8 +652,12 @@ export class LlamaInference {
 
             this.logger.info(`Token generation loop completed. Iterations: ${loopIterations}, Tokens: ${tokensGenerated}`);
 
-            if (loopIterations === 0) {
-                this.logger.warn('⚠️  Stream produced NO tokens! Model may not be generating.');
+            this.logger.info(`Token generation loop completed. Iterations: ${loopIterations}, Tokens: ${tokensGenerated}`);
+
+            if (tokensGenerated === 0) {
+                 this.logger.error('⚠️  Stream produced NO tokens! Model declined to generate or failed immediately.');
+                 console.log('[LlamaInference] ⚠️ Model returned empty response immediately.');
+                 this.logger.warn('Prompt might be malformed or model refused to generate.');
             }
 
             // Phase 9: DONE - Do NOT dispose sequence here.
@@ -643,6 +666,7 @@ export class LlamaInference {
             this.logger.info('Sequence retained for KV cache');
 
             // Clean up any remaining FIM tokens from the final completion using comprehensive patterns
+            console.log(`[DEBUG] Raw completion (len=${completion.length}):`, JSON.stringify(completion));
             let cleanedCompletion = completion;
 
             // PASS 1: Apply all FIM token patterns from the static regex
@@ -689,9 +713,10 @@ export class LlamaInference {
 
             // PASS 7: Clean up excessive whitespace/newlines created by token removal
             cleanedCompletion = cleanedCompletion.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
-            cleanedCompletion = cleanedCompletion.replace(/^[\s\n]+/, ''); // Remove leading whitespace
+            // cleanedCompletion = cleanedCompletion.replace(/^[\s\n]+/, ''); // Remove leading whitespace (Disabled to support indentation)
 
-            return cleanedCompletion.trim();
+            console.log(`[DEBUG] Cleaned completion (len=${cleanedCompletion.trimEnd().length}):`, JSON.stringify(cleanedCompletion.trimEnd()));
+            return cleanedCompletion.trimEnd();
         } catch (error) {
             this.logger.error(`Completion generation failed: ${error}`);
 

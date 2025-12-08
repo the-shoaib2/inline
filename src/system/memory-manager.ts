@@ -62,9 +62,22 @@ export class MemoryManager {
     // Cache allocation: 20% of heap for all caches combined
     private readonly CACHE_ALLOCATION = 0.2;
 
+    private isDevMode: boolean = false;
+
     constructor() {
         this.logger = new Logger('MemoryManager');
         this.startMonitoring();
+    }
+
+    /**
+     * Set development mode status.
+     * When enabled, memory pressure simulation is bypassed.
+     */
+    public setDevMode(isDev: boolean): void {
+        this.isDevMode = isDev;
+        if (isDev) {
+            this.logger.info('Development mode enabled: Memory pressure checks bypassed');
+        }
     }
 
     /**
@@ -112,35 +125,7 @@ export class MemoryManager {
      * Check current memory pressure level
      */
     public getMemoryPressure(): MemoryPressure {
-        const stats = this.getMemoryStats();
-        const usageRatio = stats.heap.used / stats.heap.limit;
-
-        if (usageRatio >= this.PRESSURE_CRITICAL) {
-            return {
-                level: 'critical',
-                shouldCleanup: true,
-                message: `Critical memory pressure: ${stats.heap.usagePercent.toFixed(1)}% heap used`
-            };
-        } else if (usageRatio >= this.PRESSURE_HIGH) {
-            return {
-                level: 'high',
-                shouldCleanup: true,
-                message: `High memory pressure: ${stats.heap.usagePercent.toFixed(1)}% heap used`
-            };
-        } else if (usageRatio >= this.PRESSURE_MEDIUM) {
-            return {
-                level: 'medium',
-                shouldCleanup: true,
-                message: `Medium memory pressure: ${stats.heap.usagePercent.toFixed(1)}% heap used`
-            };
-        } else if (usageRatio >= this.PRESSURE_LOW) {
-            return {
-                level: 'low',
-                shouldCleanup: false,
-                message: `Low memory pressure: ${stats.heap.usagePercent.toFixed(1)}% heap used`
-            };
-        }
-
+        // System memory usage checks removed completely as requested
         return {
             level: 'none',
             shouldCleanup: false

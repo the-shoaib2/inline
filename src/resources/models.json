@@ -95,13 +95,7 @@
         "size": 7194070220,
         "description": "Excellent for complex patterns and scientific computing",
         "languages": [
-            "python",
-            "javascript",
-            "typescript",
-            "cpp",
-            "java",
-            "go",
-            "rust"
+            "all"
         ],
         "requirements": {
             "vram": 8,
@@ -112,7 +106,10 @@
         "isDownloaded": false,
         "architecture": "llama",
         "contextWindow": 16384,
-        "fimTemplate": "deepseek"
+        "fimTemplate": "deepseek",
+        "huggingfaceRepo": "TheBloke/deepseek-coder-6.7B-instruct-GGUF",
+        "huggingfaceFile": "deepseek-coder-6.7b-instruct.Q4_K_M.gguf",
+        "downloadUrl": "https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF/resolve/main/deepseek-coder-6.7b-instruct.Q4_K_M.gguf"
     },
     {
         "id": "deepseek-coder:33b",
@@ -172,14 +169,7 @@
         "size": 7516192768,
         "description": "Strong across multiple programming languages",
         "languages": [
-            "python",
-            "javascript",
-            "typescript",
-            "cpp",
-            "java",
-            "go",
-            "rust",
-            "php"
+            "all"
         ],
         "requirements": {
             "vram": 8,
@@ -190,7 +180,10 @@
         "isDownloaded": false,
         "architecture": "starcoder2",
         "contextWindow": 16384,
-        "fimTemplate": "starcoder"
+        "fimTemplate": "starcoder",
+        "huggingfaceRepo": "second-state/StarCoder2-7B-GGUF",
+        "huggingfaceFile": "starcoder2-7b-Q4_K_M.gguf",
+        "downloadUrl": "https://huggingface.co/second-state/StarCoder2-7B-GGUF/resolve/main/starcoder2-7b-Q4_K_M.gguf"
     },
     {
         "id": "starcoder2:15b",

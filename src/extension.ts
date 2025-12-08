@@ -80,6 +80,16 @@ export async function activate(context: vscode.ExtensionContext) {
         // Initialize language service for context analysis
         LanguageConfigService.getInstance().initialize(context);
 
+        // Initialize Tree-sitter for accurate AST parsing
+        const { TreeSitterService } = await import('./analysis/tree-sitter-service');
+        const treeSitterService = TreeSitterService.getInstance();
+        try {
+            await treeSitterService.initialize(context);
+            console.log('[Inline] Tree-sitter initialized successfully');
+        } catch (error) {
+            console.warn('[Inline] Tree-sitter initialization failed, falling back to regex:', error);
+        }
+
         // Initialize core services
         logger = new Logger('Inline');
         logger.info('Activating Inline extension...');

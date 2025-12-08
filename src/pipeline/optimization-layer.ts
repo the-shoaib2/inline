@@ -10,6 +10,8 @@ export class OptimizationLayer {
     private readonly cacheTTL: number;
     private readonly maxCacheSize: number;
     private throttleTimers: Map<string, NodeJS.Timeout> = new Map();
+    private cacheHits: number = 0;
+    private cacheMisses: number = 0;
 
     constructor(cacheTTL: number = 60000, maxCacheSize: number = 1000) {
         this.logger = new Logger('OptimizationLayer');
@@ -39,15 +41,18 @@ export class OptimizationLayer {
         const cached = this.eventCache.get(key);
 
         if (!cached) {
+            this.cacheMisses++;
             return null;
         }
 
         // Check if expired
         if (Date.now() - cached.timestamp > this.cacheTTL) {
             this.eventCache.delete(key);
+            this.cacheMisses++;
             return null;
         }
 
+        this.cacheHits++;
         return cached.event;
     }
 
@@ -153,7 +158,7 @@ export class OptimizationLayer {
         return {
             size: this.eventCache.size,
             maxSize: this.maxCacheSize,
-            hitRate: 0 // TODO: Track hits/misses
+            hitRate: this.cacheHits / Math.max(1, this.cacheHits + this.cacheMisses)
         };
     }
 

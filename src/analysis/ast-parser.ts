@@ -1,3 +1,6 @@
+import Parser from 'web-tree-sitter';
+import { TreeSitterService } from './tree-sitter-service';
+
 /**
  * Abstract Syntax Tree node
  */
@@ -32,23 +35,41 @@ export interface CodeBlock {
 }
 
 /**
- * Language-agnostic AST parser for structural code analysis
+ * Language-agnostic AST parser for structural code analysis.
+ * 
+ * Now supports Tree-sitter for accurate parsing with regex fallback.
  */
 export class ASTParser {
     private languageParsers: Map<string, (code: string) => ASTNode | null>;
+    private treeSitterService: TreeSitterService;
 
     constructor() {
         this.languageParsers = new Map();
+        this.treeSitterService = TreeSitterService.getInstance();
         this.initializeParsers();
     }
 
     /**
-     * Parse code to AST
+     * Parse code to AST.
+     * 
+     * Tries Tree-sitter first for accurate parsing, falls back to regex.
      */
-    public parse(code: string, language: string): ASTNode | null {
+    public async parse(code: string, language: string): Promise<ASTNode | null> {
+        // Try Tree-sitter first
+        if (this.treeSitterService.isSupported(language)) {
+            try {
+                const tree = await this.treeSitterService.parse(code, language);
+                if (tree) {
+                    return this.convertTreeSitterToASTNode(tree.rootNode);
+                }
+            } catch (error) {
+                console.warn(`Tree-sitter parsing failed for ${language}, falling back to regex:`, error);
+            }
+        }
+
+        // Fall back to regex-based parsing
         const parser = this.languageParsers.get(language.toLowerCase());
         if (!parser) {
-            // Fallback to generic parser
             return this.parseGeneric(code);
         }
 
@@ -377,6 +398,29 @@ export class ASTParser {
             children: [],
             value: code
         };
+    }
+
+    /**
+     * Convert Tree-sitter syntax node to internal ASTNode format
+     */
+    private convertTreeSitterToASTNode(node: Parser.SyntaxNode): ASTNode {
+        const astNode: ASTNode = {
+            type: node.type,
+            value: node.text.length < 100 ? node.text : undefined,
+            startLine: node.startPosition.row,
+            endLine: node.endPosition.row,
+            children: []
+        };
+
+        // Convert children recursively
+        for (let i = 0; i < node.childCount; i++) {
+            const child = node.child(i);
+            if (child) {
+                astNode.children!.push(this.convertTreeSitterToASTNode(child));
+            }
+        }
+
+        return astNode;
     }
 
     /**

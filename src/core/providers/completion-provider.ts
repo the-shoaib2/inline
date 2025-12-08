@@ -346,10 +346,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             return [];
         }
 
-        if (this.isProcessing) {
-            console.log('[INLINE] ⏳ Already processing, skipping');
-            return [];
-        }
+        // if (this.isProcessing) {
+        //     console.log('[INLINE] ⏳ Already processing, skipping');
+        //     return [];
+        // }
 
         // Cancel any running prefetch to prioritize user interaction
         if (this.prefetchCancellation) {
@@ -392,19 +392,23 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
 
             // 2. Parallel: Gather context + get diagnostics (only on miss)
+            const contextStartTime = Date.now();
             const [codeContext, diagnostics] = await Promise.all([
                 this.contextEngine.buildContext(document, position),
                 this.getDiagnostics(document, position)
             ]);
+            const contextGatherTime = Date.now() - contextStartTime;
 
             // Enhance context with diagnostics
             const enhancedContext = this.enhanceContextWithDiagnostics(codeContext, diagnostics);
 
             console.log('[INLINE] 🤖 Generating completion...');
+            const inferenceStartTime = Date.now();
             let completion = await this.generateCompletion(enhancedContext, token, document, position);
+            const inferenceTime = Date.now() - inferenceStartTime;
             console.log(`[INLINE] 🤖 Generated completion (${completion?.length || 0} chars):`, completion?.substring(0, 100));
 
-            if (completion && completion.trim().length > 0) {
+            if (completion && completion.length > 0) {
                 // NEW: Enhance with function completer
                 const config = vscode.workspace.getConfiguration('inline');
                 const functionCompletionEnabled = config.get<boolean>('functionCompletion.enabled', true);
@@ -448,8 +452,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
                 this.recordPerformance({
                     totalTime: Date.now() - startTime,
-                    contextGatherTime: 0, // TODO: Track properly
-                    inferenceTime: 0, // TODO: Track properly
+                    contextGatherTime,
+                    inferenceTime,
                     renderTime: 0,
                     tokensGenerated: Math.ceil(generatedChars / 4),
                     cacheHit: false,
@@ -609,11 +613,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         }
 
         // Allow completions when typing code (not in comments)
-        const isInComment = this.isInComment(document, position);
-        if (isInComment) {
-            // Don't generate while typing inside a comment
-            return false;
-        }
+        // const isInComment = this.isInComment(document, position);
+        // if (isInComment) {
+        //     // Don't generate while typing inside a comment
+        //     return false;
+        // }
 
         return true;
     }
@@ -875,7 +879,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             if (config.get('resourceMonitoring', true)) {
                 const resources = this.resourceManager.getCurrentUsage();
                 const memoryThreshold = config.get<number>('resourceMonitoring.memoryThreshold', 0.98);
-                console.log(`[INLINE] 💾 Memory usage: ${(resources.memory * 100).toFixed(1)}% (threshold: ${(memoryThreshold * 100).toFixed(0)}%)`);
+                // console.log(`[INLINE] 💾 Memory usage: ${(resources.memory * 100).toFixed(1)}% (threshold: ${(memoryThreshold * 100).toFixed(0)}%)`);
 
                 if (resources.memory > memoryThreshold) {
                     console.warn(`[INLINE] ⚠️  High memory usage: ${(resources.memory * 100).toFixed(1)}% (threshold: ${(memoryThreshold * 100).toFixed(0)}%)`);
@@ -1020,7 +1024,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Actually, config.get returns effective value.
         // We want to override the "default" large block if we detect small edit.
 
-        const line = document.lineAt(position.line);
+        // SAFEGUARD: Validate line number exists (document may have changed during async awaits)
+    if (position.line >= document.lineCount) {
+        return config.get<number>('maxTokens', 128);
+    }
+
+    const line = document.lineAt(position.line);
         const textAfter = line.text.substring(position.character);
         const lineText = line.text.trim();
 

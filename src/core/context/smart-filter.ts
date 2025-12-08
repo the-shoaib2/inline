@@ -18,7 +18,7 @@ export class SmartFilter {
     private lastKeystrokeTime: number = 0;
     private keyPressHistory: number[] = [];
     private readonly HISTORY_SIZE = 10;
-    private readonly FAST_TYPING_THRESHOLD = 8; // chars/sec threshold
+    private readonly FAST_TYPING_THRESHOLD = 12; // chars/sec threshold (relaxed)
 
     constructor() {}
 

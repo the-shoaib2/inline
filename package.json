@@ -619,6 +619,7 @@
     "@typescript-eslint/parser": "^6.13.0",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.8",
+    "@vscode/tree-sitter-wasm": "^0.0.4",
     "@vscode/vsce": "^3.7.1",
     "chai": "^4.3.10",
     "eslint": "^8.54.0",
@@ -635,6 +636,8 @@
     "node-llama-cpp": "^3.14.2",
     "semver": "^7.5.4",
     "tar": "^6.2.0",
+    "tree-sitter-wasms": "^0.1.11",
+    "web-tree-sitter": "^0.20.8",
     "ws": "^8.14.2"
   }
 }

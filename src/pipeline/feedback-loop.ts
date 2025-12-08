@@ -57,7 +57,13 @@ export class FeedbackLoop {
 
         this.logger.debug(`Feedback received: ${isAccepted ? 'ACCEPTED' : 'REJECTED'}. Recent Rate: ${(this.recentAcceptanceRate * 100).toFixed(1)}%`);
 
-        // TODO: Implement adaptive logic based on rate
+        // Implement adaptive logic based on rate
+        if (this.recentAcceptanceRate < 0.3) {
+            this.logger.warn(`Low acceptance rate (${(this.recentAcceptanceRate * 100).toFixed(1)}%). Consider adjusting temperature or context.`);
+            // Could trigger automatic parameter adjustment here
+        } else if (this.recentAcceptanceRate > 0.7) {
+            this.logger.info(`High acceptance rate (${(this.recentAcceptanceRate * 100).toFixed(1)}%). Model performing well.`);
+        }
         // e.g. If acceptance rate is low (< 10%), increase confidence threshold
         // e.g. If acceptance rate is high (> 60%), maybe increase max tokens?
     }

@@ -20,7 +20,6 @@ export class PerformanceTuner {
         // Let's be proactive.
         
         const cpus = os.cpus().length;
-        const memory = os.totalmem();
         
         // Heuristic:
         // Threads: physical cores usually best. Node sees logical cores. 

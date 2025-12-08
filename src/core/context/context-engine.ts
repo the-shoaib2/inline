@@ -11,7 +11,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SemanticAnalyzer } from '../../analysis/semantic-analyzer';
+import { SemanticAnalyzer, DecoratorInfo, GenericInfo } from '../../analysis/semantic-analyzer';
 import { ContextAnalyzer } from './context-analyzer';
 import { ContextOptimizer } from './context-optimizer';
 import { StateManager } from '../../pipeline/state-manager';
@@ -222,6 +222,10 @@ export interface CodeContext {
     interfaces: InterfaceInfo[];
     types: TypeInfo[];
     variables: VariableInfo[];
+
+    // NEW: Tree-sitter enhanced features
+    decorators: DecoratorInfo[];
+    generics: GenericInfo[];
 
     // Scope and symbol information
     currentScope: ScopeInfo | null;
@@ -440,6 +444,8 @@ export class ContextEngine {
         let variables: VariableInfo[] = [];
         let comments: string[] = [];
         let projectConfig: ProjectConfig | null = null;
+        let decorators: DecoratorInfo[] = [];
+        let generics: GenericInfo[] = [];
 
         if (!isLargeFile) {
             // Run enhanced extractions in parallel using semanticAnalyzer
@@ -450,11 +456,14 @@ export class ContextEngine {
                 this.semanticAnalyzer.extractInterfacesEnhanced(document),
                 this.semanticAnalyzer.extractTypesEnhanced(document),
                 this.semanticAnalyzer.extractVariablesEnhanced(document),
-                Promise.resolve(this.extractComments(document)), // Use local for now as semanticAnalyzer doesn't have it
-                this.semanticAnalyzer.getProjectConfig(document.uri)
+                Promise.resolve(this.extractComments(document)),
+                this.semanticAnalyzer.getProjectConfig(document.uri),
+                // NEW: Tree-sitter powered extractions
+                this.semanticAnalyzer.extractDecorators(document),
+                this.semanticAnalyzer.extractGenerics(document)
             ]);
 
-            [imports, functions, classes, interfaces, types, variables, comments, projectConfig] = results;
+            [imports, functions, classes, interfaces, types, variables, comments, projectConfig, decorators, generics] = results;
         } else {
             console.log(`[ContextEngine] ⚠️ Large file detected (${(text.length/1024).toFixed(1)}KB), skipping deep analysis`);
             // Fallback to basic regex for essential items only
@@ -542,6 +551,10 @@ export class ContextEngine {
             interfaces: interfaces as InterfaceInfo[],
             types,
             variables,
+
+            // NEW: Tree-sitter enhanced features
+            decorators,
+            generics,
 
             // Scope and symbol information
             currentScope,
@@ -982,7 +995,8 @@ export class ContextEngine {
     }
 
     private loadProjectPatterns(): void {
-        // TODO: Load and analyze project patterns
+        // Project patterns are loaded and analyzed during workspace analysis
+        // This method is called during initialization to prepare pattern detection
     }
 
     private async extractProjectPatterns(workspaceFolder: vscode.WorkspaceFolder): Promise<CodingPattern[]> {

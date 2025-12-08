@@ -14,6 +14,7 @@
 
 import * as vscode from 'vscode';
 import { LanguageConfigService } from '../core/config/language-config-service';
+import { TreeSitterService } from './tree-sitter-service';
 
 import type {
     ImportInfo, FunctionInfo, ClassInfo, InterfaceInfo, TypeInfo, VariableInfo,
@@ -22,10 +23,35 @@ import type {
 } from '../core/context/context-engine';
 
 /**
+ * Decorator information extracted from code
+ */
+export interface DecoratorInfo {
+    name: string;
+    arguments?: string;
+    lineNumber: number;
+    target?: 'class' | 'method' | 'property' | 'parameter';
+}
+
+/**
+ * Generic type parameter information
+ */
+export interface GenericInfo {
+    name: string;
+    constraint?: string;
+    defaultType?: string;
+    lineNumber: number;
+}
+
+/**
  * Performs semantic analysis on code documents.
  * Extracts structural information for context building.
  */
 export class SemanticAnalyzer {
+    private treeSitterService: TreeSitterService;
+
+    constructor() {
+        this.treeSitterService = TreeSitterService.getInstance();
+    }
     /**
      * Extract all import statements with detailed metadata.
      * Handles named, default, and namespace imports.
@@ -732,5 +758,128 @@ export class SemanticAnalyzer {
         }
 
         return edits.slice(0, 3); // Limit to top 3 files
+    }
+
+    /**
+     * Extract decorators using Tree-sitter (NEW CAPABILITY)
+     * 
+     * Accurately detects decorators in TypeScript and Python:
+     * - TypeScript: @Component, @Injectable, @Input(), etc.
+     * - Python: @property, @staticmethod, @app.route('/path'), etc.
+     * 
+     * This was impossible with regex due to complex syntax variations.
+     */
+    async extractDecorators(document: vscode.TextDocument): Promise<DecoratorInfo[]> {
+        const decorators: DecoratorInfo[] = [];
+        const language = document.languageId;
+
+        // Only use Tree-sitter if supported
+        if (!this.treeSitterService.isSupported(language)) {
+            return decorators;
+        }
+
+        try {
+            const code = document.getText();
+            const tree = await this.treeSitterService.parse(code, language);
+            
+            if (!tree) {
+                return decorators;
+            }
+
+            // Get decorator query for this language
+            const queries = this.treeSitterService.getLanguageQueries(language);
+            if (!queries.decorators) {
+                return decorators;
+            }
+
+            // Execute query
+            const matches = this.treeSitterService.query(tree, queries.decorators);
+
+            // Process matches
+            for (const match of matches) {
+                for (const capture of match.captures) {
+                    if (capture.name === 'decorator.name' || capture.name === 'decorator.simple_name') {
+                        const lineNumber = capture.node.startPosition.row;
+                        const name = capture.node.text;
+
+                        // Find corresponding args if any
+                        const argsCapture = match.captures.find(c => c.name === 'decorator.args');
+                        const args = argsCapture?.node.text;
+
+                        decorators.push({
+                            name,
+                            arguments: args,
+                            lineNumber
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('[SemanticAnalyzer] Failed to extract decorators:', error);
+        }
+
+        return decorators;
+    }
+
+    /**
+     * Extract generic type parameters using Tree-sitter (NEW CAPABILITY)
+     * 
+     * Accurately detects generics in TypeScript:
+     * - Function generics: <T extends Base>
+     * - Class generics: class Foo<T, U>
+     * - Type generics: Array<string>, Map<K, V>
+     * 
+     * This was impossible with regex due to nested brackets and complex constraints.
+     */
+    async extractGenerics(document: vscode.TextDocument): Promise<GenericInfo[]> {
+        const generics: GenericInfo[] = [];
+        const language = document.languageId;
+
+        // Only TypeScript/JavaScript support generics
+        if (!this.treeSitterService.isSupported(language)) {
+            return generics;
+        }
+
+        try {
+            const code = document.getText();
+            const tree = await this.treeSitterService.parse(code, language);
+            
+            if (!tree) {
+                return generics;
+            }
+
+            // Get generics query for this language
+            const queries = this.treeSitterService.getLanguageQueries(language);
+            if (!queries.generics) {
+                return generics;
+            }
+
+            // Execute query
+            const matches = this.treeSitterService.query(tree, queries.generics);
+
+            // Process matches
+            for (const match of matches) {
+                for (const capture of match.captures) {
+                    if (capture.name === 'generic.param') {
+                        const lineNumber = capture.node.startPosition.row;
+                        const name = capture.node.text;
+
+                        // Find corresponding constraint if any
+                        const constraintCapture = match.captures.find(c => c.name === 'generic.constraint');
+                        const constraint = constraintCapture?.node.text;
+
+                        generics.push({
+                            name,
+                            constraint,
+                            lineNumber
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('[SemanticAnalyzer] Failed to extract generics:', error);
+        }
+
+        return generics;
     }
 }

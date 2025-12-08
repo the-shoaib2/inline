@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+                   import { expect } from 'chai';
 import { DuplicationDetector } from '../../src/analysis/duplication-detector';
 import { ASTParser } from '../../src/analysis/ast-parser';
 
@@ -182,7 +182,7 @@ describe('ASTParser', () => {
     });
 
     describe('JavaScript Parsing', () => {
-        it('should parse JavaScript functions', () => {
+        it('should parse JavaScript functions', async () => {
             const code = `
 function test() {
     return 42;
@@ -193,13 +193,13 @@ const arrow = () => {
 };
             `.trim();
 
-            const ast = parser.parse(code, 'javascript');
+            const ast = await parser.parse(code, 'javascript');
             expect(ast).to.not.be.null;
             expect(ast!.type).to.equal('Program');
             expect(ast!.children).to.have.length.greaterThan(0);
         });
 
-        it('should parse JavaScript classes', () => {
+        it('should parse JavaScript classes', async () => {
             const code = `
 class MyClass {
     constructor() {
@@ -208,14 +208,14 @@ class MyClass {
 }
             `.trim();
 
-            const ast = parser.parse(code, 'javascript');
+            const ast = await parser.parse(code, 'javascript');
             expect(ast).to.not.be.null;
             expect(ast!.children).to.have.length.greaterThan(0);
         });
     });
 
     describe('Python Parsing', () => {
-        it('should parse Python functions', () => {
+        it('should parse Python functions', async () => {
             const code = `
 def test():
     return 42
@@ -224,19 +224,19 @@ def another():
     return 43
             `.trim();
 
-            const ast = parser.parse(code, 'python');
+            const ast = await parser.parse(code, 'python');
             expect(ast).to.not.be.null;
             expect(ast!.type).to.equal('Module');
         });
 
-        it('should parse Python classes', () => {
+        it('should parse Python classes', async () => {
             const code = `
 class MyClass:
     def __init__(self):
         self.value = 42
             `.trim();
 
-            const ast = parser.parse(code, 'python');
+            const ast = await parser.parse(code, 'python');
             expect(ast).to.not.be.null;
         });
     });
@@ -277,9 +277,9 @@ class AnotherClass {
     });
 
     describe('AST Normalization', () => {
-        it('should normalize AST for comparison', () => {
+        it('should normalize AST for comparison', async () => {
             const code = 'function test() { return 42; }';
-            const ast = parser.parse(code, 'javascript');
+            const ast = await parser.parse(code, 'javascript');
             
             if (ast) {
                 const normalized = parser.normalize(ast);

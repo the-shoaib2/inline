@@ -26,11 +26,6 @@ interface ProcessInfo {
         arch: string;
         hostname: string;
         uptime: number;
-        memory: {
-            total: number;
-            free: number;
-            used: number;
-        };
         cpu: {
             count: number;
             model: string;
@@ -110,11 +105,6 @@ export class ProcessInfoDisplay {
                 arch: os.arch(),
                 hostname: os.hostname(),
                 uptime: os.uptime(),
-                memory: {
-                    total: os.totalmem(),
-                    free: os.freemem(),
-                    used: os.totalmem() - os.freemem()
-                },
                 cpu: {
                     count: cpus.length,
                     model: cpus[0]?.model || 'Unknown',
@@ -170,7 +160,6 @@ export class ProcessInfoDisplay {
         }
         
         const heapUsagePercent = ((info.process.memory.heapUsed / heapLimit) * 100).toFixed(1);
-        const systemMemUsagePercent = ((info.system.memory.used / info.system.memory.total) * 100).toFixed(1);
         
         return `<!DOCTYPE html>
 <html lang="en">
@@ -382,28 +371,7 @@ export class ProcessInfoDisplay {
         </div>
         
         <h2>🖥️ System Information (Reference)</h2>
-        <div class="info-grid">
-            <div class="info-card">
-                <h3>System Memory</h3>
-                <div class="info-row">
-                    <span class="info-label">Total:</span>
-                    <span class="info-value">${this.formatBytes(info.system.memory.total)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Used:</span>
-                    <span class="info-value">${this.formatBytes(info.system.memory.used)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Free:</span>
-                    <span class="info-value">${this.formatBytes(info.system.memory.free)}</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill progress-normal" 
-                         style="width: ${systemMemUsagePercent}%">
-                        ${systemMemUsagePercent}%
-                    </div>
-                </div>
-            </div>
+        <div class="info-grid">      
             
             <div class="info-card">
                 <h3>System Details</h3>

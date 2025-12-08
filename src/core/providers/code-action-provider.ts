@@ -30,6 +30,16 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
         this.importResolver = new ImportResolver();
     }
 
+    /**
+     * Provide code actions for current position/selection.
+     * Includes import management, quick fixes, and refactoring options.
+     *
+     * @param document Current text document
+     * @param range Selection range
+     * @param context Code action context with diagnostics
+     * @param token Cancellation token
+     * @returns Array of available code actions
+     */
     async provideCodeActions(
         document: vscode.TextDocument,
         range: vscode.Range | vscode.Selection,
@@ -48,10 +58,10 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
 
         // 1. Fix Code Action (if there are errors)
         if (context.diagnostics.length > 0) {
-            const fixAction = new vscode.CodeAction('✨ Fix with AI', vscode.CodeActionKind.QuickFix);
+            const fixAction = new vscode.CodeAction(' Fix with AI', vscode.CodeActionKind.QuickFix);
             fixAction.command = {
                 command: 'inline.fixCode',
-                title: 'Fix with AI',
+                title: 'Fix with Inline',
                 arguments: [document, range, context.diagnostics]
             };
             actions.push(fixAction);
@@ -59,7 +69,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
 
         // 2. Optimize/Refactor Action (always available on selection)
         if (!range.isEmpty) {
-            const optimizeAction = new vscode.CodeAction('⚡ Optimize Selection', vscode.CodeActionKind.RefactorRewrite);
+            const optimizeAction = new vscode.CodeAction(' Optimize Selection', vscode.CodeActionKind.RefactorRewrite);
             optimizeAction.command = {
                 command: 'inline.optimizeCode',
                 title: 'Optimize Selection',
@@ -67,7 +77,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
             };
             actions.push(optimizeAction);
 
-            const refactorAction = new vscode.CodeAction('🛠️ Refactor Block', vscode.CodeActionKind.RefactorRewrite);
+            const refactorAction = new vscode.CodeAction(' Refactor Block', vscode.CodeActionKind.RefactorRewrite);
             refactorAction.command = {
                 command: 'inline.refactorCode',
                 title: 'Refactor Block',
@@ -75,7 +85,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
             };
             actions.push(refactorAction);
 
-            const formatAction = new vscode.CodeAction('📝 Format Block', vscode.CodeActionKind.QuickFix);
+            const formatAction = new vscode.CodeAction(' Format Block', vscode.CodeActionKind.QuickFix);
             formatAction.command = {
                 command: 'inline.formatCode',
                 title: 'Format Block',
@@ -83,7 +93,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
             };
             actions.push(formatAction);
 
-            const explainAction = new vscode.CodeAction('💡 Explain Code', vscode.CodeActionKind.QuickFix);
+            const explainAction = new vscode.CodeAction(' Explain Code', vscode.CodeActionKind.QuickFix);
             explainAction.command = {
                 command: 'inline.explainCode',
                 title: 'Explain Code',
@@ -102,7 +112,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
     ): Promise<void> {
         // 1. Organize Imports
         const organizeAction = new vscode.CodeAction(
-            '📦 Organize Imports',
+            ' Organize Imports',
             vscode.CodeActionKind.SourceOrganizeImports
         );
         organizeAction.command = {
@@ -116,7 +126,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
         const unusedImports = await this.importResolver.findUnusedImports(document);
         if (unusedImports.length > 0) {
             const removeUnusedAction = new vscode.CodeAction(
-                `🧹 Remove Unused Imports (${unusedImports.length})`,
+                ` Remove Unused Imports (${unusedImports.length})`,
                 vscode.CodeActionKind.QuickFix
             );
             removeUnusedAction.command = {
@@ -133,7 +143,7 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
         if (missingImports.length > 0) {
             for (const suggestion of missingImports.slice(0, 3)) { // Limit to top 3
                 const addImportAction = new vscode.CodeAction(
-                    `➕ Add import: ${suggestion.symbol} from '${suggestion.module}'`,
+                    ` Add import: ${suggestion.symbol} from '${suggestion.module}'`,
                     vscode.CodeActionKind.QuickFix
                 );
                 addImportAction.command = {
@@ -150,3 +160,5 @@ export class InlineCodeActionProvider implements vscode.CodeActionProvider {
         return this.importResolver;
     }
 }
+
+

@@ -6,7 +6,7 @@ describe('FIM Token Fix Verification', () => {
         const input = '{|fim|}>>>>>> {|fim|}>>>>>{|fim|}>>>>>{|fim|}>>>>>{|fim|}>>>>>';
         const cleaned = input.replace(LlamaInference.FIM_TOKEN_REGEX, '');
         
-        assert.strictEqual(cleaned, '>>>>>> >>>>>>>>>>>>>>>>>>>');
+        assert.strictEqual(cleaned, '>>>>>> >>>>>>>>>>>>>>>>>>>>');
         assert.ok(!cleaned.includes('{|fim|}'), 'Should not contain {|fim|}');
     });
 

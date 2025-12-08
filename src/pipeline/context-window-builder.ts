@@ -280,9 +280,76 @@ export class ContextWindowBuilder {
 
         return {
             typingSpeed,
-            commonPatterns: [], // TODO: Implement pattern detection
-            preferredStyle: 'unknown' // TODO: Implement style detection
+            commonPatterns: this.detectCommonPatterns(docState),
+            preferredStyle: this.detectPreferredStyle(docState)
         };
+    }
+
+    /**
+     * Detect common coding patterns from recent edits
+     */
+    private detectCommonPatterns(docState: DocumentState | undefined): string[] {
+        if (!docState || docState.recentEdits.length === 0) {
+            return [];
+        }
+
+        const patterns: Map<string, number> = new Map();
+        
+        // Analyze recent edits for patterns
+        for (const edit of docState.recentEdits) {
+            for (const change of edit.changes) {
+                const text = change.text;
+                
+                // Detect common patterns
+                if (text.includes('const ')) patterns.set('const-declarations', (patterns.get('const-declarations') || 0) + 1);
+                if (text.includes('let ')) patterns.set('let-declarations', (patterns.get('let-declarations') || 0) + 1);
+                if (text.includes('async ')) patterns.set('async-functions', (patterns.get('async-functions') || 0) + 1);
+                if (text.includes('=>')) patterns.set('arrow-functions', (patterns.get('arrow-functions') || 0) + 1);
+                if (text.includes('function ')) patterns.set('function-declarations', (patterns.get('function-declarations') || 0) + 1);
+            }
+        }
+
+        // Return top 3 patterns
+        return Array.from(patterns.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([pattern]) => pattern);
+    }
+
+    /**
+     * Detect preferred coding style from recent edits
+     */
+    private detectPreferredStyle(docState: DocumentState | undefined): string {
+        if (!docState || docState.recentEdits.length === 0) {
+            return 'unknown';
+        }
+
+        let singleQuotes = 0;
+        let doubleQuotes = 0;
+        let semicolons = 0;
+        let noSemicolons = 0;
+
+        for (const edit of docState.recentEdits) {
+            for (const change of edit.changes) {
+                const text = change.text;
+                
+                // Count quote style
+                singleQuotes += (text.match(/'/g) || []).length;
+                doubleQuotes += (text.match(/"/g) || []).length;
+                
+                // Count semicolon usage
+                if (text.trim().endsWith(';')) semicolons++;
+                if (text.trim().length > 0 && !text.trim().endsWith(';') && !text.trim().endsWith('{') && !text.trim().endsWith('}')) {
+                    noSemicolons++;
+                }
+            }
+        }
+
+        // Determine style
+        const quoteStyle = singleQuotes > doubleQuotes ? 'single-quotes' : 'double-quotes';
+        const semicolonStyle = semicolons > noSemicolons ? 'semicolons' : 'no-semicolons';
+        
+        return `${quoteStyle}, ${semicolonStyle}`;
     }
 
     /**

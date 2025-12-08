@@ -20,6 +20,12 @@ importers:
       tar:
         specifier: ^6.2.0
         version: 6.2.1
+      tree-sitter-wasms:
+        specifier: ^0.1.11
+        version: 0.1.13
+      web-tree-sitter:
+        specifier: ^0.20.8
+        version: 0.20.8
       ws:
         specifier: ^8.14.2
         version: 8.18.3
@@ -51,6 +57,9 @@ importers:
       '@vscode/test-electron':
         specifier: ^2.3.8
         version: 2.5.2
+      '@vscode/tree-sitter-wasm':
+        specifier: ^0.0.4
+        version: 0.0.4
       '@vscode/vsce':
         specifier: ^3.7.1
         version: 3.7.1
@@ -720,6 +729,9 @@ packages:
   '@vscode/test-electron@2.5.2':
     resolution: {integrity: sha512-8ukpxv4wYe0iWMRQU18jhzJOHkeGKbnw7xWRX3Zw1WJA4cEKbHcmmLPdPrPtL6rhDcrlCZN+xKRpv09n4gRHYg==}
     engines: {node: '>=16'}
+
+  '@vscode/tree-sitter-wasm@0.0.4':
+    resolution: {integrity: sha512-vOONG3Zxsh1I4JOA48WdQ5KiXjJAdfMvYTuHbW7b27tGtRqsPLY5WZyTwLXc5uujKHyhG3LJXE9poxRZSxTIiA==}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.6':
     resolution: {integrity: sha512-wKkJBsvKF+f0GfsUuGT0tSW0kZL87QggEiqNqK6/8hvqsXvpx8OsTEc3mnE1kejkh5r+qUyQ7PtF8jZYN0mo8Q==}
@@ -2596,6 +2608,9 @@ packages:
     resolution: {integrity: sha512-/m8M+2BJUpoJdgAHoG+baCwBT+tf2VraSfkBgl0Y00qIWt41DJ8R5B8nsEw0I58YwF5IZH6z24/2TobDKnqSWw==}
     engines: {node: '>=12'}
 
+  tree-sitter-wasms@0.1.13:
+    resolution: {integrity: sha512-wT+cR6DwaIz80/vho3AvSF0N4txuNx/5bcRKoXouOfClpxh/qqrF4URNLQXbbt8MaAxeksZcZd1j8gcGjc+QxQ==}
+
   ts-api-utils@1.4.3:
     resolution: {integrity: sha512-i3eMG77UTMD0hZhgRS562pv83RC6ukSAC2GMNWc+9dieh/+jDM5u5YG+NHX6VNDRHQcHwmsTHctP9LhbC3WxVw==}
     engines: {node: '>=16'}
@@ -2724,6 +2739,9 @@ packages:
   web-streams-polyfill@3.3.3:
     resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
     engines: {node: '>= 8'}
+
+  web-tree-sitter@0.20.8:
+    resolution: {integrity: sha512-weOVgZ3aAARgdnb220GqYuh7+rZU0Ka9k9yfKtGAzEYMa6GgiCzW9JjQRJyCJakvibQW+dfjJdihjInKuuCAUQ==}
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
@@ -3635,6 +3653,8 @@ snapshots:
       semver: 7.7.3
     transitivePeerDependencies:
       - supports-color
+
+  '@vscode/tree-sitter-wasm@0.0.4': {}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.6':
     optional: true
@@ -5705,6 +5725,8 @@ snapshots:
 
   toad-cache@3.7.0: {}
 
+  tree-sitter-wasms@0.1.13: {}
+
   ts-api-utils@1.4.3(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
@@ -5806,6 +5828,8 @@ snapshots:
   version-range@4.15.0: {}
 
   web-streams-polyfill@3.3.3: {}
+
+  web-tree-sitter@0.20.8: {}
 
   whatwg-encoding@3.1.1:
     dependencies:

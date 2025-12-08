@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
+import * as v8 from 'v8';
 import { GPUDetector } from '../inference/gpu-detector';
 import { Logger } from './logger';
 import { execSync } from 'child_process';
@@ -46,10 +47,23 @@ export class ResourceManager {
     private gpuDetector: GPUDetector;
     private logger: Logger;
 
+    private isDevMode: boolean = false;
+
     constructor() {
         this.gpuDetector = new GPUDetector();
         this.logger = new Logger('ResourceManager');
         this.startMonitoring();
+    }
+
+    /**
+     * Set development mode status.
+     * When enabled, resource warnings are suppressed.
+     */
+    public setDevMode(isDev: boolean): void {
+        this.isDevMode = isDev;
+        if (isDev) {
+            this.logger.info('Development mode enabled: Resource warnings suppressed');
+        }
     }
 
     /**
@@ -88,10 +102,9 @@ export class ResourceManager {
      * Uses process heap ratio for memory (not system-wide).
      */
     getCurrentUsage(): ResourceUsage {
-        const processMemory = process.memoryUsage();
-        const heapUsed = processMemory.heapUsed;
-        const heapTotal = processMemory.heapTotal;
-        const memoryUsageRatio = heapUsed / heapTotal;
+        // Use v8 heap statistics for accurate memory pressure
+        const stats = v8.getHeapStatistics();
+        const memoryUsageRatio = stats.used_heap_size / stats.heap_size_limit;
 
         const cpus = os.cpus();
         const loadAvg = os.loadavg();
@@ -204,38 +217,8 @@ export class ResourceManager {
      * Check if any resource metric exceeds threshold and warn user.
      */
     private checkThresholds(): void {
-        if (this.lastUsage.cpu > this.thresholds.maxCPU) {
-            vscode.window.showWarningMessage(
-                `High CPU usage detected: ${(this.lastUsage.cpu * 100).toFixed(1)}%`,
-                'Details'
-            ).then(selection => {
-                if (selection === 'Details') {
-                    this.showResourceDetails();
-                }
-            });
-        }
-
-        if (this.lastUsage.memory > this.thresholds.maxMemory) {
-            vscode.window.showWarningMessage(
-                `High memory usage detected: ${(this.lastUsage.memory * 100).toFixed(1)}%`,
-                'Details'
-            ).then(selection => {
-                if (selection === 'Details') {
-                    this.showResourceDetails();
-                }
-            });
-        }
-
-        if (this.lastUsage.vram && this.thresholds.maxVRAM && this.lastUsage.vram > this.thresholds.maxVRAM) {
-            vscode.window.showWarningMessage(
-                `High VRAM usage detected: ${(this.lastUsage.vram * 100).toFixed(1)}%`,
-                'Details'
-            ).then(selection => {
-                if (selection === 'Details') {
-                    this.showResourceDetails();
-                }
-            });
-        }
+        // System memory usage checks removed completely as requested
+        return;
     }
 
     /**
@@ -259,11 +242,8 @@ ${usage.vram !== undefined ? `VRAM: ${(usage.vram * 100).toFixed(1)}%` : ''}
      * Includes 50% buffer for safety.
      */
     canHandleModel(modelSizeGB: number): boolean {
-        const availableMemory = os.freemem() / (1024 * 1024 * 1024);
-        const requiredMemory = modelSizeGB * 1.5;
-
-        return availableMemory >= requiredMemory &&
-               this.lastUsage.memory < this.thresholds.maxMemory;
+        // System memory checks removed completely
+        return true;
     }
 
     /**
@@ -271,16 +251,9 @@ ${usage.vram !== undefined ? `VRAM: ${(usage.vram * 100).toFixed(1)}%` : ''}
      * Returns size between 1GB and 8GB, adjusted for current load.
      */
     getOptimalModelSize(): number {
-        const availableMemory = os.freemem() / (1024 * 1024 * 1024);
-        const currentLoad = this.lastUsage.memory;
-
-        // Reduce available memory by current load
-        let usableMemory = availableMemory * (1 - currentLoad);
-
-        // Leave 30% buffer for system operations
-        usableMemory *= 0.7;
-
-        return Math.max(1, Math.min(usableMemory, 8));
+        // System memory checks removed completely as requested
+        // Defaulting to a conservative 6GB
+        return 6;
     }
 
     /**

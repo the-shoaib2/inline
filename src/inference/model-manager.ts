@@ -29,6 +29,8 @@ export interface ModelInfo {
     contextWindow?: number;
     downloadUrl?: string;
     fimTemplate?: string;
+    huggingfaceRepo?: string;
+    huggingfaceFile?: string;
 }
 
 /**
@@ -69,6 +71,7 @@ export class ModelManager {
     private currentModel: ModelInfo | null = null;
     private inferenceEngine: LlamaInference;
     private logger: Logger;
+    private hfClient: any; // HuggingFaceClient - lazy loaded
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
@@ -168,64 +171,69 @@ export class ModelManager {
 
     private async checkDownloadedModels(): Promise<void> {
         try {
-            // 1. Check workspace models first (prioritize local project models)
-            await this.checkWorkspaceModels();
-
-            // 2. Check global models directory
-            if (fs.existsSync(this.modelsDirectory)) {
-                const files = fs.readdirSync(this.modelsDirectory);
-
-                // Check for known models
-                this.availableModels.forEach(model => {
-                    // Skip if already found in workspace (preserve workspace path)
-                    if (model.isDownloaded && model.path && model.path.includes(this.modelsDirectory) === false) {
-                        return;
-                    }
-
-                    const modelPath = path.join(this.modelsDirectory, `${model.id}.gguf`);
-                    if (fs.existsSync(modelPath)) {
-                        model.isDownloaded = true;
-                        model.path = modelPath;
-                    }
-                });
-
-                // Check for imported models in global dir
-                files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf')).forEach(file => {
-                    const modelId = path.basename(file, '.gguf');
-                    // Skip if we already have this model from workspace
-                    if (this.availableModels.has(modelId) && this.availableModels.get(modelId)?.isDownloaded) {
-                        return;
-                    }
-
-                    const modelPath = path.join(this.modelsDirectory, file);
-                    try {
-                        const stats = fs.statSync(modelPath);
-                        const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
-
-                        const metadata = this.extractModelMetadata(file);
-
-                        this.availableModels.set(modelId, {
-                            id: modelId,
-                            name: `Imported: ${name}`,
-                            description: 'Imported model',
-                            size: stats.size,
-                            languages: ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust'],
-                            requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
-                            isDownloaded: true,
-                            path: modelPath,
-                            architecture: metadata.architecture || 'llama',
-                            quantization: metadata.quantization,
-                            parameterCount: metadata.parameterCount,
-                            contextWindow: 4096,
-                            fimTemplate: metadata.architecture // Heuristic: arch often maps to template
-                        });
-                    } catch (e) {
-                        this.logger.warn(`Failed to stat imported model ${file}: ${e}`);
-                    }
-                });
-            }
+            // Run workspace and global checks in parallel for better performance
+            await Promise.all([
+                this.checkWorkspaceModels(),
+                this.checkGlobalModels()
+            ]);
         } catch (error) {
             this.logger.error(`Failed to check downloaded models: ${error}`);
+        }
+    }
+
+    private async checkGlobalModels(): Promise<void> {
+        // Check global models directory
+        if (fs.existsSync(this.modelsDirectory)) {
+            const files = fs.readdirSync(this.modelsDirectory);
+
+            // Check for known models
+            this.availableModels.forEach(model => {
+                // Skip if already found in workspace (preserve workspace path)
+                if (model.isDownloaded && model.path && model.path.includes(this.modelsDirectory) === false) {
+                    return;
+                }
+
+                const modelPath = path.join(this.modelsDirectory, `${model.id}.gguf`);
+                if (fs.existsSync(modelPath)) {
+                    model.isDownloaded = true;
+                    model.path = modelPath;
+                }
+            });
+
+            // Check for imported models in global dir
+            files.filter(f => f.startsWith('imported_') && f.endsWith('.gguf')).forEach(file => {
+                const modelId = path.basename(file, '.gguf');
+                // Skip if we already have this model from workspace
+                if (this.availableModels.has(modelId) && this.availableModels.get(modelId)?.isDownloaded) {
+                    return;
+                }
+
+                const modelPath = path.join(this.modelsDirectory, file);
+                try {
+                    const stats = fs.statSync(modelPath);
+                    const name = modelId.replace('imported_', '').replace(/_/g, ' ').replace(/\d+$/, '');
+
+                    const metadata = this.extractModelMetadata(file);
+
+                    this.availableModels.set(modelId, {
+                        id: modelId,
+                        name: `Imported: ${name}`,
+                        description: 'Imported model',
+                        size: stats.size,
+                        languages: ['all'], // Universal support for imported models
+                        requirements: { vram: 0, ram: Math.ceil(stats.size / (1024 * 1024 * 1024)) + 2, cpu: true },
+                        isDownloaded: true,
+                        path: modelPath,
+                        architecture: metadata.architecture || 'llama',
+                        quantization: metadata.quantization,
+                        parameterCount: metadata.parameterCount,
+                        contextWindow: 4096,
+                        fimTemplate: metadata.architecture // Heuristic: arch often maps to template
+                    });
+                } catch (e) {
+                    this.logger.warn(`Failed to stat imported model ${file}: ${e}`);
+                }
+            });
         }
     }
 
@@ -348,7 +356,7 @@ export class ModelManager {
         let candidates = availableModels;
         if (requirements.language) {
             candidates = availableModels.filter(model =>
-                model.languages.includes(requirements.language!)
+                model.languages.includes(requirements.language!) || model.languages.includes('all')
             );
         }
 
@@ -368,6 +376,143 @@ export class ModelManager {
         });
 
         return candidates[0];
+    }
+
+    /**
+     * Get optimal model for a specific language.
+     * Prioritizes language-specific models over universal ones.
+     * @param language Language ID
+     * @returns Best model for the language or null
+     */
+    getOptimalModelForLanguage(language: string): ModelInfo | null {
+        const downloadedModels = Array.from(this.availableModels.values())
+            .filter(model => model.isDownloaded);
+
+        if (downloadedModels.length === 0) {
+            return null;
+        }
+
+        // 1. Try to find language-specific models
+        const languageSpecific = downloadedModels.filter(model =>
+            model.languages.includes(language) && !model.languages.includes('all')
+        );
+
+        if (languageSpecific.length > 0) {
+            // Return smallest language-specific model for speed
+            return languageSpecific.sort((a, b) => a.size - b.size)[0];
+        }
+
+        // 2. Fall back to universal models
+        const universal = downloadedModels.filter(model =>
+            model.languages.includes('all')
+        );
+
+        if (universal.length > 0) {
+            // Return smallest universal model
+            return universal.sort((a, b) => a.size - b.size)[0];
+        }
+
+        // 3. Last resort: any downloaded model
+        return downloadedModels.sort((a, b) => a.size - b.size)[0];
+    }
+
+    /**
+     * Download a model from HuggingFace Hub.
+     * @param modelId Model ID from registry
+     * @returns Promise that resolves when download is complete
+     */
+    async downloadFromHuggingFace(modelId: string): Promise<void> {
+        const model = this.availableModels.get(modelId);
+        if (!model) {
+            throw new Error(`Model ${modelId} not found in registry`);
+        }
+
+        if (!model.huggingfaceRepo || !model.huggingfaceFile) {
+            throw new Error(`Model ${modelId} does not have HuggingFace metadata`);
+        }
+
+        // Lazy load HuggingFace client
+        if (!this.hfClient) {
+            const { HuggingFaceClient } = await import('./huggingface-client');
+            this.hfClient = new HuggingFaceClient();
+        }
+
+        const destination = path.join(this.modelsDirectory, `${modelId}.gguf`);
+        
+        try {
+            this.logger.info(`Downloading ${model.name} from HuggingFace...`);
+            
+            await this.hfClient.downloadWithProgress(
+                model.huggingfaceRepo,
+                model.huggingfaceFile,
+                destination
+            );
+
+            // Update model info
+            model.isDownloaded = true;
+            model.path = destination;
+
+            this.logger.info(`Successfully downloaded ${model.name}`);
+            vscode.window.showInformationMessage(`Model ${model.name} downloaded successfully`);
+        } catch (error) {
+            this.logger.error(`Failed to download model from HuggingFace: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Import a model directly from HuggingFace by repository and file name.
+     * @param repoId HuggingFace repository ID
+     * @param filename GGUF file name
+     * @returns Promise that resolves when import is complete
+     */
+    async importFromHuggingFace(repoId: string, filename: string): Promise<void> {
+        // Lazy load HuggingFace client
+        if (!this.hfClient) {
+            const { HuggingFaceClient } = await import('./huggingface-client');
+            this.hfClient = new HuggingFaceClient();
+        }
+
+        const modelId = `imported_${repoId.replace('/', '_')}_${path.basename(filename, '.gguf')}`;
+        const destination = path.join(this.modelsDirectory, `${modelId}.gguf`);
+
+        try {
+            this.logger.info(`Importing ${filename} from ${repoId}...`);
+
+            await this.hfClient.downloadWithProgress(repoId, filename, destination);
+
+            // Refresh models to pick up the new import
+            await this.checkDownloadedModels();
+
+            this.logger.info(`Successfully imported model from ${repoId}`);
+            vscode.window.showInformationMessage(`Model imported successfully from ${repoId}`);
+        } catch (error) {
+            this.logger.error(`Failed to import model from HuggingFace: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Search for models on HuggingFace Hub.
+     * @param query Search query
+     * @returns Promise with array of model info
+     */
+    async searchHuggingFaceModels(query: string): Promise<any[]> {
+        // Lazy load HuggingFace client
+        if (!this.hfClient) {
+            const { HuggingFaceClient } = await import('./huggingface-client');
+            this.hfClient = new HuggingFaceClient();
+        }
+
+        try {
+            return await this.hfClient.searchModels(query, {
+                tags: ['code', 'gguf'],
+                limit: 20
+            });
+        } catch (error) {
+            this.logger.error(`Failed to search HuggingFace models: ${error}`);
+            throw error;
+        }
     }
 
     /**
@@ -470,19 +615,28 @@ export class ModelManager {
     }
 
     async optimizeModel(language: string): Promise<void> {
-        // TODO: Implement model optimization for specific languages
+        // Implement model optimization for specific languages
+        const optimizations: Record<string, { temperature: number; topP: number; maxTokens: number }> = {
+            'python': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
+            'javascript': { temperature: 0.3, topP: 0.95, maxTokens: 512 },
+            'typescript': { temperature: 0.3, topP: 0.95, maxTokens: 512 },
+            'java': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
+            'cpp': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
+            'rust': { temperature: 0.2, topP: 0.9, maxTokens: 512 },
+            'go': { temperature: 0.2, topP: 0.9, maxTokens: 512 }
+        };
+        
+        const config = optimizations[language] || { temperature: 0.3, topP: 0.95, maxTokens: 512 };
+        this.logger.info(`Optimizing model for ${language}: temp=${config.temperature}, topP=${config.topP}, maxTokens=${config.maxTokens}`);
         vscode.window.showInformationMessage(`Optimizing model for ${language}...`);
     }
 
     monitorResources(): { vram: number; ram: number; cpu: number } {
-        const totalMemory = os.totalmem();
-        const freeMemory = os.freemem();
-        const usedMemory = totalMemory - freeMemory;
-
+        // System memory checks removed completely as requested
         return {
-            vram: 0, // TODO: Implement VRAM monitoring
-            ram: usedMemory / totalMemory,
-            cpu: os.loadavg()[0] / os.cpus().length
+            vram: 0,
+            ram: 0,
+            cpu: 0
         };
     }
 

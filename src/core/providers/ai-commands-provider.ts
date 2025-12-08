@@ -169,24 +169,12 @@ export class AICommandsProvider {
             })
         );
 
-        // NEW: Smart Code Actions (Fixing, Optimizing, Refactoring, Formatting, Explaining)
-        context.subscriptions.push(
-            vscode.commands.registerCommand('inline.fixCode', async (document, range, diagnostics) => {
-                await this.handleSmartAction(document, range, 'fix', diagnostics);
-            }),
-            vscode.commands.registerCommand('inline.optimizeCode', async (document, range) => {
-                await this.handleSmartAction(document, range, 'optimize');
-            }),
-            vscode.commands.registerCommand('inline.refactorCode', async (document, range) => {
-                await this.handleSmartAction(document, range, 'refactor');
-            }),
-             vscode.commands.registerCommand('inline.formatCode', async (document, range) => {
-                await this.handleSmartAction(document, range, 'format');
-            }),
-             vscode.commands.registerCommand('inline.explainCode', async (document, range) => {
-                await this.handleExplainCode(document, range);
-            })
-        );
+        // Note: The following commands are registered in extension.ts with full implementations:
+        // - inline.fixCode
+        // - inline.optimizeCode  
+        // - inline.refactorCode
+        // - inline.formatCode
+        // - inline.explainCode
     }
 
     /**

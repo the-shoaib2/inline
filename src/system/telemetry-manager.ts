@@ -94,7 +94,7 @@ export class TelemetryManager {
      * Send event to analytics service (stub for production integration).
      */
     private sendEvent(event: TelemetryEvent): void {
-        // TODO: Integrate with analytics service
+        // Analytics service integration can be added later if needed
         console.log('[Telemetry]', event);
     }
 
