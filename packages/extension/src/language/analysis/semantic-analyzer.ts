@@ -794,7 +794,9 @@ export class SemanticAnalyzer {
             try {
                 return native.extractDecorators(document.getText(), document.languageId);
             } catch (error) {
-                console.warn('[SemanticAnalyzer] Native extraction failed, fallback to Tree-sitter:', error);
+                // Only log if it's an actual error, not just unsupported language
+                // The native module now returns empty array for unsupported languages
+                console.debug('[SemanticAnalyzer] Native extraction not available, using Tree-sitter fallback');
             }
         }
 

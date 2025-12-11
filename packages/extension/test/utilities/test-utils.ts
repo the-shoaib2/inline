@@ -100,3 +100,36 @@ export async function activateExtension(): Promise<void> {
   // Wait a bit for initialization
   await sleep(500);
 }
+
+/**
+ * Check if real model should be used in tests
+ */
+export function enableRealModel(): boolean {
+  return process.env.USE_REAL_MODEL === 'true' && 
+         process.env.MODEL_PATH !== undefined;
+}
+
+/**
+ * Setup mock inference engine for testing
+ */
+export async function setupMockInference(provider: any): Promise<void> {
+  const { MockLlamaEngine } = await import('./mock-llama-engine');
+  const mockEngine = new MockLlamaEngine();
+  
+  // Load mock model
+  await mockEngine.loadModel('mock://test-model', {
+    threads: 4,
+    gpuLayers: 0,
+    contextSize: 4096,
+    fimTemplate: 'default'
+  });
+  
+  // Inject mock engine into provider's model manager
+  const modelManager = (provider as any).modelManager;
+  if (modelManager) {
+    modelManager.inferenceEngine = mockEngine;
+    console.log('✓ Mock inference engine injected');
+  } else {
+    throw new Error('Model manager not found on provider');
+  }
+}

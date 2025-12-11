@@ -21,15 +21,30 @@ suite('Completion Provider E2E Tests', () => {
     provider = api.completionProvider;
     modelManager = api.modelManager;
 
-    // Mock getBestModel to return a dummy model
+    // Setup mock inference engine for testing
+    // This allows tests to run without requiring actual GGUF model files
+    const { setupMockInference, enableRealModel } = await import('../../utilities/test-utils');
+    
+    if (!enableRealModel()) {
+      // Use mock engine (default for CI/CD and local testing)
+      await setupMockInference(provider);
+      console.log('✓ Using mock inference engine for tests');
+    } else {
+      // Use real model if environment variables are set
+      const modelPath = process.env.MODEL_PATH!;
+      await modelManager.setCurrentModel(modelPath);
+      console.log(`✓ Using real model: ${modelPath}`);
+    }
+
+    // Mock getBestModel to return a dummy model for compatibility
     modelManager.getBestModel = () => ({
-        id: 'dummy-model',
-        name: 'Dummy Model',
+        id: 'test-model',
+        name: 'Test Model',
         size: 1024,
         type: 'q4_0',
         url: 'http://example.com',
-        description: 'Dummy model for testing',
-        languages: ['typescript', 'python', 'javascript'],
+        description: 'Test model for E2E testing',
+        languages: ['typescript', 'python', 'javascript', 'java', 'go', 'rust', 'cpp', 'php', 'ruby'],
         license: 'MIT',
         author: 'Test',
         requirements: {

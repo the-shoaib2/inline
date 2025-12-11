@@ -16,15 +16,18 @@
     },
     "scripts": {
         "artifacts": "napi artifacts",
-        "build": "napi build --platform --release",
-        "build:debug": "napi build --platform",
+        "build": "napi build --platform --release && tsc",
+        "build:debug": "napi build --platform && tsc",
+        "compile": "tsc",
         "prepublishOnly": "napi prepublish -t npm",
         "test": "cargo test",
         "universal": "napi universal",
         "version": "napi version"
     },
     "devDependencies": {
-        "@napi-rs/cli": "^3.5.0"
+        "@napi-rs/cli": "^3.5.0",
+        "@types/node": "^24.10.1",
+        "typescript": "^5.9.3"
     },
     "engines": {
         "node": ">= 18"

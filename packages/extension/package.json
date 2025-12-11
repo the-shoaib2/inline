@@ -91,6 +91,7 @@
   },
   "dependencies": {
     "@inline/native-rust": "workspace:*",
+    "@inline/native-cpp": "workspace:*",
     "@types/tar": "^6.1.13",
     "tar": "^7.5.2",
     "web-tree-sitter": "^0.25.10",

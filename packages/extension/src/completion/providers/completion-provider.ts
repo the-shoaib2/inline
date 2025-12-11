@@ -211,7 +211,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             const { FastCacheManager } = require('../cache/fast-cache-manager');
             this.fastCacheManager = new FastCacheManager();
         } catch (error) {
-            console.warn('[INLINE] FastCacheManager not available, using fallback caching');
+            // FastCacheManager is optional, silently fall back to standard caching
         }
 
         this.loadCacheFromDisk();
@@ -723,7 +723,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         // Phase 11: Combined - Use shared optimized regex from Inference engine
         // This acts as a secondary safety net if the model output them unexpectedly
-        cleaned = cleaned.replace(LlamaInference.FIM_TOKEN_REGEX, '');
+        // cleaned = cleaned.replace(LlamaInference.FIM_TOKEN_REGEX, '');
 
         // Also clean specifics
         cleaned = cleaned.replace(/obj\['middle'\]/g, ''); // Specific fix for user report

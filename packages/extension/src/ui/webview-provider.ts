@@ -7,6 +7,7 @@ import { ModelDownloader } from '@network/downloads/model-downloader';
 import { DownloadManager } from '@network/downloads/download-manager';
 import { ModelRegistry } from '@intelligence/registry/model-registry';
 import { ConfigManager } from '@platform/system/config-manager';
+import { RESOURCE_PATHS, USER_DATA_PATHS, getResourceUri, getWebviewUri, getUserDataPath } from '@platform/system/path-constants';
 
 interface InlineConfigWithRules extends ReturnType<ConfigManager['getAll']> {
     codingRules?: Array<{
@@ -31,7 +32,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     ) {
         this._configManager = new ConfigManager();
         this._modelDownloader = new ModelDownloader(
-            path.join(os.homedir(), '.inline', 'models')
+            getUserDataPath(USER_DATA_PATHS.MODELS_DIR)
         );
         this._downloadManager = new DownloadManager(2);
         this._modelRegistry = new ModelRegistry();
@@ -47,8 +48,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
-                vscode.Uri.joinPath(this._extensionUri, 'resources'),
-                vscode.Uri.joinPath(this._extensionUri, 'media', 'webview')
+                getResourceUri(this._extensionUri, RESOURCE_PATHS.RESOURCES),
+                getResourceUri(this._extensionUri, RESOURCE_PATHS.WEBVIEW_ROOT)
             ]
         };
 
@@ -111,8 +112,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             const rules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
             const currentModel = this.modelManager.getCurrentModel();
 
-            const logoUri = this._view.webview.asWebviewUri(
-                vscode.Uri.joinPath(this._extensionUri, 'resources', 'icon.png')
+            const logoUri = getWebviewUri(
+                this._view.webview,
+                this._extensionUri,
+                RESOURCE_PATHS.EXTENSION_ICON
             ).toString();
 
             this._view.webview.postMessage({
@@ -741,8 +744,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
     private _getHtmlForWebview(webview: vscode.Webview) {
         const extensionUri = this._extensionUri;
-        const webviewUri = vscode.Uri.joinPath(extensionUri, 'media', 'webview');
-        const indexPath = vscode.Uri.joinPath(webviewUri, 'index.html');
+        const webviewUri = getResourceUri(extensionUri, RESOURCE_PATHS.WEBVIEW_ROOT);
+        const indexPath = getResourceUri(extensionUri, RESOURCE_PATHS.WEBVIEW_INDEX);
 
         try {
             let html = fs.readFileSync(indexPath.fsPath, 'utf8');
@@ -751,7 +754,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             const nonce = getNonce();
 
             // Replace asset paths with webview URIs
-            const assetsUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewUri, 'assets'));
+            const assetsUri = webview.asWebviewUri(getResourceUri(extensionUri, RESOURCE_PATHS.WEBVIEW_ASSETS));
 
             // Replace /assets/ paths and add nonce to script tags
             html = html.replace(

@@ -5,6 +5,7 @@ import { Logger } from '@platform/system/logger';
 import { GPUDetector } from '@intelligence/optimization/gpu-detector';
 import { DuplicationDetector } from '@language/validation/duplication-detector';
 import { ASTParser } from '@language/parsers/ast-parser';
+import { FIMManager } from '@intelligence/processing/fim-templates';
 import * as vscode from 'vscode';
 import * as os from 'os';
 
@@ -48,6 +49,7 @@ export class LlamaInference {
     private gpuDetector: GPUDetector;
     private duplicationDetector: DuplicationDetector;
     private astParser: ASTParser;
+    private fimManager: FIMManager;
     private isLoaded: boolean = false;
     private currentModelPath: string | null = null;
     private prefixCache: Map<string, any> = new Map();
@@ -71,6 +73,7 @@ export class LlamaInference {
             detectDistributed: true
         });
         this.astParser = new ASTParser();
+        this.fimManager = new FIMManager();
     }
 
     /**
@@ -82,80 +85,7 @@ export class LlamaInference {
      * - DeepSeek/Qwen: {|fim_prefix|}
      * Optimized as single regex for performance.
      */
-    public static readonly FIM_TOKEN_REGEX = new RegExp([
-        // Standard angle bracket formats with optional spaces
-        '\\u003c\\s*\\|?\\s*fim_prefix\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*fim_suffix\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*fim_middle\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*fim_end\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*fim_begin\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*fim_hole\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*file_separator\\s*\\|?\\s*\\u003e',
-        '\\u003c\\s*\\|?\\s*endoftext\\s*\\|?\\s*\\u003e',
 
-        // CodeLlama style
-        '\\u003c\\s*PRE\\s*\\u003e',
-        '\\u003c\\s*SUF\\s*\\u003e',
-        '\\u003c\\s*MID\\s*\\u003e',
-        '\\u003c\\s*END\\s*\\u003e',
-        '\\u003c\\s*EOT\\s*\\u003e',
-
-        // Mistral/Codestral style
-        '\\[\\s*PREFIX\\s*\\]',
-        '\\[\\s*SUFFIX\\s*\\]',
-        '\\[\\s*MIDDLE\\s*\\]',
-
-        // CRITICAL: Curly brace pipe format (DeepSeek, Qwen, etc.)
-        '\\{\\s*\\|\\s*\\}\\s*',                      // {|} + optional space
-        // '\\{\\s*\\|\\s*fim\\s*\\|\\s*\\}',            // REMOVED: potentially buggy/greedy
-        '\\{\\s*\\|\\s*fim_prefix\\s*\\|\\s*\\}',     // {|fim_prefix|}
-        '\\{\\s*\\|\\s*fim_suffix\\s*\\|\\s*\\}',     // {|fim_suffix|}
-        '\\{\\s*\\|\\s*fim_middle\\s*\\|\\s*\\}',     // {|fim_middle|}
-        '\\{\\s*\\|\\s*fim_end\\s*\\|\\s*\\}',        // {|fim_end|}
-        '\\{\\s*\\|\\s*fim_begin\\s*\\|\\s*\\}',      // {|fim_begin|}
-        '\\{\\s*\\|\\s*fim_hole\\s*\\|\\s*\\}',       // {|fim_hole|}
-
-        // catch-all for any {|...|} pattern
-        '\\{\\s*\\|[^}]*\\|\\s*\\}',                 // {|anything|}
-
-        // Combined FIM keywords (e.g. prefix|suffix) which overlap on the pipe
-        '\\b(?:prefix|suffix|middle)\\s*\\|\\s*(?:prefix|suffix|middle)\\b',
-
-        // Standalone FIM keywords with pipes (simpler patterns without lookbehind/lookahead)
-        '\\bprefix\\s*\\|',                          // "prefix|" or "prefix |"
-        '\\bsuffix\\s*\\|',                          // "suffix|" or "suffix |"
-        '\\bmiddle\\s*\\|',                          // "middle|" or "middle |"
-        '\\|\\s*prefix\\b',                          // "|prefix" or "| prefix"
-        '\\|\\s*suffix\\b',                          // "|suffix" or "| suffix"
-        '\\|\\s*middle\\b',                          // "|middle" or "| middle"
-
-        // Orphaned pipes (aggressive cleanup)
-        '\\|\\s*\\|',                                // "||"
-
-        // Escaped versions
-        '\\\\\\u003c\\s*\\|?\\s*fim_prefix\\s*\\|?\\s*\\u003e',
-        '\\\\\\u003c\\s*\\|?\\s*fim_suffix\\s*\\|?\\s*\\u003e',
-        '\\\\\\u003c\\s*\\|?\\s*fim_middle\\s*\\|?\\s*\\u003e',
-        '\\\\\\u003c\\s*PRE\\s*\\u003e',
-        '\\\\\\u003c\\s*SUF\\s*\\u003e',
-        '\\\\\\u003c\\s*MID\\s*\\u003e',
-
-        // Partial/malformed tokens (Aggressive)
-        '\\u003c\\s*\\|?\\s*fim_',
-        '\\|?\\s*fim_prefix',
-        '\\|?\\s*fim_suffix',
-        '\\|?\\s*fim_middle',
-        '\\u003c\\s*\\|[^\\u003e]*',
-        '\\|\\s*\\u003e',
-
-        // Comment-style
-        '\\/\\/\\s*\\u003c\\s*\\|?\\s*fim_',
-        '#\\s*\\u003c\\s*\\|?\\s*fim_',
-
-        // Curly brace variations in comments
-        '\\/\\/\\s*\\{\\s*\\|',
-        '#\\s*\\{\\s*\\|'
-    ].join('|'), 'gi');
 
 
     private static _llamaInstance: any = null;
@@ -188,6 +118,7 @@ export class LlamaInference {
         threads?: number;
         gpuLayers?: number;
         contextSize?: number;
+        fimTemplate?: string;
     } = {}): Promise<void> {
         try {
             if (this.currentModelPath === modelPath && this.isLoaded) {
@@ -233,6 +164,19 @@ export class LlamaInference {
 
             // Load model
             this.logger.info('Loading model into memory...');
+            
+            // Set FIM template
+            const templateId = options.fimTemplate || 'default';
+            let customConfig;
+            
+            if (templateId === 'custom') {
+                const config = vscode.workspace.getConfiguration('inline');
+                customConfig = config.get<{prefix: string, suffix: string, middle: string}>('fim');
+            }
+
+            this.fimManager.setTemplate(templateId, customConfig);
+            this.logger.info(`Using FIM template: ${templateId}`);
+
             this.model = await llama.loadModel({
                 modelPath: modelPath,
                 useMlock: false, 
@@ -665,43 +609,8 @@ export class LlamaInference {
             // Only clear if explicitly requested or on error.
             this.logger.info('Sequence retained for KV cache');
 
-            // Clean up any remaining FIM tokens from the final completion using comprehensive patterns
-            // this.logger.debug(`[DEBUG] Raw completion (len=${completion.length}):`, JSON.stringify(completion));
-            let cleanedCompletion = completion;
-
-            // PASS 1: Apply all FIM token patterns from the static regex
-            cleanedCompletion = cleanedCompletion.replace(LlamaInference.FIM_TOKEN_REGEX, '');
-
-            // PASS 2: Clean up orphaned pipes and curly braces (artifacts from FIM token removal)
-            cleanedCompletion = cleanedCompletion.replace(/\|\s*\|/g, '');  // Remove ||
-            cleanedCompletion = cleanedCompletion.replace(/\{\s*\}/g, '');  // Remove {}
-            cleanedCompletion = cleanedCompletion.replace(/\{\s*\|/g, '');  // Remove {|
-            cleanedCompletion = cleanedCompletion.replace(/\|\s*\}/g, '');  // Remove |}
-
-            // PASS 3: Remove standalone orphaned pipes (but preserve valid code)
-            // Only remove pipes that are clearly FIM artifacts (surrounded by whitespace or at line boundaries)
-            cleanedCompletion = cleanedCompletion.replace(/^\s*\|\s*$/gm, '');  // Line with only |
-            cleanedCompletion = cleanedCompletion.replace(/\s+\|\s+/g, ' ');    // Isolated | between spaces
-
-            // PASS 4: Line-by-line aggressive filtering (catches distributed tokens)
-            const lines = cleanedCompletion.split('\n');
-            const cleanedLines = lines.map(line => {
-                let cleanLine = line;
-
-                // Remove any line that's ONLY FIM tokens
-                if (/^[\s\/\/#]*\u003c[|]?fim_/i.test(cleanLine.trim())) {
-                    return '';
-                }
-
-                // Remove FIM tokens from within lines
-                cleanLine = cleanLine.replace(/\u003c[|]?fim_[a-z_]*[|]?\u003e?/gi, '');
-                cleanLine = cleanLine.replace(/[|]?fim_[a-z_]*/gi, '');
-                cleanLine = cleanLine.replace(/\u003c[|][^\u003e]*/gi, '');
-                cleanLine = cleanLine.replace(/[|]\u003e/gi, '');
-
-                return cleanLine;
-            });
-            cleanedCompletion = cleanedLines.join('\n');
+            // Clean up any remaining FIM tokens using the dynamic manager
+            let cleanedCompletion = this.fimManager.clean(completion);
 
             // PASS 5: Additional cleanup for edge cases
             cleanedCompletion = cleanedCompletion.replace(/obj\\['middle'\\]/g, ''); // Specific fix for user report

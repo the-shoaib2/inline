@@ -133,6 +133,10 @@ fn init_regex_cache() -> HashMap<String, Regex> {
         Regex::new(r"@(\w+)\s*(?:\(([^)]*)\))?").unwrap());
     cache.insert("py_decorator".to_string(),
         Regex::new(r"@(\w+(?:\.\w+)*)\s*(?:\(([^)]*)\))?").unwrap());
+    cache.insert("cpp_attribute".to_string(),
+        Regex::new(r"\[\[(\w+)(?:\(([^)]*)\))?\]\]").unwrap());
+    cache.insert("java_annotation".to_string(),
+        Regex::new(r"@(\w+(?:\.\w+)*)(?:\(([^)]*)\))?").unwrap());
     
     // Generic patterns
     cache.insert("ts_generic".to_string(),
@@ -441,10 +445,14 @@ pub fn extract_decorators(code: String, language_id: String) -> Result<Vec<Decor
 fn process_decorators(code: &str, language_id: &str) -> Result<Vec<DecoratorInfo>> {
     let mut decorators = Vec::new();
     
+    // Select appropriate regex pattern based on language
     let decorator_re = match language_id {
-        "typescript" | "typescriptreact" => get_regex("ts_decorator"),
+        "typescript" | "typescriptreact" | "javascript" | "javascriptreact" => get_regex("ts_decorator"),
         "python" => get_regex("py_decorator"),
-        _ => return Err(napi::Error::from_reason(format!("Unsupported language for native decorator extraction: {}", language_id))),
+        "cpp" | "c" => get_regex("cpp_attribute"),
+        "java" => get_regex("java_annotation"),
+        // For unsupported languages, return empty array (graceful fallback to Tree-sitter)
+        _ => return Ok(decorators),
     };
     
     if let Some(re) = decorator_re {

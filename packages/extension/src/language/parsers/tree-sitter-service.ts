@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Parser, Language, Tree } from 'web-tree-sitter';
 import { Logger } from '@platform/system/logger';
 import { NativeLoader } from '@platform/native/native-loader';
+import { RESOURCE_PATHS, getResourcePath } from '@platform/system/path-constants';
 
 /**
  * Tree-sitter query match result
@@ -85,7 +86,7 @@ export class TreeSitterService {
         }
 
         this.context = context;
-        this.wasmDir = path.join(context.extensionPath, 'resources', 'tree-sitter-wasms');
+        this.wasmDir = getResourcePath(context.extensionUri, RESOURCE_PATHS.TREE_SITTER_WASMS);
         
         try {
             // Initialize Tree-sitter WASM

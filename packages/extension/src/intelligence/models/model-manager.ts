@@ -553,11 +553,15 @@ export class ModelManager {
                 const gpuLayers = config.get<number>('inference.gpuLayers');
                 const contextSize = config.get<number>('contextWindow', 4096);
 
+                // Detect FIM template
+                const fimTemplate = this.getFimTemplateId(model);
+
                 // Load model with configured parameters
                 await this.inferenceEngine.loadModel(model.path!, {
                      threads,
                      gpuLayers,
-                     contextSize
+                     contextSize,
+                     fimTemplate
                 });
                 this.currentModel = model;
 
@@ -725,33 +729,23 @@ export class ModelManager {
     /**
      * Get the FIM template ID for the current model based on heuristics
      */
-    getFimTemplateId(): string {
+    getFimTemplateId(model?: ModelInfo): string {
         // 1. Check for manual user override in settings (Universal Support)
         const config = vscode.workspace.getConfiguration('inline');
         const customFim = config.get<{prefix: string, suffix: string, middle: string}>('fim');
         if (customFim && customFim.prefix) {
-            // If user defined a custom FIM, we return a special ID
-            // But wait, the context engine needs to know the TOKENS, not just ID.
-            // Problem: ID maps to hardcoded tokens.
-            // Solution: We should extend ContextEngine to accept dynamic tokens OR map 'custom' to user settings.
-            // Better: ModelManager returns ID 'custom', passing config is hard via just ID.
-            // Actually, simplest is to check config HERE, but ContextEngine needs the tokens.
-            // Okay, let's keep it simple: If config exists, we can't just return 'custom' unless ContextEngine reads config.
-            // Let's assume ContextEngine will read config for 'custom' ID or we pass it.
-            // For now, let's stick to auto-detection and handle custom in next step if needed.
-            // Actually, the user asked for "custom settings".
-            // I will implement 'custom' ID and update ContextEngine to read settings for it.
             return 'custom';
         }
 
-        if (!this.currentModel) return 'default';
+        const targetModel = model || this.currentModel;
+        if (!targetModel) return 'default';
 
         // Check if model has explicit FIM template defined in JSON
-        if (this.currentModel.fimTemplate) {
-            return this.currentModel.fimTemplate;
+        if (targetModel.fimTemplate) {
+            return targetModel.fimTemplate;
         }
 
-        const rawString = (this.currentModel.id + this.currentModel.name + (this.currentModel.path || '')).toLowerCase();
+        const rawString = (targetModel.id + targetModel.name + (targetModel.path || '')).toLowerCase();
 
         // Heuristics for all major models
         if (rawString.includes('deepseek')) return 'deepseek';
