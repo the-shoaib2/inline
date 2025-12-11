@@ -1,10 +1,10 @@
 [package]
-name = "inline-native"
+name = "inline-analyzer"
 version = "0.1.0"
 edition = "2021"
 authors = ["Inline Team"]
 license = "Apache-2.0"
-description = "Native Rust modules for Inline VS Code extension"
+description = "Native Rust analyzer for Inline VS Code extension"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

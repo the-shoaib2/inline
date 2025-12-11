@@ -1,7 +1,7 @@
 {
   "targets": [
     {
-      "target_name": "inline_native_cpp",
+      "target_name": "inline_accelerator",
       "cflags!": [ "-fno-exceptions" ],
       "cflags_cc!": [ "-fno-exceptions" ],
       "cflags": [ "-O3", "-std=c++17" ],

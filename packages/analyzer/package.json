@@ -1,11 +1,11 @@
 {
-    "name": "@inline/native-rust",
+    "name": "@inline/analyzer",
     "version": "0.1.0",
-    "description": "Native Rust modules for Inline VS Code extension",
+    "description": "Native Rust analyzer for Inline VS Code extension",
     "main": "index.js",
     "types": "index.d.ts",
     "napi": {
-        "binaryName": "inline-native-rust",
+        "binaryName": "inline-analyzer",
         "targets": [
             "aarch64-apple-darwin",
             "x86_64-apple-darwin",

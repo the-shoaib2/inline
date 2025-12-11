@@ -46,10 +46,16 @@ pnpm install
 
 # Build native modules
 echo ""
-echo -e "${BLUE}🦀 Building native Rust modules...${NC}"
-cd native
+echo -e "${BLUE}🦀 Building native analyzer (Rust)...${NC}"
+cd packages/analyzer
 pnpm run build
-cd ..
+cd ../..
+
+echo ""
+echo -e "${BLUE}🚀 Building native accelerator (C++)...${NC}"
+cd packages/accelerator
+pnpm run build
+cd ../..
 
 echo -e "${GREEN}✓${NC} Native modules built successfully"
 
@@ -63,9 +69,9 @@ echo -e "${GREEN}✓${NC} TypeScript compiled successfully"
 # Build webview
 echo ""
 echo -e "${BLUE}🎨 Building webview...${NC}"
-cd webview
+cd packages/webview
 pnpm run build
-cd ..
+cd ../..
 
 echo -e "${GREEN}✓${NC} Webview built successfully"
 
@@ -75,9 +81,9 @@ if [ "$1" == "--test" ]; then
     echo -e "${BLUE}🧪 Running tests...${NC}"
     
     # Test native modules
-    cd native
+    cd packages/analyzer
     cargo test
-    cd ..
+    cd ../..
     
     # Test TypeScript
     pnpm test

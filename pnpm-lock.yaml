@@ -12,14 +12,36 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/accelerator:
+    dependencies:
+      node-addon-api:
+        specifier: ^8.5.0
+        version: 8.5.0
+    devDependencies:
+      node-gyp:
+        specifier: ^12.1.0
+        version: 12.1.0
+
+  packages/analyzer:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^3.5.0
+        version: 3.5.0(@emnapi/runtime@1.7.1)(@types/node@24.10.1)(node-addon-api@8.5.0)
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/extension:
     dependencies:
-      '@inline/native-cpp':
+      '@inline/accelerator':
         specifier: workspace:*
-        version: link:../native-cpp
-      '@inline/native-rust':
+        version: link:../accelerator
+      '@inline/analyzer':
         specifier: workspace:*
-        version: link:../native-rust
+        version: link:../analyzer
       '@types/tar':
         specifier: ^6.1.13
         version: 6.1.13
@@ -85,29 +107,7 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  packages/native-cpp:
-    dependencies:
-      node-addon-api:
-        specifier: ^8.5.0
-        version: 8.5.0
-    devDependencies:
-      node-gyp:
-        specifier: ^12.1.0
-        version: 12.1.0
-
-  packages/native-rust:
-    devDependencies:
-      '@napi-rs/cli':
-        specifier: ^3.5.0
-        version: 3.5.0(@emnapi/runtime@1.7.1)(@types/node@24.10.1)(node-addon-api@8.5.0)
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.1
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
-  packages/webview-ui:
+  packages/webview:
     dependencies:
       react:
         specifier: ^19.2.1

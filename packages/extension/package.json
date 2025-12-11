@@ -64,9 +64,9 @@
     "check-types": "tsc --noEmit -p ../../.config/build/tsconfig.json",
     "lint": "eslint src --ext ts --config ../../.config/lint/.eslintrc.yml",
     "test": "node ../../out/packages/extension/test/runTest.js",
-    "build:native:rust": "pnpm --filter @inline/native-rust build",
-    "build:native:cpp": "pnpm --filter @inline/native-cpp build",
-    "build:native": "pnpm build:native:rust && pnpm build:native:cpp",
+    "build:native:analyzer": "pnpm --filter @inline/analyzer build",
+    "build:native:accelerator": "pnpm --filter @inline/accelerator build",
+    "build:native": "pnpm build:native:analyzer && pnpm build:native:accelerator",
     "build": "pnpm build:native && pnpm compile",
     "postinstall": "pnpm build:native"
   },
@@ -90,8 +90,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@inline/native-rust": "workspace:*",
-    "@inline/native-cpp": "workspace:*",
+    "@inline/analyzer": "workspace:*",
+    "@inline/accelerator": "workspace:*",
     "@types/tar": "^6.1.13",
     "tar": "^7.5.2",
     "web-tree-sitter": "^0.25.10",

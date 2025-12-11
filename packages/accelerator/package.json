@@ -1,8 +1,8 @@
 {
-    "name": "@inline/native-cpp",
+    "name": "@inline/accelerator",
     "version": "0.1.0",
-    "description": "C++ Native Modules for Inline ",
-    "main": "build/Release/inline_native_cpp.node",
+    "description": "C++ Hardware Accelerator for Inline",
+    "main": "build/Release/inline_accelerator.node",
     "scripts": {
         "install": "node-gyp rebuild",
         "build": "node-gyp build",
