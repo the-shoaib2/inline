@@ -1,61 +1,28 @@
-# EditorConfig is awesome: https://EditorConfig.org
-
-# top-most EditorConfig file
 root = true
 
-# Unix-style newlines with a newline ending every file
 [*]
+charset = utf-8
 end_of_line = lf
 insert_final_newline = true
-charset = utf-8
 trim_trailing_whitespace = true
-
-# TypeScript, JavaScript
-[*.{ts,tsx,js,jsx}]
 indent_style = space
 indent_size = 2
 
-# JSON
-[*.json]
-indent_style = space
+[*.{js,ts,tsx,jsx}]
 indent_size = 2
 
-# YAML
-[*.{yml,yaml}]
-indent_style = space
+[*.{json,yml,yaml}]
 indent_size = 2
 
-# Markdown
 [*.md]
 trim_trailing_whitespace = false
-indent_style = space
-indent_size = 2
+max_line_length = off
 
-# Rust
-[*.rs]
-indent_style = space
-indent_size = 4
-
-# C++
-[*.{cpp,h}]
-indent_style = space
-indent_size = 2
-
-# Python (for build scripts)
-[*.py]
-indent_style = space
-indent_size = 4
-
-# Shell scripts
-[*.sh]
-indent_style = space
-indent_size = 2
-
-# Makefiles
 [Makefile]
 indent_style = tab
 
-# Package files
-[package.json]
-indent_style = space
+[*.py]
+indent_size = 4
+
+[*.{sh,bash}]
 indent_size = 2
