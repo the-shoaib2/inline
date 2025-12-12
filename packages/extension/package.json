@@ -1,12 +1,28 @@
 {
   "name": "inline",
-  "displayName": "Inline",
-  "description": "Inline code completion extension",
+  "displayName": "Inline - Offline AI Code Completion",
+  "description": "Privacy-first offline code completion powered by local AI models. Works completely offline with no internet required.",
   "version": "0.1.0",
   "publisher": "ratulhasan",
   "engines": {
     "vscode": "^1.80.0"
   },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "code-completion",
+    "offline",
+    "llm",
+    "copilot",
+    "local",
+    "privacy",
+    "machine-learning"
+  ],
   "main": "./dist/extension.js",
   "icon": "resources/icon.png",
   "activationEvents": [
