@@ -5,7 +5,7 @@
     "main": "build/Release/inline_accelerator.node",
     "scripts": {
         "install": "node-gyp rebuild",
-        "build": "node-gyp build",
+        "build": "node-gyp configure && node-gyp build",
         "clean": "node-gyp clean"
     },
     "dependencies": {

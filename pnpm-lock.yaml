@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      turbo:
+        specifier: ^2.6.3
+        version: 2.6.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -34,6 +37,15 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/core:
+    devDependencies:
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/extension:
     dependencies:
       '@inline/accelerator':
@@ -42,6 +54,30 @@ importers:
       '@inline/analyzer':
         specifier: workspace:*
         version: link:../analyzer
+      '@inline/completion':
+        specifier: workspace:*
+        version: link:../features/completion
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../core
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../features/events
+      '@inline/intelligence':
+        specifier: workspace:*
+        version: link:../features/intelligence
+      '@inline/language':
+        specifier: workspace:*
+        version: link:../features/language
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@inline/storage':
+        specifier: workspace:*
+        version: link:../features/storage
+      '@inline/ui':
+        specifier: workspace:*
+        version: link:../features/ui
       '@types/tar':
         specifier: ^6.1.13
         version: 6.1.13
@@ -56,8 +92,8 @@ importers:
         version: 0.25.10
     devDependencies:
       '@types/chai':
-        specifier: ^5.2.3
-        version: 5.2.3
+        specifier: ^4.3.11
+        version: 4.3.20
       '@types/glob':
         specifier: ^9.0.0
         version: 9.0.0
@@ -83,8 +119,8 @@ importers:
         specifier: ^2.5.2
         version: 2.5.2
       chai:
-        specifier: ^6.2.1
-        version: 6.2.1
+        specifier: ^4.3.10
+        version: 4.5.0
       esbuild:
         specifier: ^0.27.1
         version: 0.27.1
@@ -103,6 +139,218 @@ importers:
       tsc-alias:
         specifier: ^1.8.16
         version: 1.8.16
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/completion:
+    dependencies:
+      '@inline/context':
+        specifier: workspace:*
+        version: link:../context
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../events
+      '@inline/intelligence':
+        specifier: workspace:*
+        version: link:../intelligence
+      '@inline/language':
+        specifier: workspace:*
+        version: link:../language
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      '@inline/storage':
+        specifier: workspace:*
+        version: link:../storage
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/context:
+    dependencies:
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../events
+      '@inline/language':
+        specifier: workspace:*
+        version: link:../language
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      '@inline/storage':
+        specifier: workspace:*
+        version: link:../storage
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      esbuild:
+        specifier: ^0.27.1
+        version: 0.27.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/events:
+    dependencies:
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/intelligence:
+    dependencies:
+      '@inline/accelerator':
+        specifier: workspace:*
+        version: link:../../accelerator
+      '@inline/analyzer':
+        specifier: workspace:*
+        version: link:../../analyzer
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../events
+      '@inline/language':
+        specifier: workspace:*
+        version: link:../language
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      node-llama-cpp:
+        specifier: ^3.14.4
+        version: 3.14.4(typescript@5.9.3)
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/language:
+    dependencies:
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../events
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      web-tree-sitter:
+        specifier: ^0.25.10
+        version: 0.25.10
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/storage:
+    dependencies:
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../events
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      esbuild:
+        specifier: ^0.27.1
+        version: 0.27.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/ui:
+    dependencies:
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@inline/intelligence':
+        specifier: workspace:*
+        version: link:../intelligence
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/shared:
+    dependencies:
+      '@inline/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/tar':
+        specifier: ^6.1.13
+        version: 6.1.13
+      tar:
+        specifier: ^7.5.2
+        version: 7.5.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -1528,11 +1776,8 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/chai@5.2.3':
-    resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
-
-  '@types/deep-eql@4.0.2':
-    resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
+  '@types/chai@4.3.20':
+    resolution: {integrity: sha512-/pC9HAB5I/xMlc5FP77qjCnI16ChlJfW0tGa0IUcFn38VJrTV6DeZ60NU5KZBtaOZqjdpwTWohz5HU1RrhiYxQ==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -1696,9 +1941,8 @@ packages:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
 
-  assertion-error@2.0.1:
-    resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
-    engines: {node: '>=12'}
+  assertion-error@1.1.0:
+    resolution: {integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==}
 
   async-retry@1.3.3:
     resolution: {integrity: sha512-wfr/jstw9xNi/0teMHrRW7dsz3Lt5ARhYNZ2ewpadnhaIp5mbALhOAP+EAdsC7t4Z6wqsDVv9+W6gm1Dk9mEyw==}
@@ -1767,9 +2011,9 @@ packages:
   caniuse-lite@1.0.30001759:
     resolution: {integrity: sha512-Pzfx9fOKoKvevQf8oCXoyNRQ5QyxJj+3O0Rqx2V5oxT61KGx8+n6hV/IUyJeifUci2clnmmKVpvtiqRzgiWjSw==}
 
-  chai@6.2.1:
-    resolution: {integrity: sha512-p4Z49OGG5W/WBCPSS/dH3jQ73kD6tiMmUM+bckNK6Jr5JHMG3k9bg/BvKR8lKmtVBKmOiuVaV2ws8s9oSbwysg==}
-    engines: {node: '>=18'}
+  chai@4.5.0:
+    resolution: {integrity: sha512-RITGBfijLkBddZvnn8jdqoTypxvqbOLYQkGGxXzeFjVHvudaPw0HNFD9x928/eUwYWd2dPCugVqspGALTZZQKw==}
+    engines: {node: '>=4'}
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -1781,6 +2025,9 @@ packages:
 
   chardet@2.1.1:
     resolution: {integrity: sha512-PsezH1rqdV9VvyNhxxOW32/d75r01NY7TQCmOqomRo15ZSOKbpTFVsfjghxo6JloQUCGnH4k1LGu0R4yCLlWQQ==}
+
+  check-error@1.0.3:
+    resolution: {integrity: sha512-iKEoDYaRmd1mxM90a2OEfWhjsjPpYPuQ+lMYsoxB126+t8fw7ySEO48nmDg5COTjxDI65/Y2OWpeEHk3ZOe8zg==}
 
   chmodrp@1.0.2:
     resolution: {integrity: sha512-TdngOlFV1FLTzU0o1w8MB6/BFywhtLC0SzRTGJU7T9lmdjlCWeMRt1iVo0Ki+ldwNk0BqNiKoc8xpLZEQ8mY1w==}
@@ -1888,6 +2135,10 @@ packages:
   decamelize@4.0.0:
     resolution: {integrity: sha512-9iE1PgSik9HeIIw2JO94IidnE3eBoQrFJ3w7sFuzSX4DpmZ3v5sZpUiV5Swcf6mQEF+Y0ru8Neo+p+nyh2J+hQ==}
     engines: {node: '>=10'}
+
+  deep-eql@4.1.4:
+    resolution: {integrity: sha512-SUwdGfqdKOwxCPeVYjwSyRpJ7Z+fhpwIAtmCUdZIWZ/YP5R9WAsyuSgpLVDi9bjWoN2LXHNss/dk3urXtdQxGg==}
+    engines: {node: '>=6'}
 
   deep-extend@0.6.0:
     resolution: {integrity: sha512-LOHxIOaPYdHlJRtCQfDIVZtfw/ufM8+rVj649RIHzcm/vGwQRXFt6OPqIFWsm2XEMrNIEtWR64sY1LEKD2vAOA==}
@@ -2161,6 +2412,9 @@ packages:
     resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
     engines: {node: '>=18'}
 
+  get-func-name@2.0.2:
+    resolution: {integrity: sha512-8vXOvuE167CtIc3OyItco7N/dpRtBbYOsPsXCz7X/PMnlGjYjSGuZJgM1Y7mmew7BKf9BqvLX2tnOVy1BBUsxQ==}
+
   get-intrinsic@1.3.0:
     resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
     engines: {node: '>= 0.4'}
@@ -2420,6 +2674,9 @@ packages:
     resolution: {integrity: sha512-ja1E3yCr9i/0hmBVaM0bfwDjnGy8I/s6PP4DFp+yP+a+mrHO4Rm7DtmnqROTUkHIkqffC84YY7AeqX6oFk0WFg==}
     engines: {node: '>=18'}
 
+  loupe@2.3.7:
+    resolution: {integrity: sha512-zSMINGVYkdpYSOBmLi0D1Uo7JU9nVdQKrHxC8eYlV+9YKK9WePqAlL7lSlorG/U2Fw1w0hTBmaa/jrQ3UbPHtA==}
+
   lowdb@7.0.1:
     resolution: {integrity: sha512-neJAj8GwF0e8EpycYIDFqEPcx9Qz4GUho20jWFR7YiFeXzF1YMLdxB36PypcTSPMA+4+LvgyMacYhlr18Zlymw==}
     engines: {node: '>=18'}
@@ -2671,6 +2928,9 @@ packages:
   path-type@4.0.0:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
+
+  pathval@1.1.1:
+    resolution: {integrity: sha512-Dp6zGqpTdETdR63lehJYPeIOqpiNBNtc7BpWSLrOje7UaIsE5aY92r/AunQA7rsXvet3lrJ3JnZX29UPTKXyKQ==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -2972,12 +3232,50 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
+  turbo-darwin-64@2.6.3:
+    resolution: {integrity: sha512-BlJJDc1CQ7SK5Y5qnl7AzpkvKSnpkfPmnA+HeU/sgny3oHZckPV2776ebO2M33CYDSor7+8HQwaodY++IINhYg==}
+    cpu: [x64]
+    os: [darwin]
+
+  turbo-darwin-arm64@2.6.3:
+    resolution: {integrity: sha512-MwVt7rBKiOK7zdYerenfCRTypefw4kZCue35IJga9CH1+S50+KTiCkT6LBqo0hHeoH2iKuI0ldTF2a0aB72z3w==}
+    cpu: [arm64]
+    os: [darwin]
+
+  turbo-linux-64@2.6.3:
+    resolution: {integrity: sha512-cqpcw+dXxbnPtNnzeeSyWprjmuFVpHJqKcs7Jym5oXlu/ZcovEASUIUZVN3OGEM6Y/OTyyw0z09tOHNt5yBAVg==}
+    cpu: [x64]
+    os: [linux]
+
+  turbo-linux-arm64@2.6.3:
+    resolution: {integrity: sha512-MterpZQmjXyr4uM7zOgFSFL3oRdNKeflY7nsjxJb2TklsYqiu3Z9pQ4zRVFFH8n0mLGna7MbQMZuKoWqqHb45w==}
+    cpu: [arm64]
+    os: [linux]
+
+  turbo-windows-64@2.6.3:
+    resolution: {integrity: sha512-biDU70v9dLwnBdLf+daoDlNJVvqOOP8YEjqNipBHzgclbQlXbsi6Gqqelp5er81Qo3BiRgmTNx79oaZQTPb07Q==}
+    cpu: [x64]
+    os: [win32]
+
+  turbo-windows-arm64@2.6.3:
+    resolution: {integrity: sha512-dDHVKpSeukah3VsI/xMEKeTnV9V9cjlpFSUs4bmsUiLu3Yv2ENlgVEZv65wxbeE0bh0jjpmElDT+P1KaCxArQQ==}
+    cpu: [arm64]
+    os: [win32]
+
+  turbo@2.6.3:
+    resolution: {integrity: sha512-bf6YKUv11l5Xfcmg76PyWoy/e2vbkkxFNBGJSnfdSXQC33ZiUfutYh6IXidc5MhsnrFkWfdNNLyaRk+kHMLlwA==}
+    hasBin: true
+
   typanion@3.14.0:
     resolution: {integrity: sha512-ZW/lVMRabETuYCd9O9ZvMhAh8GslSqaUjxmK/JLPCh6l73CvLBiuXswj/+7LdnWOgYsQ130FqLzFz5aGT4I3Ug==}
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
+
+  type-detect@4.1.0:
+    resolution: {integrity: sha512-Acylog8/luQ8L7il+geoSxhEkazvkslg7PSNKOX59mbB9cOveP5aq9h74Y7YU8yDpJwetzQQrfIwtf4Wp4LKcw==}
+    engines: {node: '>=4'}
 
   typescript-eslint@8.49.0:
     resolution: {integrity: sha512-zRSVH1WXD0uXczCXw+nsdjGPUdx4dfrs5VQoHnUWmv1U3oNlAKv4FUNdLDhVUg+gYn+a5hUESqch//Rv5wVhrg==}
@@ -4274,12 +4572,7 @@ snapshots:
     dependencies:
       '@babel/types': 7.28.5
 
-  '@types/chai@5.2.3':
-    dependencies:
-      '@types/deep-eql': 4.0.2
-      assertion-error: 2.0.1
-
-  '@types/deep-eql@4.0.2': {}
+  '@types/chai@4.3.20': {}
 
   '@types/estree@1.0.8': {}
 
@@ -4470,7 +4763,7 @@ snapshots:
 
   array-union@2.1.0: {}
 
-  assertion-error@2.0.1: {}
+  assertion-error@1.1.0: {}
 
   async-retry@1.3.3:
     dependencies:
@@ -4546,7 +4839,15 @@ snapshots:
 
   caniuse-lite@1.0.30001759: {}
 
-  chai@6.2.1: {}
+  chai@4.5.0:
+    dependencies:
+      assertion-error: 1.1.0
+      check-error: 1.0.3
+      deep-eql: 4.1.4
+      get-func-name: 2.0.2
+      loupe: 2.3.7
+      pathval: 1.1.1
+      type-detect: 4.1.0
 
   chalk@4.1.2:
     dependencies:
@@ -4556,6 +4857,10 @@ snapshots:
   chalk@5.6.2: {}
 
   chardet@2.1.1: {}
+
+  check-error@1.0.3:
+    dependencies:
+      get-func-name: 2.0.2
 
   chmodrp@1.0.2: {}
 
@@ -4657,6 +4962,10 @@ snapshots:
       supports-color: 8.1.1
 
   decamelize@4.0.0: {}
+
+  deep-eql@4.1.4:
+    dependencies:
+      type-detect: 4.1.0
 
   deep-extend@0.6.0: {}
 
@@ -4972,6 +5281,8 @@ snapshots:
 
   get-east-asian-width@1.4.0: {}
 
+  get-func-name@2.0.2: {}
+
   get-intrinsic@1.3.0:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -5234,6 +5545,10 @@ snapshots:
     dependencies:
       is-unicode-supported: 2.1.0
       yoctocolors: 2.1.2
+
+  loupe@2.3.7:
+    dependencies:
+      get-func-name: 2.0.2
 
   lowdb@7.0.1:
     dependencies:
@@ -5544,6 +5859,8 @@ snapshots:
       minipass: 7.1.2
 
   path-type@4.0.0: {}
+
+  pathval@1.1.1: {}
 
   picocolors@1.1.1: {}
 
@@ -5857,11 +6174,40 @@ snapshots:
   tslib@2.8.1:
     optional: true
 
+  turbo-darwin-64@2.6.3:
+    optional: true
+
+  turbo-darwin-arm64@2.6.3:
+    optional: true
+
+  turbo-linux-64@2.6.3:
+    optional: true
+
+  turbo-linux-arm64@2.6.3:
+    optional: true
+
+  turbo-windows-64@2.6.3:
+    optional: true
+
+  turbo-windows-arm64@2.6.3:
+    optional: true
+
+  turbo@2.6.3:
+    optionalDependencies:
+      turbo-darwin-64: 2.6.3
+      turbo-darwin-arm64: 2.6.3
+      turbo-linux-64: 2.6.3
+      turbo-linux-arm64: 2.6.3
+      turbo-windows-64: 2.6.3
+      turbo-windows-arm64: 2.6.3
+
   typanion@3.14.0: {}
 
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
+
+  type-detect@4.1.0: {}
 
   typescript-eslint@8.49.0(eslint@9.39.1)(typescript@5.9.3):
     dependencies:

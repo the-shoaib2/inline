@@ -1,0 +1,28 @@
+{
+    "name": "@inline/shared",
+    "version": "0.1.0",
+    "description": "Shared utilities for Inline VS Code extension",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "watch": "tsc -p tsconfig.json --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@inline/core": "workspace:*",
+        "@types/tar": "^6.1.13",
+        "tar": "^7.5.2"
+    },
+    "devDependencies": {
+        "@types/node": "24.10.1",
+        "@types/vscode": "^1.106.1",
+        "typescript": "^5.9.3"
+    },
+    "exports": {
+        ".": "./dist/index.js",
+        "./platform": "./dist/platform/index.js",
+        "./network": "./dist/network/index.js",
+        "./security": "./dist/security/index.js"
+    }
+}

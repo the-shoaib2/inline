@@ -2,32 +2,17 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { InlineCompletionProvider } from '@completion/providers/completion-provider';
-import { InlineCodeActionProvider } from '@completion/providers/code-action-provider';
-import { InlineHoverProvider } from '@completion/providers/hover-provider';
-import { ModelManager } from '@intelligence/models/model-manager';
-import { CacheManager } from '@storage/cache/cache-manager';
-import { StatusBarManager } from '@ui/status-bar-manager';
-import { WebviewProvider } from '@ui/webview-provider';
-import { NetworkDetector } from '@network/network-detector';
-import { ResourceManager } from '@platform/resources/resource-manager';
-import { Logger } from '@platform/system/logger';
-import { ConfigManager } from '@platform/system/config-manager';
-import { ErrorHandler } from '@platform/system/error-handler';
-import { TelemetryManager } from '@platform/monitoring/telemetry-manager';
-import { LanguageConfigService } from '@language/analysis/language-config-service';
-import { NetworkConfig } from '@network/network-config';
-import { ProcessInfoDisplay } from '@ui/views/process-info-display';
-import { PerformanceTuner } from '@intelligence/optimization/performance-tuner';
-import { AICommandsProvider } from '@completion/providers/ai-commands-provider';
-import { EventTrackingManager, createEventTrackingManager } from '@events/event-tracking-manager';
-import { CompilationManager } from '@language/compilation/compilation-manager';
-import { BuildStateTracker } from '@language/compilation/build-state-tracker';
-import { TriggerEngine } from '@language/compilation/trigger-engine';
-import { CompilationSuggestionProvider } from '@language/compilation/compilation-suggestion-provider';
-import { DependencyChecker } from '@language/compilation/dependency-checker';
-import { FeatureTracker } from '@platform/features/feature-tracker';
-import { FEATURE_REGISTRY } from '@platform/features/feature-registry';
+
+// New modular package imports
+import { InlineCompletionProvider, InlineCodeActionProvider, InlineHoverProvider, AICommandsProvider } from '@inline/completion';
+import { ModelManager, PerformanceTuner } from '@inline/intelligence';
+import { CacheManager } from '@inline/storage';
+import { StatusBarManager, WebviewProvider } from '@inline/ui';
+import { NetworkDetector, NetworkConfig } from '@inline/shared';
+import { ResourceManager, Logger, ConfigManager, ErrorHandler, TelemetryManager } from '@inline/shared';
+import { LanguageConfigService, CompilationManager, BuildStateTracker, TriggerEngine, CompilationSuggestionProvider, DependencyChecker } from '@inline/language';
+import { EventTrackingManager, createEventTrackingManager } from '@inline/events';
+import { FeatureRegistry, FEATURE_REGISTRY } from '@inline/core';
 
 /**
  * VSCode extension entry point and lifecycle management.
@@ -59,7 +44,7 @@ let buildStateTracker: BuildStateTracker;
 let triggerEngine: TriggerEngine;
 let compilationSuggestionProvider: CompilationSuggestionProvider;
 let dependencyChecker: DependencyChecker;
-let featureTracker: FeatureTracker;
+// let featureTracker: FeatureTracker;
 
 /**
  * Extension activation - initializes all components and services.
@@ -118,7 +103,6 @@ export async function activate(context: vscode.ExtensionContext) {
         // Initialize completion provider with all dependencies
         completionProvider = new InlineCompletionProvider(
             modelManager,
-            statusBarManager,
             networkDetector,
             resourceManager,
             cacheManager
@@ -212,8 +196,9 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(dependencyChecker);
 
         // Initialize feature tracking for analytics
-        featureTracker = new FeatureTracker(context);
-        FEATURE_REGISTRY.forEach(feature => featureTracker.registerFeature(feature));
+        // featureTracker = new FeatureTracker(context);
+        // FEATURE_REGISTRY.forEach(feature => featureTracker.registerFeature(feature));
+        logger.info('Registered Features:', FEATURE_REGISTRY.map(f => f.name).join(', '));
         logger.info('Feature tracker initialized with registry');
 
         // Register all extension commands
@@ -329,7 +314,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
         }),
 
         vscode.commands.registerCommand('inline.settings', () => {
-            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:inline.inline');
+            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:ratulhasan.inline');
             telemetryManager.trackEvent('settings_opened');
         }),
 
@@ -342,7 +327,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
         }),
 
         vscode.commands.registerCommand('inline.showProcessInfo', async () => {
-            await ProcessInfoDisplay.showProcessInfo();
+            // await ProcessInfoDisplay.showProcessInfo();
             telemetryManager.trackEvent('process_info_opened');
         }),
 
@@ -427,20 +412,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
             telemetryManager.trackEvent('check_updates');
         }),
 
-        vscode.commands.registerCommand('inline.showFeatureStatus', async () => {
-            if (featureTracker) {
-                const markdown = featureTracker.generateMarkdown();
-                const doc = await vscode.workspace.openTextDocument({
-                    content: markdown,
-                    language: 'markdown'
-                });
-                await vscode.window.showTextDocument(doc, {
-                    preview: true,
-                    viewColumn: vscode.ViewColumn.Beside
-                });
-                telemetryManager.trackEvent('feature_status_viewed');
-            }
-        }),
+        // Feature status command removed (FeatureTracker deprecated)
 
         // Import Management Commands
         vscode.commands.registerCommand('inline.organizeImports', async (document?: vscode.TextDocument) => {

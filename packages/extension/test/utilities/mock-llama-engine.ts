@@ -1,4 +1,4 @@
-import { InferenceOptions, TokenCallback } from '@intelligence/engines/llama-engine';
+import { InferenceOptions, TokenCallback } from '@inline/intelligence';
 import * as vscode from 'vscode';
 
 /**

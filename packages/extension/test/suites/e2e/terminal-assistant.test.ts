@@ -1,6 +1,6 @@
 import * as assert from 'assert';
-import { TerminalAssistant } from '@ui/terminal/terminal-assistant';
-import { LlamaInference } from '@intelligence/engines/llama-engine';
+import { TerminalAssistant } from '@inline/ui';
+import { LlamaInference } from '@inline/intelligence';
 
 suite('Terminal Assistant E2E Tests', () => {
     let assistant: TerminalAssistant;
@@ -17,30 +17,30 @@ suite('Terminal Assistant E2E Tests', () => {
         const gitCommands = assistant.getGitCommands();
         
         assert.ok(gitCommands.length > 0);
-        assert.ok(gitCommands.some(cmd => cmd.command.includes('git status')));
-        assert.ok(gitCommands.some(cmd => cmd.command.includes('git commit')));
+        assert.ok(gitCommands.some((cmd: any) => cmd.command.includes('git status')));
+        assert.ok(gitCommands.some((cmd: any) => cmd.command.includes('git commit')));
     });
 
     test('Should provide npm command suggestions', () => {
         const npmCommands = assistant.getPackageManagerCommands('npm');
         
         assert.ok(npmCommands.length > 0);
-        assert.ok(npmCommands.some(cmd => cmd.command.includes('npm install')));
-        assert.ok(npmCommands.some(cmd => cmd.command.includes('npm test')));
+        assert.ok(npmCommands.some((cmd: any) => cmd.command.includes('npm install')));
+        assert.ok(npmCommands.some((cmd: any) => cmd.command.includes('npm test')));
     });
 
     test('Should convert npm to pnpm commands', () => {
         const pnpmCommands = assistant.getPackageManagerCommands('pnpm');
         
-        assert.ok(pnpmCommands.every(cmd => cmd.command.includes('pnpm')));
-        assert.ok(!pnpmCommands.some(cmd => /\bnpm\b/.test(cmd.command)));
+        assert.ok(pnpmCommands.every((cmd: any) => cmd.command.includes('pnpm')));
+        assert.ok(!pnpmCommands.some((cmd: any) => /\bnpm\b/.test(cmd.command)));
     });
 
     test('Should provide Docker commands', () => {
         const dockerCommands = assistant.getDockerCommands();
         
         assert.ok(dockerCommands.length > 0);
-        assert.ok(dockerCommands.some(cmd => cmd.command.includes('docker ps')));
+        assert.ok(dockerCommands.some((cmd: any) => cmd.command.includes('docker ps')));
     });
 
     test('Should detect dangerous commands', () => {
@@ -75,10 +75,10 @@ suite('Terminal Assistant E2E Tests', () => {
 
     test('Should categorize commands correctly', () => {
         const gitCommands = assistant.getGitCommands();
-        assert.ok(gitCommands.every(cmd => cmd.category === 'git'));
+        assert.ok(gitCommands.every((cmd: any) => cmd.category === 'git'));
 
         const npmCommands = assistant.getPackageManagerCommands();
-        assert.ok(npmCommands.every(cmd => cmd.category === 'npm'));
+        assert.ok(npmCommands.every((cmd: any) => cmd.category === 'npm'));
     });
 
     suiteTeardown(async () => {

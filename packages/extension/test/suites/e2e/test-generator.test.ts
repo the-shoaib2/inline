@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { TestGenerator } from '@completion/generation/test-generator';
-import { LlamaInference } from '@intelligence/engines/llama-engine';
+import { LlamaInference } from '@inline/intelligence';
 
 suite('Test Generator E2E Tests', () => {
     let testGenerator: TestGenerator;

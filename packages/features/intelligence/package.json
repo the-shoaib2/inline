@@ -1,0 +1,26 @@
+{
+    "name": "@inline/intelligence",
+    "version": "0.1.0",
+    "description": "AI model management and inference for Inline",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "watch": "tsc -p tsconfig.json --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@inline/accelerator": "workspace:*",
+        "@inline/analyzer": "workspace:*",
+        "@inline/core": "workspace:*",
+        "@inline/shared": "workspace:*",
+        "@inline/language": "workspace:*",
+        "@inline/events": "workspace:*",
+        "node-llama-cpp": "^3.14.4"
+    },
+    "devDependencies": {
+        "@types/node": "24.10.1",
+        "@types/vscode": "^1.106.1",
+        "typescript": "^5.9.3"
+    }
+}

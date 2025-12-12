@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { SecurityScanner } from '@language/analysis/security-scanner';
-import { LlamaInference } from '@intelligence/engines/llama-engine';
+import { LlamaInference, SecurityScanner } from '@inline/intelligence';
 
 suite('Security Scanner E2E Tests', () => {
     let scanner: SecurityScanner;

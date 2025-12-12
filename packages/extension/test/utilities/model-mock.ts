@@ -1,4 +1,4 @@
-import { ModelInfo } from '@intelligence/models/model-manager';
+import { ModelInfo } from '@inline/intelligence';
 
 /**
  * Mock model for testing

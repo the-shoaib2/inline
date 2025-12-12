@@ -7,7 +7,7 @@ suite('Webview E2E Test Suite', () => {
 
     test('Webview Command should register and execute', async () => {
         // Activate the extension
-        const ext = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
+        const ext = vscode.extensions.getExtension('ratulhasan.inline');
         assert.ok(ext, 'Extension not found');
 
         await ext?.activate();
@@ -30,7 +30,7 @@ suite('Webview E2E Test Suite', () => {
     });
 
     test('Webview HTML generation', async () => {
-        const ext = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
+        const ext = vscode.extensions.getExtension('ratulhasan.inline');
         const api = ext?.exports;
         const provider = api.webviewProvider;
 
@@ -61,12 +61,12 @@ suite('Webview E2E Test Suite', () => {
 
         const extensionUri = ext?.extensionUri;
         if (extensionUri) {
-            const indexHtmlPath = vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'index.html');
+            const indexHtmlPath = vscode.Uri.joinPath(extensionUri, 'media', 'webview', 'index.html');
             try {
                 const stat = await vscode.workspace.fs.stat(indexHtmlPath);
                 assert.ok(stat.size > 0, 'index.html should exist and not be empty');
             } catch (e) {
-                assert.fail('index.html not found in out/webview');
+                assert.fail('index.html not found in media/webview');
             }
         }
     });

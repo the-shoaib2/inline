@@ -7,7 +7,7 @@ import { SemanticValidator } from '@language/validation/semantic-validator';
 import { TypeChecker } from '@language/analysis/type-checker';
 import { Linter } from '@language/validation/linter';
 import { ComplexityAnalyzer } from '@language/validation/complexity-analyzer';
-import { VulnerabilityScanner } from '@security/scanning/vulnerability-scanner';
+import { VulnerabilityScanner } from '@inline/shared';
 
 export async function runValidatorTests() {
     console.log('🧪 Running Validator Tests...\n');

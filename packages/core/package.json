@@ -1,0 +1,21 @@
+{
+    "name": "@inline/core",
+    "version": "0.1.0",
+    "description": "Core framework for Inline VS Code extension",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "watch": "tsc -p tsconfig.json --watch",
+        "clean": "rm -rf dist"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.106.1",
+        "typescript": "^5.9.3"
+    },
+    "exports": {
+        ".": "./dist/index.js",
+        "./registry": "./dist/registry/index.js",
+        "./types": "./dist/types/index.js"
+    }
+}

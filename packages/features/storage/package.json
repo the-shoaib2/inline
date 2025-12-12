@@ -1,0 +1,23 @@
+{
+    "name": "@inline/storage",
+    "version": "0.1.0",
+    "description": "Caching and state management for Inline",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.json --skipLibCheck",
+        "watch": "tsc -p tsconfig.json --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@inline/core": "workspace:*",
+        "@inline/events": "workspace:*",
+        "@inline/shared": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "24.10.1",
+        "@types/vscode": "^1.106.1",
+        "esbuild": "^0.27.1",
+        "typescript": "^5.9.3"
+    }
+}

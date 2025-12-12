@@ -1,0 +1,1 @@
+{"version":3,"file":"type-checker.d.ts","sourceRoot":"","sources":["type-checker.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,MAAM,QAAQ,CAAC;AAEjC;;;;;;;;;;;GAWG;AACH,qBAAa,WAAW;IAEpB;;;;;;OAMG;IACG,UAAU,CAAC,QAAQ,EAAE,MAAM,CAAC,YAAY,GAAG,OAAO,CAAC,MAAM,CAAC,UAAU,EAAE,CAAC;IAY7E;;;OAGG;IACH,OAAO,CAAC,oBAAoB;IAgD5B;;;;;;OAMG;IACH,OAAO,CAAC,SAAS;CA4BpB"}

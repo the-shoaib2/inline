@@ -5,7 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { FEATURE_REGISTRY } from '@platform/features/feature-registry';
+import { FEATURE_REGISTRY } from '@inline/core';
 
 export interface LanguageDefinition {
     name: string;
@@ -216,7 +216,7 @@ export class LanguageTestGenerator {
                 matrix.push({
                     featureId: feature.id,
                     applicableLanguages,
-                    testTemplate: this.getTestTemplate(feature.id, feature.category)
+                    testTemplate: this.getTestTemplate(feature.id, feature.category || 'Uncategorized')
                 });
             }
         }
@@ -261,6 +261,9 @@ export class LanguageTestGenerator {
 
         const languageCoverage = new Map<string, number>();
         for (const lang of this.languages.keys()) {
+            // If the user meant to add a category to the language coverage, the logic would need to be different.
+            // For now, I will insert the line as a comment to avoid a `ReferenceError` and maintain syntactic correctness.
+            // const categoryName = f.category || 'Uncategorized'; // 'f' is not defined in this scope.
             const count = matrix.filter(m => m.applicableLanguages.includes(lang)).length;
             languageCoverage.set(lang, count);
         }

@@ -1,0 +1,1 @@
+{"version":3,"file":"syntax-validator.d.ts","sourceRoot":"","sources":["syntax-validator.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,MAAM,QAAQ,CAAC;AAEjC;;;GAGG;AACH,qBAAa,eAAe;IAElB,cAAc,CAAC,QAAQ,EAAE,MAAM,CAAC,YAAY,GAAG,OAAO,CAAC,MAAM,CAAC,UAAU,EAAE,CAAC;IAcjF,OAAO,CAAC,wBAAwB;IA8ChC,OAAO,CAAC,oBAAoB;CA6B/B"}

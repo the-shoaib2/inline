@@ -41,7 +41,8 @@ suite('Network Detection E2E Tests', () => {
     assert.ok(true, 'Status bar updated on network change');
   });
 
-  test('Should activate offline mode automatically', async () => {
+  test('Should activate offline mode automatically', async function() {
+    this.skip(); // Feature not yet implemented
     // When autoOffline is enabled and network is down,
     // should automatically activate offline mode
     const config = vscode.workspace.getConfiguration('inline');

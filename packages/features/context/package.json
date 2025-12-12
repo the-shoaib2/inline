@@ -1,0 +1,25 @@
+{
+    "name": "@inline/context",
+    "version": "0.1.0",
+    "description": "Context analysis and management for Inline extension",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.json --skipLibCheck",
+        "watch": "tsc -p tsconfig.json --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@inline/core": "workspace:*",
+        "@inline/shared": "workspace:*",
+        "@inline/language": "workspace:*",
+        "@inline/storage": "workspace:*",
+        "@inline/events": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "24.10.1",
+        "@types/vscode": "^1.106.1",
+        "esbuild": "^0.27.1",
+        "typescript": "^5.9.3"
+    }
+}

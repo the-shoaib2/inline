@@ -1,0 +1,71 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "globalDependencies": [
+        ".config/build/tsconfig.json",
+        "tsconfig.json"
+    ],
+    "tasks": {
+        "build": {
+            "dependsOn": [
+                "^build"
+            ],
+            "outputs": [
+                "dist/**",
+                "build/**",
+                "*.vsix"
+            ],
+            "cache": true
+        },
+        "build:native": {
+            "dependsOn": [],
+            "outputs": [
+                "build/**",
+                "dist/**",
+                "*.node"
+            ],
+            "cache": true
+        },
+        "build:native:analyzer": {
+            "dependsOn": [],
+            "outputs": [
+                "dist/**",
+                "*.node"
+            ],
+            "cache": true
+        },
+        "build:native:accelerator": {
+            "dependsOn": [],
+            "outputs": [
+                "build/**",
+                "*.node"
+            ],
+            "cache": true
+        },
+        "compile": {
+            "dependsOn": [
+                "build:native",
+                "^build"
+            ],
+            "outputs": [
+                "out/**"
+            ],
+            "cache": true
+        },
+        "test": {
+            "dependsOn": [
+                "build"
+            ],
+            "outputs": [
+                "coverage/**"
+            ],
+            "cache": true
+        },
+        "lint": {
+            "outputs": [],
+            "cache": true
+        },
+        "clean": {
+            "cache": false
+        }
+    }
+}

@@ -4,7 +4,7 @@
  */
 
 import { LanguageTestGenerator } from './language-test-generator';
-import { FEATURE_REGISTRY } from '@platform/features/feature-registry';
+import { FEATURE_REGISTRY } from '@inline/core';
 
 export interface TestExpectation {
     featureId: string;

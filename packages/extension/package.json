@@ -31,9 +31,8 @@
     "onLanguage:typescript",
     "onLanguage:python",
     "onLanguage:java",
-    "onLanguage:go",
-    "onLanguage:rust",
-    "onView:inline.modelManagerView"
+    "onLanguage:cpp",
+    "onLanguage:go"
   ],
   "contributes": {
     "viewsContainers": {
@@ -66,6 +65,36 @@
           "type": "boolean",
           "default": true,
           "description": "Enable resource monitoring"
+        },
+        "inline.functionCompletion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable function completion suggestions"
+        },
+        "inline.autoCloseBlocks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically close code blocks"
+        },
+        "inline.autoOffline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically switch to offline mode when network is unavailable"
+        },
+        "inline.validation.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable code validation and auto-fix suggestions"
+        },
+        "inline.streaming.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable streaming completions for faster response"
+        },
+        "inline.streaming.showPartial": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show partial completions while streaming"
         }
       }
     }
@@ -76,10 +105,10 @@
     "compile": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "compile:tests": "tsc -p ../../.config/build/tsconfig.json --outDir ../../out",
-    "pretest": "pnpm compile && pnpm compile:tests",
+    "pretest": "rm -rf ../../out && pnpm compile && pnpm compile:tests && mkdir -p ../../out/packages/extension && ln -s $(pwd)/node_modules ../../out/packages/extension/node_modules && mkdir -p ../../out/packages/shared && ln -s $(pwd)/../../packages/shared/node_modules ../../out/packages/shared/node_modules && mkdir -p ../../out/packages/features/language && ln -s $(pwd)/../../packages/features/language/node_modules ../../out/packages/features/language/node_modules && ln -sf $(pwd)/../../resources/tree-sitter-wasms resources/tree-sitter-wasms && ln -sf $(pwd)/../../resources/tree-sitter-queries resources/tree-sitter-queries",
     "check-types": "tsc --noEmit -p ../../.config/build/tsconfig.json",
     "lint": "eslint src --ext ts --config ../../.config/lint/.eslintrc.yml",
-    "test": "node ../../out/packages/extension/test/runTest.js",
+    "test": "NODE_PATH=./node_modules node ../../out/packages/extension/test/runTest.js",
     "build:native:analyzer": "pnpm --filter @inline/analyzer build",
     "build:native:accelerator": "pnpm --filter @inline/accelerator build",
     "build:native": "pnpm build:native:analyzer && pnpm build:native:accelerator",
@@ -87,7 +116,7 @@
     "postinstall": "pnpm build:native"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.3",
+    "@types/chai": "^4.3.11",
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
     "@types/module-alias": "^2.0.4",
@@ -96,7 +125,7 @@
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",
     "@vscode/test-electron": "^2.5.2",
-    "chai": "^6.2.1",
+    "chai": "^4.3.10",
     "esbuild": "^0.27.1",
     "eslint": "^9.39.1",
     "glob": "^13.0.0",
@@ -108,6 +137,14 @@
   "dependencies": {
     "@inline/analyzer": "workspace:*",
     "@inline/accelerator": "workspace:*",
+    "@inline/core": "workspace:*",
+    "@inline/shared": "workspace:*",
+    "@inline/completion": "workspace:*",
+    "@inline/intelligence": "workspace:*",
+    "@inline/storage": "workspace:*",
+    "@inline/language": "workspace:*",
+    "@inline/ui": "workspace:*",
+    "@inline/events": "workspace:*",
     "@types/tar": "^6.1.13",
     "tar": "^7.5.2",
     "web-tree-sitter": "^0.25.10",

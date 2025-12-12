@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ModelManager, ModelInfo } from '@intelligence/models/model-manager';
+import { ModelManager, ModelInfo } from '@inline/intelligence';
 import { createMockModelInfo, createMockModels } from '../../utilities/model-mock';
 
 describe('ModelManager Unit Tests', () => {

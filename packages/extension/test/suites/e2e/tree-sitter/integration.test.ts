@@ -1,7 +1,8 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { ContextEngine } from '@context/context-engine';
-import { SemanticAnalyzer } from '@language/analysis/semantic-analyzer';
+import { SemanticAnalyzer, TreeSitterService } from '@language/index';
 
 suite('Tree-sitter Integration with LLM', () => {
     let contextEngine: ContextEngine;
@@ -10,10 +11,23 @@ suite('Tree-sitter Integration with LLM', () => {
     suiteSetup(async function() {
         this.timeout(60000); // 60 seconds for LLM initialization
         
+        // Initialize TreeSitterService for tests (since tests use a separate copy from extension)
+        const extension = vscode.extensions.getExtension('ratulhasan.inline');
+        if (extension) {
+            const mockContext = {
+                extensionUri: extension.extensionUri,
+                subscriptions: [],
+                extensionPath: extension.extensionPath,
+                asAbsolutePath: (relativePath: string) => path.join(extension.extensionPath, relativePath),
+            } as any;
+            
+            await TreeSitterService.getInstance().initialize(mockContext);
+        }
+
         contextEngine = new ContextEngine();
         semanticAnalyzer = new SemanticAnalyzer();
         
-        // Wait for extension to activate
+        // Wait for extension to activate (still needed for other services)
         await new Promise(resolve => setTimeout(resolve, 2000));
     });
 
