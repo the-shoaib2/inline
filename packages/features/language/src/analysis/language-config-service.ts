@@ -64,6 +64,13 @@ export class LanguageConfigService {
 
     public initialize(context: vscode.ExtensionContext): void {
         this.context = context;
+        
+        // Clear existing patterns to allow reinitialization (important for tests)
+        this.patterns.clear();
+        this.extensionMap.clear();
+        this.regexCache.clear();
+        this.fallbackPatterns = null;
+        
         this.loadPatterns();
         this.initialized = true;
 
@@ -83,33 +90,49 @@ export class LanguageConfigService {
         }
 
         try {
-            const configPath = path.join(this.context.extensionPath, 'src', 'resources', 'languages.json');
-            if (fs.existsSync(configPath)) {
-                const content = fs.readFileSync(configPath, 'utf8');
-                const config = JSON.parse(content);
+            // Try multiple possible paths for languages.json
+            const possiblePaths = [
+                path.join(this.context.extensionPath, 'src', 'resources', 'languages.json'),
+                path.join(this.context.extensionPath, 'packages', 'extension', 'src', 'resources', 'languages.json'),
+                path.join(this.context.extensionPath, 'resources', 'languages.json'),
+                path.join(this.context.extensionPath, '..', '..', 'src', 'resources', 'languages.json')
+            ];
 
-                for (const [lang, patterns] of Object.entries(config)) {
-                    // Handle special keys
-                    if (lang === '_fallback') {
-                        this.fallbackPatterns = patterns as LanguagePatterns;
-                        continue;
-                    }
-                    if (lang === '_extensions') {
-                        // Load extension mappings
-                        const extensions = patterns as Record<string, string>;
-                        for (const [ext, langId] of Object.entries(extensions)) {
-                            this.extensionMap.set(ext.toLowerCase(), langId);
-                        }
-                        continue;
-                    }
-
-                    this.patterns.set(lang, patterns as LanguagePatterns);
+            let configPath: string | null = null;
+            for (const testPath of possiblePaths) {
+                if (fs.existsSync(testPath)) {
+                    configPath = testPath;
+                    break;
                 }
-                // console.log(`[LanguageConfigService] Loaded patterns for ${this.patterns.size} languages`);
-                // console.log(`[LanguageConfigService] Loaded ${this.extensionMap.size} extension mappings`);
-            } else {
-                // console.warn(`[LanguageConfigService] Config file not found at ${configPath}`);
             }
+
+            if (!configPath) {
+                // console.warn(`[LanguageConfigService] Config file not found in any of the expected locations`);
+                return;
+            }
+
+            const content = fs.readFileSync(configPath, 'utf8');
+            const config = JSON.parse(content);
+
+            for (const [lang, patterns] of Object.entries(config)) {
+                // Handle special keys
+                if (lang === '_fallback') {
+                    this.fallbackPatterns = patterns as LanguagePatterns;
+                    continue;
+                }
+                if (lang === '_extensions') {
+                    // Load extension mappings
+                    const extensions = patterns as Record<string, string>;
+                    for (const [ext, langId] of Object.entries(extensions)) {
+                        this.extensionMap.set(ext.toLowerCase(), langId);
+                    }
+                    continue;
+                }
+
+                this.patterns.set(lang, patterns as LanguagePatterns);
+            }
+            console.log(`[LanguageConfigService] Loaded patterns for ${this.patterns.size} languages from ${configPath}`);
+            // console.log(`[LanguageConfigService] Loaded ${this.extensionMap.size} extension mappings`);
         } catch (error) {
             console.error(`[LanguageConfigService] Failed to load patterns: ${error}`);
         }

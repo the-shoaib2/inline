@@ -4,17 +4,16 @@ import * as vscode from 'vscode';
 import { LanguageConfigService } from '@language/analysis/language-config-service';
 import { createMockContext } from '../../vscode-mock';
 
-describe('LanguageConfigService', function() {
-    this.beforeAll(function() { this.skip(); }); // Requires src/resources/languages.json
+describe('LanguageConfigService', () => {
     let service: LanguageConfigService;
     let mockContext: vscode.ExtensionContext;
 
     before(() => {
         service = LanguageConfigService.getInstance();
-        // Point extensionPath to the project root relative to this test file
-        // This file: test/unit/core/config/language-config-service.test.ts
-        // Root: ../../../../
-        const rootPath = path.resolve(__dirname, '../../../../');
+        // Point extensionPath to packages/extension directory
+        // This file: test/suites/unit/core/config/language-config-service.test.ts
+        // Target: packages/extension/
+        const rootPath = path.resolve(__dirname, '../../../../../packages/extension');
         mockContext = createMockContext();
         (mockContext as any).extensionPath = rootPath;
         

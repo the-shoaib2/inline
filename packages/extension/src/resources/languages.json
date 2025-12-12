@@ -1,0 +1,199 @@
+{
+    "typescript": {
+        "commentPrefix": "//",
+        "imports": [
+            "^import\\s+.*\\s+from\\s+['\"].*['\"];?",
+            "^import\\s+['\"].*['\"];?",
+            "^import\\s+type\\s+.*\\s+from\\s+['\"].*['\"];?"
+        ],
+        "functions": [
+            "function\\s+\\w+\\s*\\([^)]*\\)",
+            "const\\s+\\w+\\s*=\\s*\\([^)]*\\)\\s*=>",
+            "\\w+\\s*\\([^)]*\\)\\s*{",
+            "async\\s+function\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "class\\s+\\w+",
+            "interface\\s+\\w+",
+            "type\\s+\\w+\\s*="
+        ],
+        "interfaces": [
+            "interface\\s+\\w+"
+        ],
+        "types": [
+            "type\\s+\\w+\\s*="
+        ],
+        "variables": [
+            "const\\s+\\w+",
+            "let\\s+\\w+",
+            "var\\s+\\w+"
+        ],
+        "comments": [
+            "//.*",
+            "/\\*[\\s\\S]*?\\*/"
+        ]
+    },
+    "javascript": {
+        "commentPrefix": "//",
+        "imports": [
+            "^import\\s+.*\\s+from\\s+['\"].*['\"];?",
+            "^import\\s+['\"].*['\"];?",
+            "^const\\s+.*\\s+=\\s+require\\(['\"].*['\"]\\)"
+        ],
+        "functions": [
+            "function\\s+\\w+\\s*\\([^)]*\\)",
+            "const\\s+\\w+\\s*=\\s*\\([^)]*\\)\\s*=>",
+            "\\w+\\s*\\([^)]*\\)\\s*{",
+            "async\\s+function\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "class\\s+\\w+"
+        ],
+        "variables": [
+            "const\\s+\\w+",
+            "let\\s+\\w+",
+            "var\\s+\\w+"
+        ],
+        "comments": [
+            "//.*",
+            "/\\*[\\s\\S]*?\\*/"
+        ]
+    },
+    "python": {
+        "commentPrefix": "#",
+        "imports": [
+            "^import\\s+\\w+",
+            "^from\\s+\\w+\\s+import\\s+.*"
+        ],
+        "functions": [
+            "def\\s+\\w+\\s*\\([^)]*\\):",
+            "async\\s+def\\s+\\w+\\s*\\([^)]*\\):"
+        ],
+        "classes": [
+            "class\\s+\\w+"
+        ],
+        "variables": [
+            "\\w+\\s*=\\s*.*"
+        ],
+        "comments": [
+            "#.*",
+            "\"\"\"[\\s\\S]*?\"\"\"",
+            "'''[\\s\\S]*?'''"
+        ]
+    },
+    "go": {
+        "commentPrefix": "//",
+        "imports": [
+            "^import\\s+['\"].*['\"]",
+            "^import\\s+\\([^)]*\\)"
+        ],
+        "functions": [
+            "func\\s+\\w+\\s*\\([^)]*\\)",
+            "func\\s+\\([^)]*\\)\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "type\\s+\\w+\\s+struct",
+            "type\\s+\\w+\\s+interface"
+        ],
+        "variables": [
+            "var\\s+\\w+",
+            "const\\s+\\w+",
+            "\\w+\\s*:=\\s*.*"
+        ],
+        "comments": [
+            "//.*",
+            "/\\*[\\s\\S]*?\\*/"
+        ]
+    },
+    "rust": {
+        "commentPrefix": "//",
+        "imports": [
+            "^use\\s+.*;"
+        ],
+        "functions": [
+            "fn\\s+\\w+\\s*\\([^)]*\\)",
+            "pub\\s+fn\\s+\\w+\\s*\\([^)]*\\)",
+            "async\\s+fn\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "struct\\s+\\w+",
+            "enum\\s+\\w+",
+            "trait\\s+\\w+",
+            "impl\\s+.*\\s+for\\s+\\w+"
+        ],
+        "variables": [
+            "let\\s+\\w+",
+            "let\\s+mut\\s+\\w+",
+            "const\\s+\\w+",
+            "static\\s+\\w+"
+        ],
+        "comments": [
+            "//.*",
+            "/\\*[\\s\\S]*?\\*/"
+        ]
+    },
+    "java": {
+        "commentPrefix": "//",
+        "imports": [
+            "^import\\s+.*;"
+        ],
+        "functions": [
+            "public\\s+.*\\s+\\w+\\s*\\([^)]*\\)",
+            "private\\s+.*\\s+\\w+\\s*\\([^)]*\\)",
+            "protected\\s+.*\\s+\\w+\\s*\\([^)]*\\)",
+            "static\\s+.*\\s+\\w+\\s*\\([^)]*\\)"
+        ],
+        "classes": [
+            "class\\s+\\w+",
+            "interface\\s+\\w+",
+            "enum\\s+\\w+",
+            "@interface\\s+\\w+"
+        ],
+        "variables": [
+            "private\\s+.*\\s+\\w+",
+            "public\\s+.*\\s+\\w+",
+            "protected\\s+.*\\s+\\w+"
+        ],
+        "comments": [
+            "//.*",
+            "/\\*[\\s\\S]*?\\*/"
+        ]
+    },
+    "_fallback": {
+        "commentPrefix": "//",
+        "imports": [],
+        "functions": [],
+        "classes": [],
+        "variables": [],
+        "comments": [
+            "//.*",
+            "/\\*[\\s\\S]*?\\*/",
+            "#.*"
+        ]
+    },
+    "_extensions": {
+        "ts": "typescript",
+        "tsx": "typescript",
+        "js": "javascript",
+        "jsx": "javascript",
+        "mjs": "javascript",
+        "cjs": "javascript",
+        "py": "python",
+        "pyw": "python",
+        "go": "go",
+        "rs": "rust",
+        "java": "java",
+        "kt": "kotlin",
+        "rb": "ruby",
+        "php": "php",
+        "cs": "csharp",
+        "cpp": "cpp",
+        "cc": "cpp",
+        "cxx": "cpp",
+        "c": "c",
+        "h": "c",
+        "swift": "swift",
+        "m": "objective-c",
+        "mm": "objective-c"
+    }
+}
