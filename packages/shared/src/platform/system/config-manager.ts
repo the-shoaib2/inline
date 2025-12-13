@@ -9,59 +9,52 @@ import * as vscode from 'vscode';
  * - Global scope persistence for user settings
  */
 export class ConfigManager {
-    private config: vscode.WorkspaceConfiguration;
+    // Removed cached config to avoid stale state during rapid updates
 
-    constructor() {
-        this.config = vscode.workspace.getConfiguration('inline');
-
-        // Auto-reload configuration when user changes settings
-        vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('inline')) {
-                this.config = vscode.workspace.getConfiguration('inline');
-            }
-        });
+    private getConfig(): vscode.WorkspaceConfiguration {
+        return vscode.workspace.getConfiguration('inline');
     }
 
     /**
      * Automatically switch to offline mode when internet is unavailable.
      */
     public get autoOffline(): boolean {
-        return this.config.get('autoOffline', true);
+        return this.getConfig().get('autoOffline', true);
     }
 
     /**
      * Default model ID for code completion.
      */
     public get defaultModel(): string {
-        return this.config.get('defaultModel', 'deepseek-coder:6.7b');
+        return this.getConfig().get('defaultModel', 'deepseek-coder:6.7b');
     }
 
     /**
      * Maximum tokens to generate per completion (0-2048).
      */
     public get maxTokens(): number {
-        return this.config.get('maxTokens', 512);
+        return this.getConfig().get('maxTokens', 512);
     }
 
     /**
      * Model temperature for generation (0.0=deterministic, 1.0=creative).
      */
     public get temperature(): number {
-        return this.config.get('temperature', 0.1);
+        return this.getConfig().get('temperature', 0.1);
     }
 
     /**
      * Maximum number of completion entries to cache.
      */
     public get cacheSize(): number {
-        return this.config.get('cacheSize', 100);
+        return this.getConfig().get('cacheSize', 100);
     }
 
     /**
      * Enable CPU/memory monitoring and adaptive resource management.
      */
     public get resourceMonitoring(): boolean {
-        return this.config.get('resourceMonitoring', true);
+        return this.getConfig().get('resourceMonitoring', true);
     }
 
     /**
@@ -71,65 +64,66 @@ export class ConfigManager {
      */
     public get<T>(key: string, defaultValue?: T): T | undefined {
         if (defaultValue !== undefined) {
-            return this.config.get<T>(key, defaultValue);
+            return this.getConfig().get<T>(key, defaultValue);
         }
-        return this.config.get<T>(key);
+        return this.getConfig().get<T>(key);
     }
 
     /**
      * Update default model in global user settings.
      */
     public async setDefaultModel(modelId: string): Promise<void> {
-        await this.config.update('defaultModel', modelId, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('defaultModel', modelId, vscode.ConfigurationTarget.Global);
     }
 
     /**
      * Update auto-offline setting in global user settings.
      */
     public async setAutoOffline(enabled: boolean): Promise<void> {
-        await this.config.update('autoOffline', enabled, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('autoOffline', enabled, vscode.ConfigurationTarget.Global);
     }
 
     /**
      * Update max tokens in global user settings.
      */
     public async setMaxTokens(tokens: number): Promise<void> {
-        await this.config.update('maxTokens', tokens, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('maxTokens', tokens, vscode.ConfigurationTarget.Global);
     }
 
     /**
      * Update temperature in global user settings.
      */
     public async setTemperature(temp: number): Promise<void> {
-        await this.config.update('temperature', temp, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('temperature', temp, vscode.ConfigurationTarget.Global);
     }
 
     /**
      * Update cache size in global user settings.
      */
     public async setCacheSize(size: number): Promise<void> {
-        await this.config.update('cacheSize', size, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('cacheSize', size, vscode.ConfigurationTarget.Global);
     }
 
     /**
      * Update resource monitoring setting in global user settings.
      */
     public async setResourceMonitoring(enabled: boolean): Promise<void> {
-        await this.config.update('resourceMonitoring', enabled, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('resourceMonitoring', enabled, vscode.ConfigurationTarget.Global);
     }
 
     /**
      * Get all configuration settings as a single object.
      */
     public getAll(): InlineConfig {
+        const config = this.getConfig();
         return {
-            autoOffline: this.autoOffline,
-            defaultModel: this.defaultModel,
-            maxTokens: this.maxTokens,
-            temperature: this.temperature,
-            cacheSize: this.cacheSize,
-            resourceMonitoring: this.resourceMonitoring,
-            codingRules: this.codingRules
+            autoOffline: config.get('autoOffline', true),
+            defaultModel: config.get('defaultModel', 'deepseek-coder:6.7b'),
+            maxTokens: config.get('maxTokens', 512),
+            temperature: config.get('temperature', 0.1),
+            cacheSize: config.get('cacheSize', 100),
+            resourceMonitoring: config.get('resourceMonitoring', true),
+            codingRules: config.get('codingRules', [])
         };
     }
 
@@ -137,14 +131,14 @@ export class ConfigManager {
      * Get coding rules from configuration.
      */
     public get codingRules(): CodingRule[] {
-        return this.config.get('codingRules', []);
+        return this.getConfig().get('codingRules', []);
     }
 
     /**
      * Update coding rules in global user settings.
      */
     public async setCodingRules(rules: CodingRule[]): Promise<void> {
-        await this.config.update('codingRules', rules, vscode.ConfigurationTarget.Global);
+        await this.getConfig().update('codingRules', rules, vscode.ConfigurationTarget.Global);
     }
 }
 

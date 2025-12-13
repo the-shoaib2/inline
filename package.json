@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.22.0",
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build ",
     "build:native": "turbo run build:native",
     "compile": "turbo run compile --filter=inline",
     "test": "turbo run test",

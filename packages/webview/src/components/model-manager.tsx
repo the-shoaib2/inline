@@ -29,7 +29,7 @@ export const ModelManager: React.FC = () => {
                     setModels(data.models);
                     setCurrentModelId(data.currentModel);
                     setSettings(data.settings || {});
-                    setRules(data.rules || {});
+                    setRules(data.rules || []);
                     if (data.logoUri) {
                         setLogoUri(data.logoUri);
                     }

@@ -95,6 +95,28 @@
           "type": "boolean",
           "default": true,
           "description": "Show partial completions while streaming"
+        },
+        "inline.codingRules": {
+          "type": "array",
+          "default": [],
+          "description": "Custom coding rules and patterns for code completion",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "pattern": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     }
@@ -117,6 +139,7 @@
     "postinstall": "pnpm build:native"
   },
   "devDependencies": {
+    "@inline/webview": "workspace:*",
     "@types/chai": "^4.3.11",
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",

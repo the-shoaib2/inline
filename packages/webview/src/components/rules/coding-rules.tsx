@@ -9,14 +9,38 @@ interface CodingRulesProps {
 export const CodingRules: React.FC<CodingRulesProps> = ({ rules }) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingRule, setEditingRule] = useState<CodingRule | null>(null);
+    const [isAdding, setIsAdding] = useState(false);
+    const [newRule, setNewRule] = useState<CodingRule>({
+        name: 'New Rule',
+        pattern: '',
+        description: '',
+        enabled: true
+    });
 
     const handleAdd = () => {
-        vscode.postMessage('addRule');
+        setIsAdding(true);
+        setNewRule({
+            name: 'New Rule',
+            pattern: '',
+            description: '',
+            enabled: true
+        });
+        setEditingIndex(null);
+    };
+
+    const handleSaveNew = () => {
+        vscode.postMessage('addRule', { rule: newRule });
+        setIsAdding(false);
+    };
+
+    const handleCancelNew = () => {
+        setIsAdding(false);
     };
 
     const handleEdit = (index: number, rule: CodingRule) => {
         setEditingIndex(index);
         setEditingRule({ ...rule });
+        setIsAdding(false);
     };
 
     const handleSave = (index: number) => {
@@ -33,9 +57,8 @@ export const CodingRules: React.FC<CodingRulesProps> = ({ rules }) => {
     };
 
     const handleDelete = (index: number) => {
-        if (confirm('Delete this rule?')) {
-            vscode.postMessage('removeRule', { index });
-        }
+        // Removed confirm dialog as per request to fix "not working" issue
+        vscode.postMessage('removeRule', { index });
     };
 
     const handleToggle = (index: number, enabled: boolean) => {
@@ -48,10 +71,45 @@ export const CodingRules: React.FC<CodingRulesProps> = ({ rules }) => {
                 <p style={{ color: 'var(--vscode-descriptionForeground)', margin: '0 0 12px 0' }}>
                     Define custom coding patterns and rules
                 </p>
-                <button onClick={handleAdd}>Add Rule</button>
+                {!isAdding && <button onClick={handleAdd}>Add Rule</button>}
             </div>
 
-            {rules.length === 0 ? (
+            {isAdding && (
+                <div className="rule-item rule-editor" style={{ marginBottom: '16px', border: '1px solid var(--vscode-focusBorder)' }}>
+                    <h4 style={{ margin: '0 0 12px 0' }}>Add New Rule</h4>
+                    <div className="rule-field">
+                        <label>Name</label>
+                        <input
+                            type="text"
+                            value={newRule.name}
+                            onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+                        />
+                    </div>
+                    <div className="rule-field">
+                        <label>Pattern</label>
+                        <input
+                            type="text"
+                            value={newRule.pattern}
+                            onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
+                            placeholder="e.g., console.log"
+                        />
+                    </div>
+                    <div className="rule-field">
+                        <label>Description</label>
+                        <input
+                            type="text"
+                            value={newRule.description}
+                            onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
+                        />
+                    </div>
+                    <div className="rule-actions">
+                        <button onClick={handleSaveNew}>Save Rule</button>
+                        <button className="secondary" onClick={handleCancelNew}>Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {rules.length === 0 && !isAdding ? (
                 <p style={{ color: 'var(--vscode-descriptionForeground)', textAlign: 'center', padding: '20px 0' }}>
                     No coding rules defined
                 </p>
@@ -107,7 +165,13 @@ export const CodingRules: React.FC<CodingRulesProps> = ({ rules }) => {
                                     </div>
                                     <div className="rule-actions">
                                         <button className="secondary" onClick={() => handleEdit(index, rule)}>Edit</button>
-                                        <button className="secondary" onClick={() => handleDelete(index)}>Delete</button>
+                                        <button
+                                            className="secondary"
+                                            style={{ color: '#ff4d4f', borderColor: '#ff4d4f' }}
+                                            onClick={() => handleDelete(index)}
+                                        >
+                                            Delete
+                                        </button>
                                     </div>
                                 </div>
                             )}

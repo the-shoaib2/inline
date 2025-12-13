@@ -89,13 +89,16 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     await this.updateSetting(data.setting, data.value);
                     break;
                 case 'addRule':
-                    await this.addRule();
+                    await this.addRule(data.rule);
                     break;
                 case 'updateRule':
                     await this.updateRule(data.index, data.field, data.value);
                     break;
                 case 'removeRule':
                     await this.removeRule(data.index);
+                    break;
+                case 'log':
+                    console.log('[Webview]', data.message);
                     break;
                 case 'unloadModel':
                     await this.unloadModel();
@@ -107,32 +110,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         this.sendData();
     }
 
-    private sendData() {
-        if (this._view) {
-            const models = this.getAllModels();
-            const settings = this._configManager.getAll();
-            const rules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
-            const currentModel = this.modelManager.getCurrentModel();
-
-            const logoUri = getWebviewUri(
-                this._view.webview,
-                this._extensionUri,
-                RESOURCE_PATHS.EXTENSION_ICON
-            ).toString();
-
-            this._view.webview.postMessage({
-                command: 'updateData',
-                data: {
-                    models,
-                    settings,
-                    rules,
-                    currentModel: currentModel?.id,
-                    isOffline: this._networkDetector.isOffline(), // Real network status
-                    logoUri
-                }
-            });
-        }
-    }
+    // sendData implementation moved to lower section with override support
 
     private getAllModels() {
         const availableModels = this._modelDownloader.getAvailableModels();
@@ -683,10 +661,37 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private async addRule() {
+    private sendData(rulesOverride?: any[]) {
+        if (this._view) {
+            const models = this.getAllModels();
+            const settings = this._configManager.getAll();
+            const rules = rulesOverride || this._configManager.codingRules || [];
+            const currentModel = this.modelManager.getCurrentModel();
+
+            const logoUri = getWebviewUri(
+                this._view.webview,
+                this._extensionUri,
+                RESOURCE_PATHS.EXTENSION_ICON
+            ).toString();
+
+            this._view.webview.postMessage({
+                command: 'updateData',
+                data: {
+                    models,
+                    settings,
+                    rules,
+                    currentModel: currentModel?.id,
+                    isOffline: this._networkDetector.isOffline(), // Real network status
+                    logoUri
+                }
+            });
+        }
+    }
+
+    private async addRule(ruleData?: any) {
         try {
-            const currentRules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
-            const newRule = {
+            const currentRules = [...(this._configManager.codingRules || [])];
+            const newRule = ruleData || {
                 name: 'New Rule',
                 pattern: '',
                 description: '',
@@ -694,20 +699,26 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             };
 
             currentRules.push(newRule);
+            // Update UI immediately with new state
+            this.sendData(currentRules);
+            
             await this._configManager.setCodingRules(currentRules);
-            this.sendData();
+            // No need to send data again, but we can to be safe after persistence
+            // this.sendData();
         } catch (error) {
             this._view?.webview.postMessage({
                 command: 'notification',
                 message: `Failed to add rule: ${error}`,
                 type: 'error'
             });
+            // Revert UI if failed
+            this.sendData(); 
         }
     }
 
     private async updateRule(index: number, field: string, value: string | boolean) {
         try {
-            const currentRules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
+            const currentRules = [...(this._configManager.codingRules || [])];
             if (currentRules[index]) {
                 const rule = currentRules[index];
                 if (field === 'name' || field === 'pattern' || field === 'description') {
@@ -715,9 +726,11 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 } else if (field === 'enabled') {
                     rule[field] = Boolean(value);
                 }
-                // TODO: Update config manager with modified rules
+                
+                // Update UI immediately
+                this.sendData(currentRules);
+
                 await this._configManager.setCodingRules(currentRules);
-                this.sendData();
             }
         } catch (error) {
             this._view?.webview.postMessage({
@@ -725,16 +738,40 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 message: `Failed to update rule: ${error}`,
                 type: 'error'
             });
+            this.sendData();
         }
     }
 
     private async removeRule(index: number) {
         try {
-            const currentRules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
+            const currentRules = [...(this._configManager.codingRules || [])];
             if (currentRules[index]) {
+                const ruleName = currentRules[index].name;
+                
+                // Show native confirmation dialog
+                const answer = await vscode.window.showWarningMessage(
+                    `Are you sure you want to delete rule '${ruleName}'?`,
+                    { modal: true },
+                    'Delete'
+                );
+
+                if (answer !== 'Delete') {
+                    return;
+                }
+
+                const deletedName = currentRules[index].name;
                 currentRules.splice(index, 1);
+                
+                // Update UI immediately (Optimistic update)
+                this.sendData(currentRules);
+
                 await this._configManager.setCodingRules(currentRules);
-                this.sendData();
+                
+                this._view?.webview.postMessage({
+                    command: 'notification',
+                    message: `Rule '${deletedName}' deleted`,
+                    type: 'success'
+                });
             }
         } catch (error) {
             this._view?.webview.postMessage({
@@ -742,6 +779,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 message: `Failed to remove rule: ${error}`,
                 type: 'error'
             });
+            // Revert optimistic update on error
+            this.sendData();
         }
     }
 
