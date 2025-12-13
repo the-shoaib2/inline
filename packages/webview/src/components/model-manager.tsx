@@ -150,12 +150,12 @@ export const ModelManager: React.FC = () => {
     return (
         <div className="container">
             <div className="section">
-                <div className="model-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {logoUri && <img src={logoUri} alt="Inline Logo" style={{ width: '32px', height: '32px' }} />}
-                        <h2 style={{ fontSize: '12px' }}>Model Manager</h2>
+                <div className="model-header" style={{ position: 'relative', alignItems: 'center', minHeight: '32px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {logoUri && <img src={logoUri} alt="Inline Logo" style={{ width: '28px', height: '28px' }} />}
+                        <h2 style={{ fontSize: '18px', margin: 0, lineHeight: 1 }}>Inline</h2>
                     </div>
-                    <button className="secondary" onClick={handleRefresh}>Refresh</button>
+                    <button className="secondary" onClick={handleRefresh} style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>Refresh</button>
                 </div>
             </div>
 
