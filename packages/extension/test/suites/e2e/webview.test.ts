@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
 import { assert } from 'chai';
 import * as path from 'path';
+import { activateExtension, getExtension } from '../../utilities/test-utils';
 
 suite('Webview E2E Test Suite', () => {
     vscode.window.showInformationMessage('Start Webview E2E Tests.');
 
     test('Webview Command should register and execute', async () => {
         // Activate the extension
-        const ext = vscode.extensions.getExtension('inline.inline');
+        await activateExtension();
+        const ext = getExtension();
         assert.ok(ext, 'Extension not found');
-
-        await ext?.activate();
         assert.ok(ext?.isActive, 'Extension should be active');
 
         // Execute the command to open the webview

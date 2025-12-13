@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { activateExtension, sleep } from '../../utilities/test-utils';
+import { activateExtension, getExtension, sleep } from '../../utilities/test-utils';
 
 suite('Model Manager E2E Tests', () => {
   
@@ -10,7 +10,7 @@ suite('Model Manager E2E Tests', () => {
 
   test('Model Manager should initialize', async () => {
     // Extension should activate successfully with model manager
-    const ext = vscode.extensions.getExtension('inline.inline');
+    const ext = getExtension();
     assert.ok(ext?.isActive, 'Extension with Model Manager should be active');
   });
 

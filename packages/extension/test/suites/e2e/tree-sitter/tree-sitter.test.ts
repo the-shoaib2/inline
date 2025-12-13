@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
 import { SemanticAnalyzer } from '@inline/language/analysis/semantic-analyzer';
+import { activateExtension, getExtension as getInlineExtension } from '../../../utilities/test-utils';
 
 suite('Tree-sitter E2E Tests', () => {
     let treeSitterService: TreeSitterService;
@@ -10,13 +11,11 @@ suite('Tree-sitter E2E Tests', () => {
     suiteSetup(async function() {
         this.timeout(30000); // 30 seconds for initialization
         
-        // Get extension context
-        const extension = vscode.extensions.getExtension('inline.inline');
+        await activateExtension();
+        const extension = getInlineExtension();
         if (!extension) {
             throw new Error('Extension not found');
         }
-        
-        await extension.activate();
         
         treeSitterService = TreeSitterService.getInstance();
         semanticAnalyzer = new SemanticAnalyzer();
@@ -432,7 +431,7 @@ class Component${i} {
 
 // Helper function to create test document
 async function createTestDocument(content: string, languageId: string): Promise<vscode.TextDocument> {
-    const uri = vscode.Uri.parse(`untitled:test.${getExtension(languageId)}`);
+    const uri = vscode.Uri.parse(`untitled:test.${getFileExtension(languageId)}`);
     const document = await vscode.workspace.openTextDocument(uri);
     
     const edit = new vscode.WorkspaceEdit();
@@ -447,7 +446,7 @@ async function createTestDocument(content: string, languageId: string): Promise<
     return document;
 }
 
-function getExtension(languageId: string): string {
+function getFileExtension(languageId: string): string {
     const extensions: Record<string, string> = {
         'typescript': 'ts',
         'javascript': 'js',

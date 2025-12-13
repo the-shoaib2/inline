@@ -3,14 +3,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { activateExtension, getExtension } from '../../utilities/test-utils';
 
 suite('Model Import E2E Test', () => {
-    const extensionId = 'inline.inline';
     let extension: vscode.Extension<any>;
 
     suiteSetup(async () => {
-        extension = vscode.extensions.getExtension(extensionId)!;
-        await extension.activate();
+        await activateExtension();
+        extension = getExtension()!;
     });
 
     test('Should validate and import GGUF model', async () => {

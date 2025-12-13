@@ -3,15 +3,15 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { activateExtension, getExtension } from '../../utilities/test-utils';
 
 suite('Download Manager E2E Tests', () => {
-    const extensionId = 'inline.inline';
     let extension: vscode.Extension<any>;
     let api: any;
 
     suiteSetup(async () => {
-        extension = vscode.extensions.getExtension(extensionId)!;
-        await extension.activate();
+        await activateExtension();
+        extension = getExtension()!;
         api = extension.exports;
     });
 
