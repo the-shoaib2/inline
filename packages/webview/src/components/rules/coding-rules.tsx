@@ -96,10 +96,11 @@ export const CodingRules: React.FC<CodingRulesProps> = ({ rules }) => {
                     </div>
                     <div className="rule-field">
                         <label>Description</label>
-                        <input
-                            type="text"
+                        <textarea
                             value={newRule.description}
                             onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
+                            rows={3}
+                            style={{ resize: 'vertical', width: '100%', fontFamily: 'inherit' }}
                         />
                     </div>
                     <div className="rule-actions">
@@ -138,10 +139,11 @@ export const CodingRules: React.FC<CodingRulesProps> = ({ rules }) => {
                                     </div>
                                     <div className="rule-field">
                                         <label>Description</label>
-                                        <input
-                                            type="text"
+                                        <textarea
                                             value={editingRule.description}
                                             onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })}
+                                            rows={3}
+                                            style={{ resize: 'vertical', width: '100%', fontFamily: 'inherit' }}
                                         />
                                     </div>
                                     <div className="rule-actions">

@@ -42,6 +42,19 @@ class VSCodeWrapper {
         }
     }
 
+    public getState(): any {
+        if (this.vscode) {
+            return this.vscode.getState();
+        }
+        return undefined;
+    }
+
+    public setState(state: any): void {
+        if (this.vscode) {
+            this.vscode.setState(state);
+        }
+    }
+
     public onMessage(callback: (message: any) => void) {
         window.addEventListener('message', event => {
             callback(event.data);

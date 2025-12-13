@@ -13,12 +13,24 @@ export const ModelManager: React.FC = () => {
     const [settings, setSettings] = useState<SettingsType>({});
     const [rules, setRules] = useState<CodingRule[]>([]);
     const [stats] = useState({ completionsGenerated: 0, acceptanceRate: 0, averageLatency: 0, cacheHitRate: 0, modelUptime: 0 });
-    const [activeTab, setActiveTab] = useState<'model' | 'settings' | 'rules' | 'stats'>('model');
+
+    // Initialize active tab from persisted state
+    const [activeTab, setActiveTab] = useState<'model' | 'settings' | 'rules' | 'stats'>(() => {
+        const state = vscode.getState();
+        return state?.activeTab || 'model';
+    });
+
     const [searchQuery, setSearchQuery] = useState('');
     const [languageFilter, setLanguageFilter] = useState('');
     const [sortCriteria, setSortCriteria] = useState<'name' | 'size' | 'none'>('none');
 
     const [logoUri, setLogoUri] = useState<string | undefined>(undefined);
+
+    // Persist tab state when it changes
+    const handleTabChange = (tab: 'model' | 'settings' | 'rules' | 'stats') => {
+        setActiveTab(tab);
+        vscode.setState({ ...vscode.getState(), activeTab: tab });
+    };
 
     useEffect(() => {
         // Listen for messages from the extension
@@ -164,25 +176,25 @@ export const ModelManager: React.FC = () => {
                     <div className="tabs-header">
                         <button
                             className={`tab-button ${activeTab === 'model' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('model')}
+                            onClick={() => handleTabChange('model')}
                         >
                             Model
                         </button>
                         <button
                             className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('settings')}
+                            onClick={() => handleTabChange('settings')}
                         >
                             Settings
                         </button>
                         <button
                             className={`tab-button ${activeTab === 'rules' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('rules')}
+                            onClick={() => handleTabChange('rules')}
                         >
                             Rules
                         </button>
                         <button
                             className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('stats')}
+                            onClick={() => handleTabChange('stats')}
                         >
                             Statistics
                         </button>

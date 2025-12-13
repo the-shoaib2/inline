@@ -86,7 +86,8 @@ button.secondary:hover:not(:disabled) {
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
-input {
+input,
+textarea {
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border, transparent);
@@ -96,13 +97,15 @@ input {
   border-radius: 2px;
 }
 
-input:focus {
+input:focus,
+textarea:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
   border-color: var(--vscode-focusBorder);
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--vscode-input-placeholderForeground);
 }
 
