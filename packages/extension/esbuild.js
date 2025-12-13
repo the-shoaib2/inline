@@ -31,24 +31,38 @@ const pathAliasPlugin = {
         // Handle both shorthand and full package names
         build.onResolve({ filter: /^@(language|completion|context|storage|platform|network|inline|events)/ }, (args) => {
             for (const [alias, aliasPath] of Object.entries(pathAliases)) {
-                if (args.path === alias || args.path.startsWith(alias + "/")) {
-                    const relativePath = args.path === alias ? "" : args.path.substring(alias.length + 1);
-                    let resolvedPath = relativePath ? path.join(aliasPath, relativePath) : aliasPath;
+                if (args.path === alias || args.path.startsWith(alias)) {
+                    const relativePath = args.path === alias ? "" : args.path.substring(alias.length);
+                    let resolvedPath = path.join(aliasPath, relativePath);
 
-                    // Try adding .ts extension if file doesn't exist
-                    if (!fs.existsSync(resolvedPath) || fs.statSync(resolvedPath).isDirectory()) {
-                        // Check for index files first
-                        if (fs.existsSync(path.join(resolvedPath, "index.ts"))) {
-                            resolvedPath = path.join(resolvedPath, "index.ts");
-                        } else if (fs.existsSync(path.join(resolvedPath, "index.tsx"))) {
-                            resolvedPath = path.join(resolvedPath, "index.tsx");
-                        } else if (fs.existsSync(resolvedPath + ".ts")) {
-                            resolvedPath += ".ts";
-                        } else if (fs.existsSync(resolvedPath + ".tsx")) {
-                            resolvedPath += ".tsx";
+                    // Check if the path exists as-is (might be a file)
+                    if (fs.existsSync(resolvedPath)) {
+                        const stats = fs.statSync(resolvedPath);
+                        if (stats.isFile()) {
+                            return { path: resolvedPath };
                         }
                     }
 
+                    // Try adding .ts extension
+                    if (fs.existsSync(resolvedPath + ".ts")) {
+                        return { path: resolvedPath + ".ts" };
+                    }
+
+                    // Try adding .tsx extension
+                    if (fs.existsSync(resolvedPath + ".tsx")) {
+                        return { path: resolvedPath + ".tsx" };
+                    }
+
+                    // Try index files
+                    if (fs.existsSync(path.join(resolvedPath, "index.ts"))) {
+                        return { path: path.join(resolvedPath, "index.ts") };
+                    }
+
+                    if (fs.existsSync(path.join(resolvedPath, "index.tsx"))) {
+                        return { path: path.join(resolvedPath, "index.tsx") };
+                    }
+
+                    // If nothing found, return the path as-is and let esbuild handle the error
                     return { path: resolvedPath };
                 }
             }
@@ -115,7 +129,7 @@ async function main() {
             /* add to the end of plugins array */
             esbuildProblemMatcherPlugin,
         ],
-        tsconfig: "../../.config/build/tsconfig.json",
+        tsconfig: "./tsconfig.json",
     });
 
     if (watch) {
