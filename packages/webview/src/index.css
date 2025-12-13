@@ -154,7 +154,7 @@ option {
 }
 
 .section {
-  padding: 16px 20px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
 }
 
