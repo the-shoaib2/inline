@@ -153,7 +153,7 @@ export const ModelManager: React.FC = () => {
                 <div className="model-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {logoUri && <img src={logoUri} alt="Inline Logo" style={{ width: '32px', height: '32px' }} />}
-                        <h2>Model Manager</h2>
+                        <h2 style={{ fontSize: '12px' }}>Model Manager</h2>
                     </div>
                     <button className="secondary" onClick={handleRefresh}>Refresh</button>
                 </div>

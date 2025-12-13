@@ -932,3 +932,10 @@ input[type="number"] {
     opacity: 0.6;
   }
 }
+
+.loading-text {
+  text-align: center;
+  padding: 20px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
