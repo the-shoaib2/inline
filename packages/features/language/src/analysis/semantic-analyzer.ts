@@ -825,6 +825,8 @@ export class SemanticAnalyzer {
                 // console.log(`[SemanticAnalyzer] Processing match with ${match.captures.length} captures`);
                 for (const capture of match.captures) {
                     // console.log(`[SemanticAnalyzer] Capture name: ${capture.name}`);
+                    
+                    // Handle granular captures (original logic)
                     if (['decorator.name', 'decorator.simple_name', 'attribute.name', 'annotation.name'].includes(capture.name)) {
                         const lineNumber = capture.node.startPosition.row;
                         const name = capture.node.text;
@@ -835,6 +837,35 @@ export class SemanticAnalyzer {
                         
                         console.log(`[SemanticAnalyzer] Found decorator: ${name} at line ${lineNumber}`);
 
+                        decorators.push({
+                            name,
+                            arguments: args,
+                            lineNumber
+                        });
+                    } 
+                    // Handle simple whole-node captures (new logic)
+                    else if (['decorator', 'attribute', 'annotation'].includes(capture.name)) {
+                        const lineNumber = capture.node.startPosition.row;
+                        let text = capture.node.text.trim();
+                        
+                        // Parse name and args from text
+                        // Remove leading @ or #[ and trailing ] (for Rust)
+                        let name = text;
+                        if (name.startsWith('@')) name = name.substring(1);
+                        if (name.startsWith('#[')) name = name.substring(2);
+                        if (name.endsWith(']')) name = name.substring(0, name.length - 1);
+                        
+                        let args = undefined;
+                        const parenIndex = name.indexOf('(');
+                        if (parenIndex > 0) {
+                            args = name.substring(parenIndex);
+                            name = name.substring(0, parenIndex);
+                        }
+                        
+                        // Clean up Rust name if it has extra path info but keep simple
+                        name = name.trim();
+                        
+                        console.log(`[SemanticAnalyzer] Found simple decorator: ${name} at line ${lineNumber}`);
                         decorators.push({
                             name,
                             arguments: args,
@@ -887,7 +918,7 @@ export class SemanticAnalyzer {
             // Execute query
             const matches = this.treeSitterService.query(tree, queries.generics, language);
 
-            // Process matches
+            // Process generic matches
             for (const match of matches) {
                 for (const capture of match.captures) {
                     if (capture.name === 'generic.param') {
@@ -901,6 +932,26 @@ export class SemanticAnalyzer {
                         generics.push({
                             name,
                             constraint,
+                            lineNumber
+                        });
+                    }
+                    // Handle simple generic capture
+                    else if (capture.name === 'generic') {
+                        const lineNumber = capture.node.startPosition.row;
+                        const text = capture.node.text.trim();
+                        
+                        // Matches "T" or "T extends U"
+                        // Simple regex to split name and constraint
+                        // Assume first word is name
+                        const parts = text.split(/\s+(?:extends|implements|:)\s+/); // : for Rust/Python hints if captured?
+                        const name = parts[0];
+                        const constraint = parts.length > 1 ? text.substring(name.length).trim() : undefined;
+                        // cleanup constraint
+                        const cleanConstraint = constraint ? constraint.replace(/^(?:extends|implements|:)\s+/, '') : undefined;
+
+                        generics.push({
+                            name,
+                            constraint: cleanConstraint,
                             lineNumber
                         });
                     }

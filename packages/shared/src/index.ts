@@ -6,6 +6,7 @@ export * from './platform/monitoring/telemetry-manager';
 export * from './platform/monitoring/performance-monitor';
 export * from './platform/resources/resource-manager';
 export * from './platform/resources/memory-manager';
+export * from './platform/resources/gpu-detector.interface';
 export * from './platform/native/native-loader';
 export * from './platform/system/path-constants';
 

@@ -128,8 +128,23 @@ export class ConfigManager {
             maxTokens: this.maxTokens,
             temperature: this.temperature,
             cacheSize: this.cacheSize,
-            resourceMonitoring: this.resourceMonitoring
+            resourceMonitoring: this.resourceMonitoring,
+            codingRules: this.codingRules
         };
+    }
+
+    /**
+     * Get coding rules from configuration.
+     */
+    public get codingRules(): CodingRule[] {
+        return this.config.get('codingRules', []);
+    }
+
+    /**
+     * Update coding rules in global user settings.
+     */
+    public async setCodingRules(rules: CodingRule[]): Promise<void> {
+        await this.config.update('codingRules', rules, vscode.ConfigurationTarget.Global);
     }
 }
 
@@ -143,4 +158,12 @@ export interface InlineConfig {
     temperature: number;
     cacheSize: number;
     resourceMonitoring: boolean;
+    codingRules?: CodingRule[];
+}
+
+export interface CodingRule {
+    name: string;
+    pattern: string;
+    description: string;
+    enabled: boolean;
 }

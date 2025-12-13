@@ -1,0 +1,1 @@
+[(generic_parameter) @generic]

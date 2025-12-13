@@ -2,46 +2,14 @@ import { Parser } from 'web-tree-sitter';
 
 import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
 import { NativeLoader } from '@inline/shared/platform/native/native-loader';
-
-/**
- * Abstract Syntax Tree node
- */
-export interface ASTNode {
-    type: string;
-    value?: string;
-    children?: ASTNode[];
-    startLine?: number;
-    endLine?: number;
-}
-
-/**
- * Normalized AST for comparison
- */
-export interface NormalizedAST {
-    structure: string;      // Structural representation
-    nodeCount: number;
-    depth: number;
-    hash: string;
-}
-
-/**
- * Code block extracted from AST
- */
-export interface CodeBlock {
-    type: 'function' | 'class' | 'method' | 'statement' | 'comment';
-    name?: string;
-    content: string;
-    startLine: number;
-    endLine: number;
-    children?: CodeBlock[];
-}
+import { ASTNode, NormalizedAST, CodeBlock, IASTParser } from '@inline/shared/types/ast-parser.interface';
 
 /**
  * Language-agnostic AST parser for structural code analysis.
  * 
  * Now supports Tree-sitter for accurate parsing with regex fallback.
  */
-export class ASTParser {
+export class ASTParser implements IASTParser {
     private languageParsers: Map<string, (code: string) => ASTNode | null>;
     private treeSitterService: TreeSitterService;
 

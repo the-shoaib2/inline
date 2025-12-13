@@ -1,0 +1,1 @@
+[(call method: (identifier) @method (#match? @method "^(require|include|extend)$"))] @import

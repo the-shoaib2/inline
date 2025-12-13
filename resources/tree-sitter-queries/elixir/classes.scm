@@ -1,0 +1,1 @@
+[(call target: (identifier) @defmodule (#match? @defmodule "^defmodule$"))] @class

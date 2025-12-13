@@ -436,6 +436,85 @@ fn parse_parameters(params_str: &str) -> Vec<ParameterInfo> {
         .collect()
 }
 
+
+/// Extract classes from code
+#[napi]
+pub fn extract_classes(code: String, language_id: String) -> Result<Vec<ClassInfo>> {
+    Ok(process_classes(&code, &language_id))
+}
+
+fn process_classes(code: &str, language_id: &str) -> Vec<ClassInfo> {
+    let mut classes = Vec::new();
+    
+    match language_id {
+        "typescript" | "typescriptreact" | "javascript" | "javascriptreact" => {
+            extract_ts_classes(code, &mut classes);
+        }
+        "python" => {
+            extract_py_classes(code, &mut classes);
+        }
+        _ => {}
+    }
+    
+    classes
+}
+
+fn extract_ts_classes(code: &str, classes: &mut Vec<ClassInfo>) {
+    let line_index = LineIndex::new(code);
+    
+    if let Some(class_re) = get_regex("ts_class") {
+        for caps in class_re.captures_iter(code) {
+            let start = caps.get(0).unwrap().start();
+            let line_num = line_index.get_line(start);
+            
+            let name = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+            let extends = caps.get(2).map(|m| m.as_str().to_string());
+            let implements_str = caps.get(3).map(|m| m.as_str());
+            
+            let implements = if let Some(impl_str) = implements_str {
+                impl_str.split(',').map(|s| s.trim().to_string()).collect()
+            } else {
+                Vec::new()
+            };
+            
+            classes.push(ClassInfo {
+                name,
+                extends,
+                implements,
+                methods: Vec::new(), // Would need deeper parsing
+                properties: Vec::new(), // Would need deeper parsing
+                line_number: line_num,
+            });
+        }
+    }
+}
+
+fn extract_py_classes(code: &str, classes: &mut Vec<ClassInfo>) {
+    let line_index = LineIndex::new(code);
+    
+    if let Some(class_re) = get_regex("py_class") {
+        for caps in class_re.captures_iter(code) {
+            let start = caps.get(0).unwrap().start();
+            let line_num = line_index.get_line(start);
+            
+            let name = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+            let args_str = caps.get(2).map(|m| m.as_str());
+            
+            // In Python, arguments in class definition are the parent classes
+            let extends = args_str.map(|s| s.to_string());
+            
+            classes.push(ClassInfo {
+                name,
+                extends,
+                implements: Vec::new(),
+                methods: Vec::new(),
+                properties: Vec::new(),
+                line_number: line_num,
+            });
+        }
+    }
+}
+
 /// Extract decorators from code
 #[napi]
 pub fn extract_decorators(code: String, language_id: String) -> Result<Vec<DecoratorInfo>> {
@@ -476,10 +555,54 @@ fn process_decorators(code: &str, language_id: &str) -> Result<Vec<DecoratorInfo
     Ok(decorators)
 }
 
+
+
+/// Extract generics from code
+#[napi]
+pub fn extract_generics(code: String, language_id: String) -> Result<Vec<GenericInfo>> {
+    Ok(process_generics(&code, &language_id))
+}
+
+fn process_generics(code: &str, language_id: &str) -> Vec<GenericInfo> {
+    let mut generics = Vec::new();
+    
+    match language_id {
+        "typescript" | "typescriptreact" => {
+             extract_ts_generics(code, &mut generics);
+        }
+        _ => {}
+    }
+    
+    generics
+}
+
+fn extract_ts_generics(code: &str, generics: &mut Vec<GenericInfo>) {
+    let line_index = LineIndex::new(code);
+    
+    if let Some(generic_re) = get_regex("ts_generic") {
+        for caps in generic_re.captures_iter(code) {
+            let start = caps.get(0).unwrap().start();
+            let line_num = line_index.get_line(start);
+            
+            let name = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+            let constraint = caps.get(2).map(|m| m.as_str().to_string());
+            let default_type = caps.get(3).map(|m| m.as_str().to_string());
+            
+            generics.push(GenericInfo {
+                name,
+                constraint,
+                default_type,
+                line_number: line_num,
+            });
+        }
+    }
+}
+
 /// Perform complete semantic analysis
 /// 
 /// Combines all analysis operations in a single pass for maximum efficiency
 #[napi]
+
 pub fn analyze_semantics(code: String, language_id: String) -> Result<SemanticAnalysis> {
     // Use Rayon to parallelize if inputs are large, but for now just avoid clones
     // We could use rayon::join here
@@ -487,14 +610,20 @@ pub fn analyze_semantics(code: String, language_id: String) -> Result<SemanticAn
         || process_imports(&code, &language_id),
         || process_functions(&code, &language_id)
     );
+    
+    let (classes, generics) = rayon::join(
+        || process_classes(&code, &language_id),
+        || process_generics(&code, &language_id)
+    );
+
     // decorators are usually few, run sequentially or join again
     let decorators = process_decorators(&code, &language_id).unwrap_or_default();
 
     Ok(SemanticAnalysis {
         imports,
         functions,
-        classes: Vec::new(), // TODO: Implement class extraction
+        classes,
         decorators,
-        generics: Vec::new(), // TODO: Implement generic extraction
+        generics,
     })
 }

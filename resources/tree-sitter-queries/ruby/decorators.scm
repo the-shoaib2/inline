@@ -1,0 +1,1 @@
+; No decorators queries for ruby

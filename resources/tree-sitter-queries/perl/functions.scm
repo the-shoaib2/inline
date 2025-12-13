@@ -1,0 +1,1 @@
+; No functions queries for perl

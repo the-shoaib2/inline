@@ -1,0 +1,1 @@
+[(class_declaration) (interface_declaration) (struct_declaration)] @class

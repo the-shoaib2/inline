@@ -1,0 +1,1 @@
+[(function_call) (function_definition)] @function

@@ -1,0 +1,1 @@
+[(class_definition) (object_definition) (trait_definition)] @class

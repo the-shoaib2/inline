@@ -1,0 +1,1 @@
+[(call target: (identifier) @def (#match? @def "^(def|defp)$"))] @function

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-// TODO: ASTParser should be injected as dependency to avoid circular imports
-// import { ASTParser } from '@inline/language/parsers/ast-parser';
+import { IASTParser } from '../../types/ast-parser.interface';
 
 interface UnusedVariable {
     name: string;
@@ -15,11 +14,10 @@ interface DeadCodeBlock {
 }
 
 export class ErrorDetectionSystem {
-    // TODO: ASTParser should be injected to avoid circular dependency
-    // private astParser: ASTParser;
+    private astParser?: IASTParser;
 
-    constructor() {
-        // this.astParser = new ASTParser();
+    constructor(astParser?: IASTParser) {
+        this.astParser = astParser;
     }
 
     /**

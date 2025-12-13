@@ -1,0 +1,1 @@
+; No generics queries for cobol

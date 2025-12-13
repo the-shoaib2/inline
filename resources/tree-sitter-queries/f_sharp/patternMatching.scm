@@ -1,0 +1,1 @@
+; No patternMatching queries for f_sharp

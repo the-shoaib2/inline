@@ -1,0 +1,1 @@
+; No patternMatching queries for objective_c

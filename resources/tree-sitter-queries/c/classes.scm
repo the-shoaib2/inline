@@ -1,0 +1,1 @@
+[(struct_specifier) (enum_specifier)] @class

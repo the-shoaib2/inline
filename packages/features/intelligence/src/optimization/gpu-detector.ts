@@ -1,16 +1,7 @@
 import * as os from 'os';
-import { Logger } from '@inline/shared';
+import { Logger, IGPUDetector, GPUInfo } from '@inline/shared';
 
-/**
- * GPU capability information for model layer offloading.
- * Used to determine optimal GPU layer count for inference.
- */
-export interface GPUInfo {
-    available: boolean;
-    type: 'metal' | 'cuda' | 'none';
-    optimalLayers: number;
-    vramEstimate?: number;
-}
+
 
 /**
  * Detects GPU availability and capabilities across platforms.
@@ -22,7 +13,7 @@ export interface GPUInfo {
  *
  * Caches detection results to avoid repeated system calls.
  */
-export class GPUDetector {
+export class GPUDetector implements IGPUDetector {
     private logger: Logger;
     private cachedInfo: GPUInfo | null = null;
 

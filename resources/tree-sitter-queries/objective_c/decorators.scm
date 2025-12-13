@@ -1,0 +1,1 @@
+; No decorators queries for objective_c

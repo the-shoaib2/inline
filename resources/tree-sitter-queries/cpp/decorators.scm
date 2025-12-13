@@ -1,0 +1,1 @@
+[(attribute_specifier) @decorator]

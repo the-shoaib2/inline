@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
 import * as v8 from 'v8';
-// Removed circular dependency - GPUDetector should be injected or moved to shared
 import { Logger } from '../system/logger';
 import { execSync } from 'child_process';
+import { IGPUDetector } from './gpu-detector.interface';
 
 /**
  * Current resource utilization metrics.
@@ -43,15 +43,15 @@ export class ResourceManager {
     };
 
     private monitoringInterval: NodeJS.Timeout | null = null;
+
     private lastUsage: ResourceUsage = { cpu: 0, memory: 0, disk: 0 };
-    // TODO: GPUDetector should be injected to avoid circular dependency
-    // private gpuDetector: GPUDetector;
+    private gpuDetector?: IGPUDetector;
     private logger: Logger;
 
     private isDevMode: boolean = false;
 
-    constructor() {
-        // this.gpuDetector = new GPUDetector();
+    constructor(gpuDetector?: IGPUDetector) {
+        this.gpuDetector = gpuDetector;
         this.logger = new Logger('ResourceManager');
         this.startMonitoring();
     }
@@ -127,9 +127,18 @@ export class ResourceManager {
      */
     private async getVRAMUsageAsync(): Promise<number> {
         try {
-            // TODO: Inject GPUDetector to avoid circular dependency
-            // const gpuInfo = await this.gpuDetector.detectGPU();
-            return 0; // Disabled until GPUDetector is properly injected
+            if (this.gpuDetector) {
+                const gpuInfo = await this.gpuDetector.detectGPU();
+                 // If not available or no estimate, return 0 or fallback
+                if (!gpuInfo.available || !gpuInfo.vramEstimate) {
+                    return 0;
+                }
+                // Only use estimate if we can't get real-time info
+            } else {
+                 return 0; 
+            }
+
+            // Try to get actual VRAM usage via nvidia-smi
 
             // if (!gpuInfo.available || !gpuInfo.vramEstimate) {
             //     return 0;

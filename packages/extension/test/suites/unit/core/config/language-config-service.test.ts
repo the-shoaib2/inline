@@ -13,7 +13,10 @@ describe('LanguageConfigService', () => {
         // Point extensionPath to packages/extension directory
         // This file: test/suites/unit/core/config/language-config-service.test.ts
         // Target: packages/extension/
-        const rootPath = path.resolve(__dirname, '../../../../../packages/extension');
+        // __dirname is .../dist/test/suites/unit/core/config
+        // We want .../packages/extension
+        // Up 6 levels: config->core->unit->suites->test->dist->extension
+        const rootPath = path.resolve(__dirname, '../../../../../../');
         mockContext = createMockContext();
         (mockContext as any).extensionPath = rootPath;
         
@@ -38,9 +41,10 @@ describe('LanguageConfigService', () => {
         assert.ok(patterns!.imports.length > 0, 'Should have import patterns');
     });
 
-    it('should return undefined for unknown language', () => {
+    it('should return fallback for unknown language', () => {
         const patterns = service.getPatterns('unknown-lang');
-        assert.strictEqual(patterns, undefined);
+        assert.ok(patterns, 'Should return fallback patterns');
+        assert.strictEqual(patterns!.commentPrefix, '//', 'Fallback should have default comment prefix');
     });
 
     it('should have regex strings that act as valid RegExps', () => {

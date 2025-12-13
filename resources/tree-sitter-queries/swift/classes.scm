@@ -1,0 +1,1 @@
+[(class_declaration) (struct_declaration) (protocol_declaration) (extension_declaration)] @class

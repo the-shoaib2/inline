@@ -1,0 +1,1 @@
+[(template_parameter_list) @generic]

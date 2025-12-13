@@ -1,0 +1,1 @@
+[(struct_item) (enum_item) (trait_item) (impl_item)] @class

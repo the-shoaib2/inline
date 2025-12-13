@@ -1,0 +1,1 @@
+[(class_declaration) (object_declaration)] @class

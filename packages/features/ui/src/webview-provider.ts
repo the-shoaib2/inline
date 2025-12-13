@@ -7,15 +7,10 @@ import { ModelDownloader } from '@inline/shared';
 import { DownloadManager } from '@inline/shared';
 import { ModelRegistry } from '@inline/intelligence';
 import { ConfigManager } from '@inline/shared';
-import { RESOURCE_PATHS, USER_DATA_PATHS, getResourceUri, getWebviewUri, getUserDataPath } from '@inline/shared';
+import { RESOURCE_PATHS, USER_DATA_PATHS, getResourceUri, getWebviewUri, getUserDataPath, NetworkDetector } from '@inline/shared';
 
 interface InlineConfigWithRules extends ReturnType<ConfigManager['getAll']> {
-    codingRules?: Array<{
-        name: string;
-        pattern: string;
-        description: string;
-        enabled: boolean;
-    }>;
+    // inherited
 }
 export class WebviewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'inline.modelManagerView';
@@ -25,6 +20,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     private _modelDownloader: ModelDownloader;
     private _downloadManager: DownloadManager;
     private _modelRegistry: ModelRegistry;
+    private _networkDetector: NetworkDetector;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -36,6 +32,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         );
         this._downloadManager = new DownloadManager(2);
         this._modelRegistry = new ModelRegistry();
+        this._networkDetector = new NetworkDetector();
+        this._networkDetector.startMonitoring((isOffline) => {
+            if (this._view) {
+                this.sendData();
+            }
+        });
     }
 
     public resolveWebviewView(
@@ -125,7 +127,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     settings,
                     rules,
                     currentModel: currentModel?.id,
-                    isOffline: true, // TODO: Get from network detector
+                    isOffline: this._networkDetector.isOffline(), // Real network status
                     logoUri
                 }
             });
@@ -692,7 +694,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             };
 
             currentRules.push(newRule);
-            // TODO: Update config manager with new rules
+            await this._configManager.setCodingRules(currentRules);
             this.sendData();
         } catch (error) {
             this._view?.webview.postMessage({
@@ -714,6 +716,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     rule[field] = Boolean(value);
                 }
                 // TODO: Update config manager with modified rules
+                await this._configManager.setCodingRules(currentRules);
                 this.sendData();
             }
         } catch (error) {
@@ -730,7 +733,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             const currentRules = (this._configManager.getAll() as InlineConfigWithRules).codingRules || [];
             if (currentRules[index]) {
                 currentRules.splice(index, 1);
-                // TODO: Update config manager with modified rules
+                await this._configManager.setCodingRules(currentRules);
                 this.sendData();
             }
         } catch (error) {

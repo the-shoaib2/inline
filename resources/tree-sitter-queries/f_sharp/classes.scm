@@ -1,0 +1,1 @@
+; No classes queries for f_sharp

@@ -1,0 +1,1 @@
+[(class_declaration) (interface_declaration) (trait_declaration)] @class

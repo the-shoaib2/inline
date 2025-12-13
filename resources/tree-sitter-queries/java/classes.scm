@@ -1,0 +1,1 @@
+[(class_declaration) (interface_declaration) (enum_declaration)] @class
