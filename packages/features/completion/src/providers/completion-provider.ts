@@ -175,8 +175,22 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private currentStreamingTokens: string = '';
     private streamingCallback: ((tokens: string) => void) | null = null;
 
-    // NEW: Fast Cache Manager for L1/L2 caching
-    private fastCacheManager: any; // Will be imported from fast-cache-manager
+    // Fast Cache Manager for L1/L2 caching
+    private fastCacheManager: any; 
+
+    // Statistics tracking for webview integration
+    private statistics = {
+        completionsGenerated: 0,
+        acceptedSuggestions: 0,
+        rejectedSuggestions: 0,
+        cacheHits: 0,
+        cacheMisses: 0,
+        totalLatency: 0,
+        modelsSwitched: 0,
+        lastModelUsed: '',
+        sessionStartTime: Date.now()
+    };
+
 
     constructor(
         modelManager: ModelManager,
@@ -236,6 +250,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
          const predicted = this.predictiveCache.get(cacheKey);
          if (predicted && this.isCacheValid(predicted)) {
              // console.log('[INLINE] ⚡ Fast Path: Predictive HIT');
+             this.statistics.cacheHits++;
              // Emit event for tracking even on cache hit
              let suggestionId: string | undefined;
              const tracker = (this as any).aiContextTracker;
@@ -251,6 +266,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
          }
          const exact = this.exactCache.get(cacheKey);
          if (exact && this.isCacheValid(exact)) {
+             this.statistics.cacheHits++;
              let suggestionId: string | undefined;
              const tracker = (this as any).aiContextTracker;
               if (tracker && typeof tracker.emitSuggestionGenerated === 'function') {
@@ -379,6 +395,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // If we have a cached result, return immediately
             if (cachedResult) {
                 // console.log('[INLINE] ⚡ Cache HIT (multi-level)');
+                this.statistics.cacheHits++;
                 isCacheHit = true;
                 resultCount = cachedResult.length;
                 this.recordPerformance({
@@ -392,6 +409,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 });
                 return cachedResult;
             }
+
+            // Cache miss - track it
+            this.statistics.cacheMisses++;
 
             // 2. Parallel: Gather context + get diagnostics (only on miss)
             const contextStartTime = Date.now();
@@ -408,6 +428,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             const inferenceStartTime = Date.now();
             let completion = await this.generateCompletion(enhancedContext, token, document, position);
             const inferenceTime = Date.now() - inferenceStartTime;
+            
+            // Track model used
+            const currentModel = this.modelManager.getCurrentModel();
+            if (currentModel && currentModel.name !== this.statistics.lastModelUsed) {
+                this.statistics.lastModelUsed = currentModel.name;
+                this.statistics.modelsSwitched++;
+            }
+            
             // console.log(`[INLINE] 🤖 Generated completion (${completion?.length || 0} chars):`, completion?.substring(0, 100));
 
             if (completion && completion.length > 0) {
@@ -435,6 +463,10 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 this.schedulePrefetch(document, position, completion, codeContext, config);
 
                 generatedChars = completion.length;
+
+                // Update statistics
+                this.statistics.completionsGenerated++;
+                this.statistics.totalLatency += (Date.now() - startTime);
 
                 // Emit Suggestion Generated Event
                 let suggestionId: string | undefined;
@@ -1161,6 +1193,74 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Store tracker reference for future integration
         // This will be used to emit AI events during completion generation
         (this as any).aiContextTracker = tracker;
+    }
+
+    /**
+     * Get current statistics for webview display
+     */
+    public getStatistics() {
+        const totalRequests = this.statistics.cacheHits + this.statistics.cacheMisses;
+        const cacheHitRate = totalRequests > 0 ? this.statistics.cacheHits / totalRequests : 0;
+        const avgLatency = this.statistics.completionsGenerated > 0 
+            ? this.statistics.totalLatency / this.statistics.completionsGenerated 
+            : 0;
+        const acceptanceRate = this.statistics.completionsGenerated > 0
+            ? this.statistics.acceptedSuggestions / this.statistics.completionsGenerated
+            : 0;
+
+        return {
+            completionsGenerated: this.statistics.completionsGenerated,
+            acceptedSuggestions: this.statistics.acceptedSuggestions,
+            rejectedSuggestions: this.statistics.rejectedSuggestions,
+            acceptanceRate,
+            cacheHitRate,
+            averageLatency: Math.round(avgLatency),
+            currentModel: this.statistics.lastModelUsed || 'None',
+            sessionUptime: Math.floor((Date.now() - this.statistics.sessionStartTime) / 1000)
+        };
+    }
+
+    /**
+     * Reset statistics (for testing or user action)
+     */
+    public resetStatistics(): void {
+        this.statistics = {
+            completionsGenerated: 0,
+            acceptedSuggestions: 0,
+            rejectedSuggestions: 0,
+            cacheHits: 0,
+            cacheMisses: 0,
+            totalLatency: 0,
+            modelsSwitched: 0,
+            lastModelUsed: this.statistics.lastModelUsed,
+            sessionStartTime: Date.now()
+        };
+    }
+
+    /**
+     * Manual trigger for testing/debugging
+     */
+    public async triggerCompletion(
+        document?: vscode.TextDocument, 
+        position?: vscode.Position
+    ): Promise<vscode.InlineCompletionItem[]> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            console.log('[INLINE] No active editor for manual trigger');
+            return [];
+        }
+
+        const doc = document || editor.document;
+        const pos = position || editor.selection.active;
+
+        console.log('[INLINE] 🎯 Manual trigger at', `${doc.fileName}:${pos.line}:${pos.character}`);
+
+        return this.provideInlineCompletionItems(
+            doc,
+            pos,
+            { triggerKind: vscode.InlineCompletionTriggerKind.Invoke, selectedCompletionInfo: undefined },
+            new vscode.CancellationTokenSource().token
+        );
     }
 }
 

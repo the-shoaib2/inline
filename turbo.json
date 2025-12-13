@@ -47,6 +47,7 @@
                 "^build"
             ],
             "outputs": [
+                "dist/**",
                 "out/**"
             ],
             "cache": true

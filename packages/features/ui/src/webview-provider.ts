@@ -21,10 +21,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     private _downloadManager: DownloadManager;
     private _modelRegistry: ModelRegistry;
     private _networkDetector: NetworkDetector;
+    private _statisticsInterval?: NodeJS.Timeout;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly modelManager: ModelManager
+        private readonly modelManager: ModelManager,
+        private readonly completionProvider?: any  // InlineCompletionProvider
     ) {
         this._configManager = new ConfigManager();
         this._modelDownloader = new ModelDownloader(
@@ -38,6 +40,13 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 this.sendData();
             }
         });
+
+        // Setup periodic statistics refresh (every 2 seconds when visible)
+        this._statisticsInterval = setInterval(() => {
+            if (this._view && this._view.visible) {
+                this.sendData();
+            }
+        }, 2000);
     }
 
     public resolveWebviewView(
@@ -674,6 +683,18 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                 RESOURCE_PATHS.EXTENSION_ICON
             ).toString();
 
+            // Get real-time statistics from completion provider
+            const statistics = this.completionProvider?.getStatistics?.() || {
+                completionsGenerated: 0,
+                acceptedSuggestions: 0,
+                rejectedSuggestions: 0,
+                acceptanceRate: 0,
+                cacheHitRate: 0,
+                averageLatency: 0,
+                currentModel: 'None',
+                sessionUptime: 0
+            };
+
             this._view.webview.postMessage({
                 command: 'updateData',
                 data: {
@@ -682,7 +703,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
                     rules,
                     currentModel: currentModel?.id,
                     isOffline: this._networkDetector.isOffline(), // Real network status
-                    logoUri
+                    logoUri,
+                    statistics  // NEW: Real-time statistics
                 }
             });
         }

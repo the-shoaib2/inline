@@ -108,8 +108,12 @@ export async function activate(context: vscode.ExtensionContext) {
             cacheManager
         );
 
-        // Initialize webview for model management
-        webviewProvider = new WebviewProvider(context.extensionUri, modelManager);
+        // Initialize webview for model management (pass completion provider for statistics)
+        webviewProvider = new WebviewProvider(
+            context.extensionUri,
+            modelManager,
+            completionProvider
+        );
         context.subscriptions.push(
             vscode.window.registerWebviewViewProvider(
                 WebviewProvider.viewType,
@@ -461,6 +465,36 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
             workspaceEdit.replace(document.uri, edit.range, edit.newText);
             await vscode.workspace.applyEdit(workspaceEdit);
             vscode.window.showInformationMessage(`Added import: ${symbol}`);
+        }),
+
+        // Manual completion trigger for testing/debugging
+        vscode.commands.registerCommand('inline.completion.trigger', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage('No active editor');
+                return;
+            }
+
+            try {
+                console.log('[INLINE] Manual completion trigger activated');
+                const items = await completionProvider.triggerCompletion(editor.document, editor.selection.active);
+                
+                if (items.length > 0) {
+                    vscode.window.showInformationMessage(`Generated ${items.length} completion(s)`);
+                } else {
+                    vscode.window.showInformationMessage('No completions available');
+                }
+            } catch (error) {
+                vscode.window.showErrorMessage(`Completion failed: ${error}`);
+                logger.error('Manual trigger failed', error);
+            }
+        }),
+
+        // Reset completion statistics
+        vscode.commands.registerCommand('inline.resetStatistics', () => {
+            completionProvider.resetStatistics();
+            vscode.window.showInformationMessage('Statistics reset');
+            telemetryManager.trackEvent('statistics_reset');
         }),
 
     ];
