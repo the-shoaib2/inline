@@ -12,7 +12,7 @@ suite('Tree-sitter Integration with LLM', () => {
         this.timeout(60000); // 60 seconds for LLM initialization
         
         // Initialize TreeSitterService for tests (since tests use a separate copy from extension)
-        const extension = vscode.extensions.getExtension('ratulhasan.inline');
+        const extension = vscode.extensions.getExtension('inline.inline');
         if (extension) {
             const mockContext = {
                 extensionUri: extension.extensionUri,

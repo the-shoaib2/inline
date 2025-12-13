@@ -106,7 +106,7 @@ async function closeAllEditors() {
  * Get extension by ID
  */
 function getExtension() {
-    return vscode.extensions.getExtension('ratulhasan.inline');
+    return vscode.extensions.getExtension('inline.inline');
 }
 /**
  * Activate extension and wait for it to be ready

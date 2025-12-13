@@ -11,7 +11,7 @@ suite('Tree-sitter E2E Tests', () => {
         this.timeout(30000); // 30 seconds for initialization
         
         // Get extension context
-        const extension = vscode.extensions.getExtension('ratulhasan.inline');
+        const extension = vscode.extensions.getExtension('inline.inline');
         if (!extension) {
             throw new Error('Extension not found');
         }

@@ -7,7 +7,7 @@ suite('Webview E2E Test Suite', () => {
 
     test('Webview Command should register and execute', async () => {
         // Activate the extension
-        const ext = vscode.extensions.getExtension('ratulhasan.inline');
+        const ext = vscode.extensions.getExtension('inline.inline');
         assert.ok(ext, 'Extension not found');
 
         await ext?.activate();
@@ -30,7 +30,7 @@ suite('Webview E2E Test Suite', () => {
     });
 
     test('Webview HTML generation', async () => {
-        const ext = vscode.extensions.getExtension('ratulhasan.inline');
+        const ext = vscode.extensions.getExtension('inline.inline');
         const api = ext?.exports;
         const provider = api.webviewProvider;
 

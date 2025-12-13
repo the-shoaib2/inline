@@ -81,16 +81,25 @@ export async function closeAllEditors(): Promise<void> {
  * Get extension by ID
  */
 export function getExtension(): vscode.Extension<any> | undefined {
-  return vscode.extensions.getExtension('ratulhasan.inline');
+  return vscode.extensions.getExtension('inline.inline');
 }
 
 /**
  * Activate extension and wait for it to be ready
  */
 export async function activateExtension(): Promise<void> {
-  const ext = getExtension();
+  let ext = getExtension();
+  
   if (!ext) {
-    throw new Error('Extension not found');
+    // Retry finding the extension
+    await waitFor(async () => {
+      ext = getExtension();
+      return !!ext;
+    }, 10000, 500);
+  }
+
+  if (!ext) {
+    throw new Error('Extension not found: inline.inline');
   }
   
   if (!ext.isActive) {
@@ -98,7 +107,7 @@ export async function activateExtension(): Promise<void> {
   }
   
   // Wait a bit for initialization
-  await sleep(500);
+  await sleep(1000);
 }
 
 /**

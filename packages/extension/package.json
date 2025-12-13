@@ -3,7 +3,7 @@
   "displayName": "Inline - Offline AI Code Completion",
   "description": "Privacy-first offline code completion powered by local AI models. Works completely offline with no internet required.",
   "version": "0.1.0",
-  "publisher": "ratulhasan",
+  "publisher": "inline",
   "engines": {
     "vscode": "^1.80.0"
   },

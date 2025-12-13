@@ -85,7 +85,7 @@ export class ModelDownloader {
      */
     private getSafeModelsDirectory(): string {
         // Try to use extension global storage for safe isolation
-        const extension = vscode.extensions.getExtension('ratulhasan.inline');
+        const extension = vscode.extensions.getExtension('inline.inline');
         if (extension && extension.extensionPath) {
             const globalStoragePath = extension.extensionUri.fsPath;
             const safeDir = path.join(globalStoragePath, 'models');

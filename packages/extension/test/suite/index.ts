@@ -4,26 +4,29 @@ import { glob } from 'glob';
 import * as moduleAlias from 'module-alias';
 
 // Register module aliases for runtime test execution
-const outDir = path.resolve(__dirname, '../../../../');
+const projectRoot = path.resolve(__dirname, '../../../../../');
 moduleAlias.addAliases({
-  '@inline/core': path.join(outDir, 'packages/core/src'),
-  '@inline/shared': path.join(outDir, 'packages/shared/src'),
-  '@inline/completion': path.join(outDir, 'packages/features/completion/src'),
-  '@inline/intelligence': path.join(outDir, 'packages/features/intelligence/src'),
-  '@inline/context': path.join(outDir, 'packages/features/context/src'),
-  '@inline/language': path.join(outDir, 'packages/features/language/src'),
-  '@inline/events': path.join(outDir, 'packages/features/events/src'),
-  '@inline/storage': path.join(outDir, 'packages/features/storage/src'),
-  '@inline/ui': path.join(outDir, 'packages/features/ui/src'),
-  '@inline/analyzer': path.join(outDir, 'packages/analyzer'),
-  '@inline/accelerator': path.join(outDir, 'packages/accelerator'),
-  '@language': path.join(outDir, 'packages/features/language/src'),
-  '@completion': path.join(outDir, 'packages/features/completion/src'),
-  '@context': path.join(outDir, 'packages/features/context/src'),
-  '@storage': path.join(outDir, 'packages/features/storage/src'),
-  '@network': path.join(outDir, 'packages/shared/src/network'),
-  '@platform': path.join(outDir, 'packages/shared/src/platform'),
-  '@events': path.join(outDir, 'packages/features/events/src')
+  '@inline/core': path.join(projectRoot, 'packages/core/dist'),
+  '@inline/shared': path.join(projectRoot, 'packages/shared/dist'),
+  '@inline/completion': path.join(projectRoot, 'packages/features/completion/dist'),
+  '@inline/intelligence': path.join(projectRoot, 'packages/features/intelligence/dist'),
+  '@inline/context': path.join(projectRoot, 'packages/features/context/dist'),
+  '@inline/language': path.join(projectRoot, 'packages/features/language/dist'),
+  '@inline/events': path.join(projectRoot, 'packages/features/events/dist'),
+  '@inline/storage': path.join(projectRoot, 'packages/features/storage/dist'),
+  '@inline/ui': path.join(projectRoot, 'packages/features/ui/dist'),
+  '@inline/analyzer': path.join(projectRoot, 'packages/analyzer'),
+  '@inline/accelerator': path.join(projectRoot, 'packages/accelerator'),
+  '@inline/extension': path.join(projectRoot, 'packages/extension/dist/src'),
+  '@inline/extension/utilities': path.join(projectRoot, 'packages/extension/dist/test/utilities'),
+  // Deprecated aliases mapped to dist as well
+  '@language': path.join(projectRoot, 'packages/features/language/dist'),
+  '@completion': path.join(projectRoot, 'packages/features/completion/dist'),
+  '@context': path.join(projectRoot, 'packages/features/context/dist'),
+  '@storage': path.join(projectRoot, 'packages/features/storage/dist'),
+  '@network': path.join(projectRoot, 'packages/shared/dist/network'),
+  '@platform': path.join(projectRoot, 'packages/shared/dist/platform'),
+  '@events': path.join(projectRoot, 'packages/features/events/dist')
 });
 
 

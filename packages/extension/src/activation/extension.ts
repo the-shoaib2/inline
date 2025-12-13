@@ -314,7 +314,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
         }),
 
         vscode.commands.registerCommand('inline.settings', () => {
-            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:ratulhasan.inline');
+            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:inline.inline');
             telemetryManager.trackEvent('settings_opened');
         }),
 

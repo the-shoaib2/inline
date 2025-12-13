@@ -1,36 +1,36 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+  if (k2 === undefined) k2 = k;
+  var desc = Object.getOwnPropertyDescriptor(m, k);
+  if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+    desc = { enumerable: true, get: function () { return m[k]; } };
+  }
+  Object.defineProperty(o, k2, desc);
+}) : (function (o, m, k, k2) {
+  if (k2 === undefined) k2 = k;
+  o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function (o, v) {
+  Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function (o, v) {
+  o["default"] = v;
 });
 var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
+  var ownKeys = function (o) {
+    ownKeys = Object.getOwnPropertyNames || function (o) {
+      var ar = [];
+      for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+      return ar;
     };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
+    return ownKeys(o);
+  };
+  return function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+    __setModuleDefault(result, mod);
+    return result;
+  };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const assert = __importStar(require("assert"));
@@ -39,29 +39,29 @@ const path = __importStar(require("path"));
 const context_engine_1 = require("@inline/context/context-engine");
 const index_1 = require("@inline/language/index");
 suite('Tree-sitter Integration with LLM', () => {
-    let contextEngine;
-    let semanticAnalyzer;
-    suiteSetup(async function () {
-        this.timeout(60000); // 60 seconds for LLM initialization
-        // Initialize TreeSitterService for tests (since tests use a separate copy from extension)
-        const extension = vscode.extensions.getExtension('ratulhasan.inline');
-        if (extension) {
-            const mockContext = {
-                extensionUri: extension.extensionUri,
-                subscriptions: [],
-                extensionPath: extension.extensionPath,
-                asAbsolutePath: (relativePath) => path.join(extension.extensionPath, relativePath),
-            };
-            await index_1.TreeSitterService.getInstance().initialize(mockContext);
-        }
-        contextEngine = new context_engine_1.ContextEngine();
-        semanticAnalyzer = new index_1.SemanticAnalyzer();
-        // Wait for extension to activate (still needed for other services)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-    });
-    suite('Context Building with Decorators', () => {
-        test('Should include decorators in context for TypeScript', async () => {
-            const code = `
+  let contextEngine;
+  let semanticAnalyzer;
+  suiteSetup(async function () {
+    this.timeout(60000); // 60 seconds for LLM initialization
+    // Initialize TreeSitterService for tests (since tests use a separate copy from extension)
+    const extension = vscode.extensions.getExtension('inline.inline');
+    if (extension) {
+      const mockContext = {
+        extensionUri: extension.extensionUri,
+        subscriptions: [],
+        extensionPath: extension.extensionPath,
+        asAbsolutePath: (relativePath) => path.join(extension.extensionPath, relativePath),
+      };
+      await index_1.TreeSitterService.getInstance().initialize(mockContext);
+    }
+    contextEngine = new context_engine_1.ContextEngine();
+    semanticAnalyzer = new index_1.SemanticAnalyzer();
+    // Wait for extension to activate (still needed for other services)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  });
+  suite('Context Building with Decorators', () => {
+    test('Should include decorators in context for TypeScript', async () => {
+      const code = `
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
@@ -78,21 +78,21 @@ export class UserProfileComponent {
   }
 }
             `;
-            const document = await createTestDocument(code, 'typescript');
-            const position = new vscode.Position(10, 0); // Inside updateName method
-            const context = await contextEngine.buildContext(document, position);
-            // Verify decorators are included
-            assert.ok(context.decorators, 'Context should have decorators');
-            assert.ok(context.decorators.length >= 3, 'Should find at least 3 decorators');
-            const componentDecorator = context.decorators.find(d => d.name === 'Component');
-            const inputDecorator = context.decorators.find(d => d.name === 'Input');
-            const outputDecorator = context.decorators.find(d => d.name === 'Output');
-            assert.ok(componentDecorator, 'Should find @Component');
-            assert.ok(inputDecorator, 'Should find @Input');
-            assert.ok(outputDecorator, 'Should find @Output');
-        });
-        test('Should include decorators in context for Python', async () => {
-            const code = `
+      const document = await createTestDocument(code, 'typescript');
+      const position = new vscode.Position(10, 0); // Inside updateName method
+      const context = await contextEngine.buildContext(document, position);
+      // Verify decorators are included
+      assert.ok(context.decorators, 'Context should have decorators');
+      assert.ok(context.decorators.length >= 3, 'Should find at least 3 decorators');
+      const componentDecorator = context.decorators.find(d => d.name === 'Component');
+      const inputDecorator = context.decorators.find(d => d.name === 'Input');
+      const outputDecorator = context.decorators.find(d => d.name === 'Output');
+      assert.ok(componentDecorator, 'Should find @Component');
+      assert.ok(inputDecorator, 'Should find @Input');
+      assert.ok(outputDecorator, 'Should find @Output');
+    });
+    test('Should include decorators in context for Python', async () => {
+      const code = `
 from flask import Flask, jsonify
 from flask_login import login_required
 
@@ -109,16 +109,16 @@ def get_user(user_id):
     user = User.query.get(user_id)
     return jsonify(user.to_dict())
             `;
-            const document = await createTestDocument(code, 'python');
-            const position = new vscode.Position(8, 0);
-            const context = await contextEngine.buildContext(document, position);
-            assert.ok(context.decorators, 'Context should have decorators');
-            assert.ok(context.decorators.length >= 2, 'Should find at least 2 decorators');
-        });
+      const document = await createTestDocument(code, 'python');
+      const position = new vscode.Position(8, 0);
+      const context = await contextEngine.buildContext(document, position);
+      assert.ok(context.decorators, 'Context should have decorators');
+      assert.ok(context.decorators.length >= 2, 'Should find at least 2 decorators');
     });
-    suite('Context Building with Generics', () => {
-        test('Should include generics in context for TypeScript', async () => {
-            const code = `
+  });
+  suite('Context Building with Generics', () => {
+    test('Should include generics in context for TypeScript', async () => {
+      const code = `
 interface Repository<T> {
   findAll(): Promise<T[]>;
   findById(id: string): Promise<T | null>;
@@ -142,16 +142,16 @@ class UserRepository implements Repository<User> {
   }
 }
             `;
-            const document = await createTestDocument(code, 'typescript');
-            const position = new vscode.Position(10, 0);
-            const context = await contextEngine.buildContext(document, position);
-            assert.ok(context.generics, 'Context should have generics');
-            assert.ok(context.generics.length >= 1, 'Should find at least 1 generic');
-            const tGeneric = context.generics.find(g => g.name === 'T');
-            assert.ok(tGeneric, 'Should find generic T');
-        });
-        test('Should include generics in context for Java', async () => {
-            const code = `
+      const document = await createTestDocument(code, 'typescript');
+      const position = new vscode.Position(10, 0);
+      const context = await contextEngine.buildContext(document, position);
+      assert.ok(context.generics, 'Context should have generics');
+      assert.ok(context.generics.length >= 1, 'Should find at least 1 generic');
+      const tGeneric = context.generics.find(g => g.name === 'T');
+      assert.ok(tGeneric, 'Should find generic T');
+    });
+    test('Should include generics in context for Java', async () => {
+      const code = `
 import java.util.List;
 import java.util.Optional;
 
@@ -169,16 +169,16 @@ public class GenericRepository<T extends Entity> {
     }
 }
             `;
-            const document = await createTestDocument(code, 'java');
-            const position = new vscode.Position(8, 0);
-            const context = await contextEngine.buildContext(document, position);
-            assert.ok(context.generics, 'Context should have generics');
-        });
+      const document = await createTestDocument(code, 'java');
+      const position = new vscode.Position(8, 0);
+      const context = await contextEngine.buildContext(document, position);
+      assert.ok(context.generics, 'Context should have generics');
     });
-    suite('Code Completion with Enhanced Context', () => {
-        test('Should provide better completions with decorator context', async function () {
-            this.timeout(30000); // 30 seconds for LLM response
-            const code = `
+  });
+  suite('Code Completion with Enhanced Context', () => {
+    test('Should provide better completions with decorator context', async function () {
+      this.timeout(30000); // 30 seconds for LLM response
+      const code = `
 import { Component, Input } from '@angular/core';
 
 @Component({
@@ -192,18 +192,18 @@ export class UserCardComponent {
   
 }
             `;
-            const document = await createTestDocument(code, 'typescript');
-            const position = new vscode.Position(10, 0); // After comment
-            // Trigger completion
-            const completions = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', document.uri, position);
-            // Context should include decorator information
-            const context = await contextEngine.buildContext(document, position);
-            assert.ok(context.decorators.length > 0, 'Should have decorator context');
-            console.log('Decorators in context:', context.decorators.map(d => d.name));
-        });
-        test('Should provide better completions with generic context', async function () {
-            this.timeout(30000);
-            const code = `
+      const document = await createTestDocument(code, 'typescript');
+      const position = new vscode.Position(10, 0); // After comment
+      // Trigger completion
+      const completions = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', document.uri, position);
+      // Context should include decorator information
+      const context = await contextEngine.buildContext(document, position);
+      assert.ok(context.decorators.length > 0, 'Should have decorator context');
+      console.log('Decorators in context:', context.decorators.map(d => d.name));
+    });
+    test('Should provide better completions with generic context', async function () {
+      this.timeout(30000);
+      const code = `
 function map<T, U>(array: T[], transform: (item: T) => U): U[] {
   const result: U[] = [];
   for (const item of array) {
@@ -216,16 +216,16 @@ function map<T, U>(array: T[], transform: (item: T) => U): U[] {
 const numbers = [1, 2, 3, 4, 5];
 const strings = map(numbers, (n) => 
             `;
-            const document = await createTestDocument(code, 'typescript');
-            const position = new vscode.Position(11, 40); // After arrow
-            const context = await contextEngine.buildContext(document, position);
-            assert.ok(context.generics.length > 0, 'Should have generic context');
-            console.log('Generics in context:', context.generics.map(g => `${g.name}${g.constraint ? ` extends ${g.constraint}` : ''}`));
-        });
+      const document = await createTestDocument(code, 'typescript');
+      const position = new vscode.Position(11, 40); // After arrow
+      const context = await contextEngine.buildContext(document, position);
+      assert.ok(context.generics.length > 0, 'Should have generic context');
+      console.log('Generics in context:', context.generics.map(g => `${g.name}${g.constraint ? ` extends ${g.constraint}` : ''}`));
     });
-    suite('Real-World Code Examples', () => {
-        test('Angular Component with multiple decorators', async () => {
-            const code = `
+  });
+  suite('Real-World Code Examples', () => {
+    test('Angular Component with multiple decorators', async () => {
+      const code = `
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -258,15 +258,15 @@ export class UserFormComponent implements OnInit {
   }
 }
             `;
-            const document = await createTestDocument(code, 'typescript');
-            const position = new vscode.Position(15, 0);
-            const context = await contextEngine.buildContext(document, position);
-            const decorators = await semanticAnalyzer.extractDecorators(document);
-            assert.ok(decorators.length >= 4, `Should find at least 4 decorators, found ${decorators.length}`);
-            console.log('Found decorators:', decorators.map(d => d.name));
-        });
-        test('NestJS Controller with decorators', async () => {
-            const code = `
+      const document = await createTestDocument(code, 'typescript');
+      const position = new vscode.Position(15, 0);
+      const context = await contextEngine.buildContext(document, position);
+      const decorators = await semanticAnalyzer.extractDecorators(document);
+      assert.ok(decorators.length >= 4, `Should find at least 4 decorators, found ${decorators.length}`);
+      console.log('Found decorators:', decorators.map(d => d.name));
+    });
+    test('NestJS Controller with decorators', async () => {
+      const code = `
 import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -291,18 +291,18 @@ export class UsersController {
   }
 }
             `;
-            const document = await createTestDocument(code, 'typescript');
-            const decorators = await semanticAnalyzer.extractDecorators(document);
-            assert.ok(decorators.length >= 6, `Should find at least 6 decorators, found ${decorators.length}`);
-            const controllerDecorator = decorators.find(d => d.name === 'Controller');
-            const getDecorators = decorators.filter(d => d.name === 'Get');
-            const postDecorator = decorators.find(d => d.name === 'Post');
-            assert.ok(controllerDecorator, 'Should find @Controller');
-            assert.ok(getDecorators.length >= 2, 'Should find @Get decorators');
-            assert.ok(postDecorator, 'Should find @Post');
-        });
-        test('Django View with decorators', async () => {
-            const code = `
+      const document = await createTestDocument(code, 'typescript');
+      const decorators = await semanticAnalyzer.extractDecorators(document);
+      assert.ok(decorators.length >= 6, `Should find at least 6 decorators, found ${decorators.length}`);
+      const controllerDecorator = decorators.find(d => d.name === 'Controller');
+      const getDecorators = decorators.filter(d => d.name === 'Get');
+      const postDecorator = decorators.find(d => d.name === 'Post');
+      assert.ok(controllerDecorator, 'Should find @Controller');
+      assert.ok(getDecorators.length >= 2, 'Should find @Get decorators');
+      assert.ok(postDecorator, 'Should find @Post');
+    });
+    test('Django View with decorators', async () => {
+      const code = `
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -324,12 +324,12 @@ def api_webhook(request):
     # Handle webhook
     pass
             `;
-            const document = await createTestDocument(code, 'python');
-            const decorators = await semanticAnalyzer.extractDecorators(document);
-            assert.ok(decorators.length >= 4, `Should find at least 4 decorators, found ${decorators.length}`);
-        });
-        test('Rust with derive attributes', async () => {
-            const code = `
+      const document = await createTestDocument(code, 'python');
+      const decorators = await semanticAnalyzer.extractDecorators(document);
+      assert.ok(decorators.length >= 4, `Should find at least 4 decorators, found ${decorators.length}`);
+    });
+    test('Rust with derive attributes', async () => {
+      const code = `
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -358,52 +358,52 @@ impl User {
     }
 }
             `;
-            const document = await createTestDocument(code, 'rust');
-            const decorators = await semanticAnalyzer.extractDecorators(document);
-            assert.ok(decorators.length >= 3, `Should find at least 3 attributes, found ${decorators.length}`);
-        });
+      const document = await createTestDocument(code, 'rust');
+      const decorators = await semanticAnalyzer.extractDecorators(document);
+      assert.ok(decorators.length >= 3, `Should find at least 3 attributes, found ${decorators.length}`);
     });
-    suite('Error Handling', () => {
-        test('Should gracefully handle invalid code', async () => {
-            const code = `
+  });
+  suite('Error Handling', () => {
+    test('Should gracefully handle invalid code', async () => {
+      const code = `
 @Component({
   selector: 'broken'
   // Missing closing brace
 export class BrokenComponent {
             `;
-            const document = await createTestDocument(code, 'typescript');
-            // Should not throw
-            const decorators = await semanticAnalyzer.extractDecorators(document);
-            // May or may not find decorators in broken code, but shouldn't crash
-            assert.ok(Array.isArray(decorators), 'Should return array even for broken code');
-        });
-        test('Should handle unsupported language gracefully', async () => {
-            const code = 'Some random text';
-            const document = await createTestDocument(code, 'plaintext');
-            const decorators = await semanticAnalyzer.extractDecorators(document);
-            const generics = await semanticAnalyzer.extractGenerics(document);
-            assert.strictEqual(decorators.length, 0, 'Should return empty for unsupported language');
-            assert.strictEqual(generics.length, 0, 'Should return empty for unsupported language');
-        });
+      const document = await createTestDocument(code, 'typescript');
+      // Should not throw
+      const decorators = await semanticAnalyzer.extractDecorators(document);
+      // May or may not find decorators in broken code, but shouldn't crash
+      assert.ok(Array.isArray(decorators), 'Should return array even for broken code');
     });
+    test('Should handle unsupported language gracefully', async () => {
+      const code = 'Some random text';
+      const document = await createTestDocument(code, 'plaintext');
+      const decorators = await semanticAnalyzer.extractDecorators(document);
+      const generics = await semanticAnalyzer.extractGenerics(document);
+      assert.strictEqual(decorators.length, 0, 'Should return empty for unsupported language');
+      assert.strictEqual(generics.length, 0, 'Should return empty for unsupported language');
+    });
+  });
 });
 // Helper function
 async function createTestDocument(content, languageId) {
-    const extensions = {
-        'typescript': 'ts',
-        'javascript': 'js',
-        'python': 'py',
-        'rust': 'rs',
-        'java': 'java',
-        'go': 'go',
-        'plaintext': 'txt'
-    };
-    const ext = extensions[languageId] || 'txt';
-    const uri = vscode.Uri.parse(`untitled:test-${Date.now()}.${ext}`);
-    const document = await vscode.workspace.openTextDocument(uri);
-    const edit = new vscode.WorkspaceEdit();
-    edit.insert(uri, new vscode.Position(0, 0), content);
-    await vscode.workspace.applyEdit(edit);
-    return document;
+  const extensions = {
+    'typescript': 'ts',
+    'javascript': 'js',
+    'python': 'py',
+    'rust': 'rs',
+    'java': 'java',
+    'go': 'go',
+    'plaintext': 'txt'
+  };
+  const ext = extensions[languageId] || 'txt';
+  const uri = vscode.Uri.parse(`untitled:test-${Date.now()}.${ext}`);
+  const document = await vscode.workspace.openTextDocument(uri);
+  const edit = new vscode.WorkspaceEdit();
+  edit.insert(uri, new vscode.Position(0, 0), content);
+  await vscode.workspace.applyEdit(edit);
+  return document;
 }
 //# sourceMappingURL=integration.test.js.map

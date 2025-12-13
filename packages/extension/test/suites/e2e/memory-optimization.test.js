@@ -1,22 +1,22 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
+        desc = { enumerable: true, get: function () { return m[k]; } };
     }
     Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
+}) : (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function (o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
+}) : function (o, v) {
     o["default"] = v;
 });
 var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
+    var ownKeys = function (o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
             var ar = [];
             for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
@@ -45,7 +45,7 @@ suite('Memory Management E2E Tests', function () {
     let context;
     suiteSetup(async () => {
         // Get extension context
-        const ext = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
+        const ext = vscode.extensions.getExtension('inline.inline');
         if (!ext) {
             throw new Error('Extension not found');
         }
@@ -97,7 +97,7 @@ suite('Cache Management E2E Tests', function () {
     let memoryManager;
     let context;
     suiteSetup(async () => {
-        const ext = vscode.extensions.getExtension('ratulhasan.inline-ai-codes');
+        const ext = vscode.extensions.getExtension('inline.inline-ai-codes');
         if (!ext) {
             throw new Error('Extension not found');
         }
@@ -243,7 +243,7 @@ suite('Integration Tests', function () {
     this.beforeAll(function () { this.skip(); }); // Requires proper context setup
     test('Memory pressure triggers cache cleanup', async () => {
         const memoryManager = new memory_manager_1.MemoryManager();
-        const context = vscode.extensions.getExtension('ratulhasan.inline-ai-codes').exports.context;
+        const context = vscode.extensions.getExtension('inline.inline-ai-codes').exports.context;
         const cacheManager = new cache_manager_1.CacheManager(context, memoryManager);
         // Add many entries to cache
         for (let i = 0; i < 50; i++) {

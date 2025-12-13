@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { activateExtension, createTestDocument, sleep, getExtension } from '../../utilities/test-utils';
 
 suite('Code Suggestions E2E Test', () => {
-    const extensionId = 'ratulhasan.inline';
+    const extensionId = 'inline.inline';
     let extension: vscode.Extension<any>;
 
     suiteSetup(async () => {

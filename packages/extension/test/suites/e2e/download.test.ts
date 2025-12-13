@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 
 suite('Download Manager E2E Tests', () => {
-    const extensionId = 'ratulhasan.inline';
+    const extensionId = 'inline.inline';
     let extension: vscode.Extension<any>;
     let api: any;
 
