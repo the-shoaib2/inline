@@ -1,7 +1,25 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "dist",
+        "rootDir": "src",
+        "composite": true,
+        "jsx": "react-jsx",
+        "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "ES2020"
+        ],
+        "allowImportingTsExtensions": true,
+        "noEmit": true
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "out",
+        "test"
+    ]
 }

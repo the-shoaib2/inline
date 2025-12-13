@@ -2,14 +2,14 @@
  * Unit Tests for Code Generators
  */
 
-import { CRUDGenerator } from '@completion/generation/crud-generator';
-import { APIGenerator } from '@completion/generation/api-generator';
-import { SQLGenerator } from '@completion/generation/sql-generator';
-import { MockDataGenerator } from '@completion/generation/mock-data-generator';
-import { RegexGenerator } from '@completion/generation/regex-generator';
-import { DTOGenerator } from '@completion/generation/dto-generator';
-import { BoilerplateGenerator } from '@completion/generation/boilerplate-generator';
-import { ConfigGenerator } from '@completion/generation/config-generator';
+import { CRUDGenerator } from '@inline/completion/generation/crud-generator';
+import { APIGenerator } from '@inline/completion/generation/api-generator';
+import { SQLGenerator } from '@inline/completion/generation/sql-generator';
+import { MockDataGenerator } from '@inline/completion/generation/mock-data-generator';
+import { RegexGenerator } from '@inline/completion/generation/regex-generator';
+import { DTOGenerator } from '@inline/completion/generation/dto-generator';
+import { BoilerplateGenerator } from '@inline/completion/generation/boilerplate-generator';
+import { ConfigGenerator } from '@inline/completion/generation/config-generator';
 
 export async function runGeneratorTests() {
     console.log('🧪 Running Generator Tests...\n');

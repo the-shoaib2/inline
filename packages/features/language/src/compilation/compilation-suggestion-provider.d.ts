@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { CompilationManager } from '@language/compilation/compilation-manager';
-import { BuildStateTracker } from '@language/compilation/build-state-tracker';
+import { CompilationManager } from '@inline/language/compilation/compilation-manager';
+import { BuildStateTracker } from '@inline/language/compilation/build-state-tracker';
 export declare class CompilationSuggestionProvider implements vscode.CodeActionProvider, vscode.Disposable {
     private compilationManager;
     private buildTracker;

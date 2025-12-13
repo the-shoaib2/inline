@@ -1,9 +1,9 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { MemoryManager } from '@platform/resources/memory-manager';
-import { CacheManager } from '@storage/cache/cache-manager';
-import { ParallelProcessor } from '@platform/system/parallel-processor';
+import { MemoryManager } from '@inline/shared/platform/resources/memory-manager';
+import { CacheManager } from '@inline/storage/cache/cache-manager';
+import { ParallelProcessor } from '@inline/shared/platform/system/parallel-processor';
 import { UserPatternDetector } from '@inline/intelligence';
 
 suite('Memory Management E2E Tests', function() {

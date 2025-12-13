@@ -9,7 +9,7 @@
  * - Multi-tier context categorization
  */
 import * as vscode from 'vscode';
-import type { CodeContext, CursorIntent, FunctionInfo, ImportInfo, TypeInfo, SymbolInfo } from '@context/context-engine';
+import type { CodeContext, CursorIntent, FunctionInfo, ImportInfo, TypeInfo, SymbolInfo } from '@inline/context/context-engine';
 /**
  * Optimized context with prioritized elements and relevance scoring.
  */

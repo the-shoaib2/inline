@@ -11,8 +11,8 @@
 import * as vscode from 'vscode';
 import { DecoratorInfo, GenericInfo } from '@inline/language';
 import { StateManager } from '@inline/storage';
-import { ContextWindowBuilder } from '@context/builders/context-window-builder';
-import { ModelSize } from './adaptive-context-manager';
+import { ContextWindowBuilder } from '@inline/context/builders/context-window-builder';
+import { ModelSize } from '@inline/context/adaptive-context-manager';
 /**
  * Import statement information with resolution details.
  */

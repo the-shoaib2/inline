@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompilationSuggestionProvider = void 0;
 const vscode = __importStar(require("vscode"));
-const compilation_manager_1 = require("@language/compilation/compilation-manager");
+const compilation_manager_1 = require("@inline/language/compilation/compilation-manager");
 class CompilationSuggestionProvider {
     constructor(compilationManager, buildTracker) {
         this.compilationManager = compilationManager;

@@ -1,7 +1,7 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { SmartFilter } from '@completion/filtering/smart-filter';
+import { SmartFilter } from '@inline/completion/filtering/smart-filter';
 
 describe('SmartFilter Unit Tests', function() {
     this.beforeAll(function() { this.skip(); }); // Requires implementation fix

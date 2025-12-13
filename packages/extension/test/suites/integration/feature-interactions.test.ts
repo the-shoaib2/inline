@@ -3,12 +3,12 @@
  * Tests feature interactions and workflows
  */
 
-import { CRUDGenerator } from '@completion/generation/crud-generator';
-import { APIGenerator } from '@completion/generation/api-generator';
-import { DTOGenerator } from '@completion/generation/dto-generator';
-import { MockDataGenerator } from '@completion/generation/mock-data-generator';
-import { SyntaxValidator } from '@language/parsers/syntax-validator';
-import { ComplexityAnalyzer } from '@language/validation/complexity-analyzer';
+import { CRUDGenerator } from '@inline/completion/generation/crud-generator';
+import { APIGenerator } from '@inline/completion/generation/api-generator';
+import { DTOGenerator } from '@inline/completion/generation/dto-generator';
+import { MockDataGenerator } from '@inline/completion/generation/mock-data-generator';
+import { SyntaxValidator } from '@inline/language/parsers/syntax-validator';
+import { ComplexityAnalyzer } from '@inline/language/validation/complexity-analyzer';
 
 export async function runIntegrationTests() {
     console.log('🧪 Running Integration Tests...\n');

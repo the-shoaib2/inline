@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyChecker = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
-const logger_1 = require("@platform/system/logger");
+const logger_1 = require("@inline/shared/platform/system/logger");
 class DependencyChecker {
     constructor() {
         this.lastPackageJsonTime = 0;

@@ -1,128 +1,45 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2020",
-    "outDir": "../../out",
-    "lib": [
-      "ES2020"
-    ],
-    "sourceMap": true,
-    "rootDir": "../../",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": false,
-    "declarationMap": false,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "incremental": true,
-    "tsBuildInfoFile": "../../out/.tsbuildinfo",
-    "baseUrl": "../..",
-    "paths": {
-      "@inline/core": [
-        "packages/core/src"
-      ],
-      "@inline/core/*": [
-        "packages/core/src/*"
-      ],
-      "@inline/shared": [
-        "packages/shared/src"
-      ],
-      "@inline/shared/*": [
-        "packages/shared/src/*"
-      ],
-      "@inline/completion": [
-        "packages/features/completion/src"
-      ],
-      "@inline/completion/*": [
-        "packages/features/completion/src/*"
-      ],
-      "@inline/intelligence": [
-        "packages/features/intelligence/src"
-      ],
-      "@inline/intelligence/*": [
-        "packages/features/intelligence/src/*"
-      ],
-      "@inline/context": [
-        "packages/features/context/src"
-      ],
-      "@inline/context/*": [
-        "packages/features/context/src/*"
-      ],
-      "@inline/language": [
-        "packages/features/language/src"
-      ],
-      "@inline/language/*": [
-        "packages/features/language/src/*"
-      ],
-      "@inline/events": [
-        "packages/features/events/src"
-      ],
-      "@inline/events/*": [
-        "packages/features/events/src/*"
-      ],
-      "@inline/storage": [
-        "packages/features/storage/src"
-      ],
-      "@inline/storage/*": [
-        "packages/features/storage/src/*"
-      ],
-      "@inline/ui": [
-        "packages/features/ui/src"
-      ],
-      "@inline/ui/*": [
-        "packages/features/ui/src/*"
-      ],
-      "@inline/analyzer": [
-        "packages/analyzer"
-      ],
-      "@inline/accelerator": [
-        "packages/accelerator"
-      ],
-      "@language/*": [
-        "packages/features/language/src/*"
-      ],
-      "@completion/*": [
-        "packages/features/completion/src/*"
-      ],
-      "@context/*": [
-        "packages/features/context/src/*"
-      ],
-      "@storage/*": [
-        "packages/features/storage/src/*"
-      ],
-      "@network/*": [
-        "packages/shared/src/network/*"
-      ],
-      "@platform/*": [
-        "packages/shared/src/platform/*"
-      ],
-      "@events/*": [
-        "packages/features/events/src/*"
-      ]
-    },
-    "typeRoots": [
-      "../../node_modules/@types",
-      "../../packages/extension/node_modules/@types"
-    ],
-    "types": [
-      "node",
-      "mocha",
-      "chai",
-      "vscode"
+    "files": [],
+    "include": [],
+    "references": [
+        {
+            "path": "packages/accelerator"
+        },
+        {
+            "path": "packages/analyzer"
+        },
+        {
+            "path": "packages/core"
+        },
+        {
+            "path": "packages/extension"
+        },
+        {
+            "path": "packages/shared"
+        },
+        {
+            "path": "packages/webview"
+        },
+        {
+            "path": "packages/features/completion"
+        },
+        {
+            "path": "packages/features/context"
+        },
+        {
+            "path": "packages/features/events"
+        },
+        {
+            "path": "packages/features/intelligence"
+        },
+        {
+            "path": "packages/features/language"
+        },
+        {
+            "path": "packages/features/storage"
+        },
+        {
+            "path": "packages/features/ui"
+        }
     ]
-  },
-  "include": [
-    "../../packages/extension/src/**/*",
-    "../../packages/extension/test/**/*"
-  ],
-  "exclude": [
-    "../../node_modules",
-    "../../.vscode-test",
-    "../../out",
-    "../../packages/*/node_modules",
-    "../../packages/*/out"
-  ]
 }

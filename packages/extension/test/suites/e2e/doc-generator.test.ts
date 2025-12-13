@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { DocGenerator } from '@completion/generation/doc-generator';
+import { DocGenerator } from '@inline/completion/generation/doc-generator';
 import { LlamaInference } from '@inline/intelligence';
 
 suite('Documentation Generator E2E Tests', () => {

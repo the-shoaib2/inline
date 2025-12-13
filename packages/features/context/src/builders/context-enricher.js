@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextEnricher = void 0;
 const language_1 = require("@inline/language");
-const logger_1 = require("@platform/system/logger");
+const logger_1 = require("@inline/shared/platform/system/logger");
 const vscode = __importStar(require("vscode"));
 /**
  * Enriches events with additional context information

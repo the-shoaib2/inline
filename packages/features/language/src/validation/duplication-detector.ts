@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { NativeLoader } from '@platform/native/native-loader';
+import { NativeLoader } from '@inline/shared/platform/native/native-loader';
 
 /**
  * Code fingerprint for duplicate detection

@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompilationManager = exports.CompilationState = void 0;
 const vscode = __importStar(require("vscode"));
-const logger_1 = require("@platform/system/logger");
+const logger_1 = require("@inline/shared/platform/system/logger");
 var CompilationState;
 (function (CompilationState) {
     CompilationState["IDLE"] = "idle";

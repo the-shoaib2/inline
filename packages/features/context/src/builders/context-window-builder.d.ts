@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { StateManager } from '@inline/storage';
-import { ContextEngine } from '@context/context-engine';
+import { ContextEngine } from '@inline/context/context-engine';
 /**
  * Complete context window for AI model inference.
  *

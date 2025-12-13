@@ -1,5 +1,5 @@
-import { AnyEvent } from '@events/event-types';
-import { ContextEngine } from '@context/context-engine';
+import { AnyEvent } from '@inline/events/event-types';
+import { ContextEngine } from '@inline/context/context-engine';
 /**
  * Enriches events with additional context information
  */

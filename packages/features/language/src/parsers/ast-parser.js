@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ASTParser = void 0;
-const tree_sitter_service_1 = require("@language/parsers/tree-sitter-service");
-const native_loader_1 = require("@platform/native/native-loader");
+const tree_sitter_service_1 = require("@inline/language/parsers/tree-sitter-service");
+const native_loader_1 = require("@inline/shared/platform/native/native-loader");
 /**
  * Language-agnostic AST parser for structural code analysis.
  *

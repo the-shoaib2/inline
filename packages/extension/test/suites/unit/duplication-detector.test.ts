@@ -1,6 +1,6 @@
                    import { expect } from 'chai';
-import { DuplicationDetector } from '@language/validation/duplication-detector';
-import { ASTParser } from '@language/parsers/ast-parser';
+import { DuplicationDetector } from '@inline/language/validation/duplication-detector';
+import { ASTParser } from '@inline/language/parsers/ast-parser';
 
 describe('DuplicationDetector', () => {
     let detector: DuplicationDetector;

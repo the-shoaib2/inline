@@ -2,8 +2,8 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LanguageConfigService } from '@language/analysis/language-config-service';
-import { ContextEngine } from '@context/context-engine';
+import { LanguageConfigService } from '@inline/language/analysis/language-config-service';
+import { ContextEngine } from '@inline/context/context-engine';
 
 describe('Language Configuration & Context Verifiction', function() {
     this.beforeAll(function() { this.skip(); }); // Requires languages.json config

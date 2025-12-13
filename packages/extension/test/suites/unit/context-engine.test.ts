@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ContextEngine, CodeContext } from '@context/context-engine';
+import { ContextEngine, CodeContext } from '@inline/context/context-engine';
 
 describe('ContextEngine Unit Tests', () => {
   

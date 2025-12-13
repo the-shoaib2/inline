@@ -1,10 +1,49 @@
 {
-    "extends": "../../.config/build/tsconfig.json",
+    "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "outDir": "../../out/packages/extension"
+        "outDir": "dist",
+        "rootDir": ".",
+        "composite": true
     },
     "include": [
-        "src/**/*",
-        "test/**/*"
+        "src",
+        "test"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "out"
+    ],
+    "references": [
+        {
+            "path": "../analyzer"
+        },
+        {
+            "path": "../accelerator"
+        },
+        {
+            "path": "../core"
+        },
+        {
+            "path": "../shared"
+        },
+        {
+            "path": "../features/completion"
+        },
+        {
+            "path": "../features/intelligence"
+        },
+        {
+            "path": "../features/storage"
+        },
+        {
+            "path": "../features/language"
+        },
+        {
+            "path": "../features/ui"
+        },
+        {
+            "path": "../features/events"
+        }
     ]
 }

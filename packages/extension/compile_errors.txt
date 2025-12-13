@@ -1,0 +1,264 @@
+
+> inline@0.1.0 compile:tests /Users/ratulhasan/Desktop/Shoaib/inline/packages/extension
+> tsc -p ../../.config/build/tsconfig.json --outDir ../../out
+
+test/suites/e2e/completion-advanced.test.ts(9,8): error TS2307: Cannot find module '@inline/extension/utilities/test-utils' or its corresponding type declarations.
+../webview/src/App.tsx(1,30): error TS6142: Module './components/model-manager' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model-manager.tsx', but '--jsx' is not set.
+../webview/src/App.tsx(5,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(151,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(152,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(153,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(154,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(155,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(156,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(158,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(162,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(163,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(164,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(165,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(171,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(177,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(183,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(191,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(193,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(194,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(195,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(200,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(207,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(208,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(209,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(223,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(224,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(228,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(244,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(248,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model-manager.tsx(252,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/import-zone.tsx(28,38): error TS2339: Property 'files' does not exist on type 'DataTransfer'.
+../webview/src/components/model/import-zone.tsx(49,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/import-zone.tsx(55,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/import-zone.tsx(56,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/index.ts(1,28): error TS6142: Module './import-zone' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/import-zone.tsx', but '--jsx' is not set.
+../webview/src/components/model/index.ts(2,30): error TS6142: Module './model-details' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-details.tsx', but '--jsx' is not set.
+../webview/src/components/model/index.ts(3,27): error TS6142: Module './model-item' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-item.tsx', but '--jsx' is not set.
+../webview/src/components/model/index.ts(4,27): error TS6142: Module './model-list' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-list.tsx', but '--jsx' is not set.
+../webview/src/components/model/index.ts(5,29): error TS6142: Module './model-search' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-search.tsx', but '--jsx' is not set.
+../webview/src/components/model/index.ts(6,29): error TS6142: Module './progress-bar' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/progress-bar.tsx', but '--jsx' is not set.
+../webview/src/components/model/index.ts(7,29): error TS6142: Module './model-header' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-header.tsx', but '--jsx' is not set.
+../webview/src/components/model/model-details.tsx(20,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(21,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(22,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(23,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(25,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(26,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(27,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(29,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(30,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(31,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(33,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(34,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(35,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(37,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(38,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-details.tsx(39,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-header.tsx(15,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-header.tsx(16,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-header.tsx(17,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-header.tsx(18,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-header.tsx(21,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(3,29): error TS6142: Module './progress-bar' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/progress-bar.tsx', but '--jsx' is not set.
+../webview/src/components/model/model-item.tsx(4,30): error TS6142: Module './model-details' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-details.tsx', but '--jsx' is not set.
+../webview/src/components/model/model-item.tsx(47,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(48,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(49,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(50,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(51,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(53,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(55,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(56,54): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(57,77): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(61,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(66,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(67,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(68,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(69,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(71,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(72,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(73,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(77,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(83,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(84,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(85,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(87,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(95,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(103,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(104,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(113,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(115,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(124,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(127,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(132,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-item.tsx(136,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(3,27): error TS6142: Module './model-item' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/model/model-item.tsx', but '--jsx' is not set.
+../webview/src/components/model/model-list.tsx(54,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(55,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(56,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(58,57): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLSelectElement'.
+../webview/src/components/model/model-list.tsx(60,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(61,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(62,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(65,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(67,57): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLSelectElement'.
+../webview/src/components/model/model-list.tsx(69,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(70,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(75,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(76,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(81,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-list.tsx(83,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(13,32): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/model/model-search.tsx(19,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(20,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(27,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(28,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(28,68): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLSelectElement'.
+../webview/src/components/model/model-search.tsx(29,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(30,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(31,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(32,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(33,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(34,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(35,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(36,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(37,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(38,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(39,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(40,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(41,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(42,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(43,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(44,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(45,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(46,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(47,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(48,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(49,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(50,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(51,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(53,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(53,58): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLSelectElement'.
+../webview/src/components/model/model-search.tsx(54,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(55,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/model-search.tsx(56,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(12,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(13,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(14,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(15,27): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(16,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(24,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/model/progress-bar.tsx(25,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(36,13): error TS2304: Cannot find name 'confirm'.
+../webview/src/components/rules/coding-rules.tsx(46,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(47,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(48,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(51,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(55,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(59,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(61,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(63,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(64,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(65,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(66,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(69,110): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/rules/coding-rules.tsx(72,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(73,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(74,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(77,113): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/rules/coding-rules.tsx(81,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(82,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(83,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(86,117): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/rules/coding-rules.tsx(89,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(90,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(91,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(95,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(96,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(97,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(98,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(101,95): error TS2339: Property 'checked' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/rules/coding-rules.tsx(103,45): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(105,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(105,80): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(106,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(108,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(109,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/coding-rules.tsx(110,41): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/rules/index.ts(1,29): error TS6142: Module './coding-rules' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/rules/coding-rules.tsx', but '--jsx' is not set.
+../webview/src/components/settings/index.ts(1,26): error TS6142: Module './settings' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/settings/settings.tsx', but '--jsx' is not set.
+../webview/src/components/settings/settings.tsx(23,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(24,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(26,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(27,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(29,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(31,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(32,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(39,90): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/settings/settings.tsx(41,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(45,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(46,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(48,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(50,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(56,82): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/settings/settings.tsx(60,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(61,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(63,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(65,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(71,82): error TS2339: Property 'value' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/settings/settings.tsx(75,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(76,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(77,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(80,79): error TS2339: Property 'checked' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/settings/settings.tsx(82,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(83,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(87,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(88,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(89,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(92,86): error TS2339: Property 'checked' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/settings/settings.tsx(94,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(95,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(99,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(100,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(101,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(104,79): error TS2339: Property 'checked' does not exist on type 'EventTarget & HTMLInputElement'.
+../webview/src/components/settings/settings.tsx(106,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/settings/settings.tsx(107,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/index.ts(1,28): error TS6142: Module './statistics' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/components/statistics/statistics.tsx', but '--jsx' is not set.
+../webview/src/components/statistics/statistics.tsx(21,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(22,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(23,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(24,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(25,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(27,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(28,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(29,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(30,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(31,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(37,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(38,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(39,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(41,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(42,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(43,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(44,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(45,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(51,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(52,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/components/statistics/statistics.tsx(53,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/main.tsx(4,17): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+../webview/src/main.tsx(4,17): error TS6142: Module './App.tsx' was resolved to '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/src/App.tsx', but '--jsx' is not set.
+../webview/src/main.tsx(6,12): error TS2584: Cannot find name 'document'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'.
+../webview/src/main.tsx(7,3): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/main.tsx(8,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+../webview/src/vscode-utils.ts(29,9): error TS2304: Cannot find name 'window'.
+../webview/src/vscode-utils.ts(29,44): error TS7006: Parameter 'event' implicitly has an 'any' type.
+../webview/vite.config.ts(2,19): error TS2307: Cannot find module '@vitejs/plugin-react' or its corresponding type declarations.
+  There are types at '/Users/ratulhasan/Desktop/Shoaib/inline/packages/webview/node_modules/@vitejs/plugin-react/dist/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+ ELIFECYCLE  Command failed with exit code 2.

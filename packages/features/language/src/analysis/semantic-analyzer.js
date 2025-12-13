@@ -48,9 +48,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SemanticAnalyzer = void 0;
 const vscode = __importStar(require("vscode"));
-const language_config_service_1 = require("@language/analysis/language-config-service");
-const tree_sitter_service_1 = require("@language/parsers/tree-sitter-service");
-const native_loader_1 = require("@platform/native/native-loader");
+const language_config_service_1 = require("@inline/language/analysis/language-config-service");
+const tree_sitter_service_1 = require("@inline/language/parsers/tree-sitter-service");
+const native_loader_1 = require("@inline/shared/platform/native/native-loader");
 /**
  * Performs semantic analysis on code documents.
  * Extracts structural information for context building.

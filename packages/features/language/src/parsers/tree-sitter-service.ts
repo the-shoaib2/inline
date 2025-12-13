@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { Parser, Language } from 'web-tree-sitter';
-import { Logger } from '@platform/system/logger';
-import { NativeLoader } from '@platform/native/native-loader';
-import { RESOURCE_PATHS, getResourcePath } from '@platform/system/path-constants';
+import { Logger } from '@inline/shared/platform/system/logger';
+import { NativeLoader } from '@inline/shared/platform/native/native-loader';
+import { RESOURCE_PATHS, getResourcePath } from '@inline/shared/platform/system/path-constants';
 
 /**
  * Tree-sitter query match result

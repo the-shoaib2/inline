@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ContextEngine } from '@context/context-engine';
-import { SemanticAnalyzer, TreeSitterService } from '@language/index';
+import { ContextEngine } from '@inline/context/context-engine';
+import { SemanticAnalyzer, TreeSitterService } from '@inline/language/index';
 
 suite('Tree-sitter Integration with LLM', () => {
     let contextEngine: ContextEngine;

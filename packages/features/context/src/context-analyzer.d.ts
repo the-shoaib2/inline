@@ -9,7 +9,7 @@
  * - Dependency graph construction
  */
 import * as vscode from 'vscode';
-import type { ImportInfo, DependencyInfo, RelatedCodeBlock, CodingPattern, SymbolInfo } from '@context/context-engine';
+import type { ImportInfo, DependencyInfo, RelatedCodeBlock, CodingPattern, SymbolInfo } from '@inline/context/context-engine';
 /**
  * Related file context with similarity scoring.
  */

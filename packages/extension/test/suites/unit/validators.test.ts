@@ -2,11 +2,11 @@
  * Unit Tests for Validators and Analyzers
  */
 
-import { SyntaxValidator } from '@language/parsers/syntax-validator';
-import { SemanticValidator } from '@language/validation/semantic-validator';
-import { TypeChecker } from '@language/analysis/type-checker';
-import { Linter } from '@language/validation/linter';
-import { ComplexityAnalyzer } from '@language/validation/complexity-analyzer';
+import { SyntaxValidator } from '@inline/language/parsers/syntax-validator';
+import { SemanticValidator } from '@inline/language/validation/semantic-validator';
+import { TypeChecker } from '@inline/language/analysis/type-checker';
+import { Linter } from '@inline/language/validation/linter';
+import { ComplexityAnalyzer } from '@inline/language/validation/complexity-analyzer';
 import { VulnerabilityScanner } from '@inline/shared';
 
 export async function runValidatorTests() {

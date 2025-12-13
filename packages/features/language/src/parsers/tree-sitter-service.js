@@ -36,9 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TreeSitterService = void 0;
 const path = __importStar(require("path"));
 const web_tree_sitter_1 = require("web-tree-sitter");
-const logger_1 = require("@platform/system/logger");
-const native_loader_1 = require("@platform/native/native-loader");
-const path_constants_1 = require("@platform/system/path-constants");
+const logger_1 = require("@inline/shared/platform/system/logger");
+const native_loader_1 = require("@inline/shared/platform/native/native-loader");
+const path_constants_1 = require("@inline/shared/platform/system/path-constants");
 /**
  * Service for managing Tree-sitter parsers and AST parsing.
  *

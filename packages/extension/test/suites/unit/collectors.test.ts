@@ -1,10 +1,10 @@
 import * as assert from 'assert';
 import * as vscode from './vscode-mock';
-import { EventBus } from '@events/event-bus';
-import { EventNormalizer } from '@events/event-normalizer';
-import { DiagnosticCollector } from '@events/collectors/diagnostic-collector';
-import { TerminalCollector } from '@events/collectors/terminal-collector';
-import { SyntaxSemanticEventType, UserInteractionEventType } from '@events/event-types';
+import { EventBus } from '@inline/events/event-bus';
+import { EventNormalizer } from '@inline/events/event-normalizer';
+import { DiagnosticCollector } from '@inline/events/collectors/diagnostic-collector';
+import { TerminalCollector } from '@inline/events/collectors/terminal-collector';
+import { SyntaxSemanticEventType, UserInteractionEventType } from '@inline/events/event-types';
 
 describe('Event Collectors', function() {
     this.beforeAll(function() { this.skip(); }); // Async timing issues

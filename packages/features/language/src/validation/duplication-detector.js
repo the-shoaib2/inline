@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DuplicationDetector = void 0;
 const crypto = __importStar(require("crypto"));
-const native_loader_1 = require("@platform/native/native-loader");
+const native_loader_1 = require("@inline/shared/platform/native/native-loader");
 /**
  * Smart code deduplication detector using fingerprinting and similarity algorithms
  */

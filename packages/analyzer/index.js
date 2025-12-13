@@ -1,3 +1,4 @@
+"use strict";
 /* tslint:disable */
 /* eslint-disable */
 /* prettier-ignore */
@@ -343,3 +344,4 @@ module.exports.findAllOccurrences = findAllOccurrences;
 module.exports.init = init;
 module.exports.getVersion = getVersion;
 module.exports.isAvailable = isAvailable;
+//# sourceMappingURL=index.js.map

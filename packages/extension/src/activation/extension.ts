@@ -66,7 +66,7 @@ export async function activate(context: vscode.ExtensionContext) {
         LanguageConfigService.getInstance().initialize(context);
 
         // Initialize Tree-sitter for accurate AST parsing
-        const { TreeSitterService } = await import('@language/parsers/tree-sitter-service');
+        const { TreeSitterService } = await import('@inline/language/parsers/tree-sitter-service');
         const treeSitterService = TreeSitterService.getInstance();
         try {
             await treeSitterService.initialize(context);
@@ -423,7 +423,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
 
             // Get import resolver from code action provider
             // For now, create a new instance
-            const { ImportResolver } = await import('@completion/providers/import-resolver');
+            const { ImportResolver } = await import('@inline/completion/providers/import-resolver');
             const resolver = new ImportResolver();
             const edits = await resolver.organizeImports(doc);
 
@@ -437,7 +437,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
             const doc = document || vscode.window.activeTextEditor?.document;
             if (!doc) { return; }
 
-            const { ImportResolver } = await import('@completion/providers/import-resolver');
+            const { ImportResolver } = await import('@inline/completion/providers/import-resolver');
             const resolver = new ImportResolver();
             const edits = await resolver.removeUnusedImports(doc);
 
@@ -453,7 +453,7 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
             module: string,
             isDefault: boolean
         ) => {
-            const { ImportResolver } = await import('@completion/providers/import-resolver');
+            const { ImportResolver } = await import('@inline/completion/providers/import-resolver');
             const resolver = new ImportResolver();
             const edit = await resolver.addImport(document, symbol, module, isDefault);
 

@@ -1,7 +1,7 @@
 import { Parser } from 'web-tree-sitter';
 
-import { TreeSitterService } from '@language/parsers/tree-sitter-service';
-import { NativeLoader } from '@platform/native/native-loader';
+import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
+import { NativeLoader } from '@inline/shared/platform/native/native-loader';
 
 /**
  * Abstract Syntax Tree node

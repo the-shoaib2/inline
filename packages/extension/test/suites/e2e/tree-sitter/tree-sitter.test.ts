@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { TreeSitterService } from '@language/parsers/tree-sitter-service';
-import { SemanticAnalyzer } from '@language/analysis/semantic-analyzer';
+import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
+import { SemanticAnalyzer } from '@inline/language/analysis/semantic-analyzer';
 
 suite('Tree-sitter E2E Tests', () => {
     let treeSitterService: TreeSitterService;

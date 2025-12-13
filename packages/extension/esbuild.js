@@ -12,13 +12,13 @@ const pathAliasPlugin = {
     setup(build) {
         const fs = require("fs");
         const pathAliases = {
-            "@language/": path.resolve(__dirname, "../features/language/src/"),
-            "@completion/": path.resolve(__dirname, "../features/completion/src/"),
-            "@context/": path.resolve(__dirname, "../features/context/src/"),
-            "@storage/": path.resolve(__dirname, "../features/storage/src/"),
-            "@platform/": path.resolve(__dirname, "../shared/src/platform/"),
-            "@network/": path.resolve(__dirname, "../shared/src/network/"),
-            "@events/": path.resolve(__dirname, "../features/events/src/"),
+            "@inline/language/": path.resolve(__dirname, "../features/language/src/"),
+            "@inline/completion/": path.resolve(__dirname, "../features/completion/src/"),
+            "@inline/context/": path.resolve(__dirname, "../features/context/src/"),
+            "@inline/storage/": path.resolve(__dirname, "../features/storage/src/"),
+            "@inline/shared/platform/": path.resolve(__dirname, "../shared/src/platform/"),
+            "@inline/shared/network/": path.resolve(__dirname, "../shared/src/network/"),
+            "@inline/events/": path.resolve(__dirname, "../features/events/src/"),
             "@inline/language": path.resolve(__dirname, "../features/language/src/"),
             "@inline/completion": path.resolve(__dirname, "../features/completion/src/"),
             "@inline/context": path.resolve(__dirname, "../features/context/src/"),

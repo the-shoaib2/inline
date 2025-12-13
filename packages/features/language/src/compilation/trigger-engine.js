@@ -35,8 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TriggerEngine = void 0;
 const vscode = __importStar(require("vscode"));
-const compilation_manager_1 = require("@language/compilation/compilation-manager");
-const logger_1 = require("@platform/system/logger");
+const compilation_manager_1 = require("@inline/language/compilation/compilation-manager");
+const logger_1 = require("@inline/shared/platform/system/logger");
 const events_1 = require("@inline/events");
 class TriggerEngine {
     constructor(compilationManager, buildTracker, eventBus) {

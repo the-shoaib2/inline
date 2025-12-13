@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FeedbackLoop = void 0;
-const event_types_1 = require("@events/event-types");
-const logger_1 = require("@platform/system/logger");
+const event_types_1 = require("@inline/events/event-types");
+const logger_1 = require("@inline/shared/platform/system/logger");
 /**
  * Feedback Loop - Analyzes user acceptance/rejection of AI suggestions
  * and uses this data to improve future suggestions (e.g. by adjusting timeouts,

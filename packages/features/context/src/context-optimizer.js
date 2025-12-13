@@ -11,7 +11,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextOptimizer = void 0;
-const logger_1 = require("@platform/system/logger");
+const logger_1 = require("@inline/shared/platform/system/logger");
 /**
  * Optimizes code context to minimize token usage while preserving essential information.
  * Applies multiple optimization strategies in order of increasing aggressiveness.

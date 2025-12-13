@@ -1,50 +1,28 @@
 {
+    "extends": "../../../tsconfig.base.json",
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "ES2020",
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "lib": [
-            "ES2020"
-        ],
-        "sourceMap": true,
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "resolveJsonModule": true,
-        "declaration": true,
-        "declarationMap": true,
-        "composite": true,
-        "incremental": true,
-        "tsBuildInfoFile": "./dist/.tsbuildinfo",
-        "baseUrl": ".",
-        "paths": {
-            "@inline/core": [
-                "../../core/src"
-            ],
-            "@inline/shared": [
-                "../../shared/src"
-            ]
-        }
+        "outDir": "dist",
+        "rootDir": "src",
+        "composite": true
     },
     "include": [
-        "src/**/*"
+        "src"
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "dist",
+        "out",
+        "test"
     ],
     "references": [
         {
             "path": "../../core"
         },
         {
+            "path": "../intelligence"
+        },
+        {
             "path": "../../shared"
-        },
-        {
-        },
-        {
         }
     ]
 }

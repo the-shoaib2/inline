@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { LanguageConfigService } from '@language/analysis/language-config-service';
+import { LanguageConfigService } from '@inline/language/analysis/language-config-service';
 import { createMockContext } from '../../vscode-mock';
 
 describe('LanguageConfigService', () => {

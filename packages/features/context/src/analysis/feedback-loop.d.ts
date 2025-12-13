@@ -1,4 +1,4 @@
-import { EventBus } from '@events/event-bus';
+import { EventBus } from '@inline/events/event-bus';
 /**
  * Feedback Loop - Analyzes user acceptance/rejection of AI suggestions
  * and uses this data to improve future suggestions (e.g. by adjusting timeouts,
