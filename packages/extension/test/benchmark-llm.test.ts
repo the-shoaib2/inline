@@ -12,13 +12,13 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { LlamaInference } from '../src/inference/llama-inference';
+import { LlamaInference } from '@inline/intelligence';
 
-describe('LLM Benchmark Test', () => {
+suite('LLM Benchmark Test', () => {
     let inference: LlamaInference;
     let modelPath: string | null = null;
 
-    before(async function() {
+    suiteSetup(async function() {
         // Increase timeout for model loading
         this.timeout(60000);
 
@@ -61,7 +61,7 @@ describe('LLM Benchmark Test', () => {
         console.log(`✅ Model loaded in ${(loadTime / 1000).toFixed(2)}s`);
     });
 
-    after(async function() {
+    suiteTeardown(async function() {
         this.timeout(10000);
         if (inference && inference.isModelLoaded()) {
             console.log('\n🧹 Unloading model...');
@@ -70,13 +70,13 @@ describe('LLM Benchmark Test', () => {
         }
     });
 
-    it('should verify model is loaded', () => {
+    test('should verify model is loaded', () => {
         assert.strictEqual(inference.isModelLoaded(), true, 'Model should be loaded');
         assert.strictEqual(inference.getModelPath(), modelPath, 'Model path should match');
         console.log('✅ Model verification passed');
     });
 
-    it('should benchmark streaming completion with sample prompt', async function() {
+    test('should benchmark streaming completion with sample prompt', async function() {
         this.timeout(120000); // 2 minutes for generation
 
         const samplePrompt = `Write a simple TypeScript function that calculates the factorial of a number:`;
@@ -88,7 +88,6 @@ describe('LLM Benchmark Test', () => {
 
         // Benchmark metrics
         const startTime = Date.now();
-        let firstTokenTime: number | null = null;
         let tokenCount = 0;
         let completion = '';
 
@@ -135,7 +134,7 @@ describe('LLM Benchmark Test', () => {
         }
     });
 
-    it('should test code improvement with streaming', async function() {
+    test('should test code improvement with streaming', async function() {
         this.timeout(120000);
 
         const sampleCode = `function add(a, b) {
@@ -182,7 +181,7 @@ describe('LLM Benchmark Test', () => {
         }
     });
 
-    it('should test multiple rapid completions (stress test)', async function() {
+    test('should test multiple rapid completions (stress test)', async function() {
         this.timeout(180000); // 3 minutes
 
         console.log('\n' + '='.repeat(60));

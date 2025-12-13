@@ -87,7 +87,7 @@ export function getExtension(): vscode.Extension<any> | undefined {
 /**
  * Activate extension and wait for it to be ready
  */
-export async function activateExtension(): Promise<void> {
+export async function activateExtension(): Promise<vscode.Extension<any>> {
   let ext = getExtension();
   
   if (!ext) {
@@ -99,15 +99,17 @@ export async function activateExtension(): Promise<void> {
   }
 
   if (!ext) {
+    console.log('Available extensions:', vscode.extensions.all.map(e => e.id).join(', '));
     throw new Error('Extension not found: inline.inline');
   }
   
   if (!ext.isActive) {
     await ext.activate();
+    // Wait a bit for initialization
+    await sleep(1000);
   }
   
-  // Wait a bit for initialization
-  await sleep(1000);
+  return ext;
 }
 
 /**
