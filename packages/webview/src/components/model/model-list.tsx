@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Model } from '../types';
-import { ModelItem } from './ModelItem';
+import type { Model } from '../../types';
+import { ModelItem } from './model-item';
 
 interface ModelListProps {
     models: Model[];

@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { vscode } from '../vscode-utils';
 import type { AppData, DownloadProgress, Model, Settings as SettingsType, CodingRule } from '../types';
-import { ImportZone } from './ImportZone';
-import { ModelList } from './ModelList';
-import { Settings } from './Settings';
-import { CodingRules } from './CodingRules';
-import { ModelSearch } from './ModelSearch';
-import { Statistics } from './Statistics';
+import { ImportZone, ModelList, ModelSearch, ModelHeader } from './model';
+import { Settings } from './settings';
+import { CodingRules } from './rules';
+import { Statistics } from './statistics';
 
 export const ModelManager: React.FC = () => {
     const [models, setModels] = useState<Model[]>([]);
@@ -194,17 +192,11 @@ export const ModelManager: React.FC = () => {
                         {activeTab === 'model' && (
                             <>
                                 <div className="section">
-                                    <div className="model-header">
-                                        <h3>All Models ({allModelsCount})</h3>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <span className="model-count">
-                                                {downloadedCount} Downloaded
-                                            </span>
-                                            <span className="model-count">
-                                                {availableCount} Available
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <ModelHeader
+                                        allModelsCount={allModelsCount}
+                                        downloadedCount={downloadedCount}
+                                        availableCount={availableCount}
+                                    />
                                     <ModelSearch
                                         onSearch={setSearchQuery}
                                         onFilterLanguage={setLanguageFilter}

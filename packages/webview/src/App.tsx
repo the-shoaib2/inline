@@ -1,5 +1,4 @@
-import { ModelManager } from './components/ModelManager'
-import './App.css'
+import { ModelManager } from './components/model-manager'
 
 function App() {
   return (

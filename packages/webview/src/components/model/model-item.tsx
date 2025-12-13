@@ -1,7 +1,7 @@
 import React from 'react';
-import type { Model } from '../types';
-import { ProgressBar } from './ProgressBar';
-import { ModelDetails } from './ModelDetails';
+import type { Model } from '../../types';
+import { ProgressBar } from './progress-bar';
+import { ModelDetails } from './model-details';
 
 interface ModelItemProps {
     model: Model;

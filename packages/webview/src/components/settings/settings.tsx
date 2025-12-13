@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { vscode } from '../vscode-utils';
-import type { Settings as SettingsType } from '../types';
+import { vscode } from '../../vscode-utils';
+import type { Settings as SettingsType } from '../../types';
 
 interface SettingsProps {
     settings: SettingsType;

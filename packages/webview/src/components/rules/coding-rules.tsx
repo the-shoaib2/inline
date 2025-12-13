@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { vscode } from '../vscode-utils';
-import type { CodingRule } from '../types';
+import { vscode } from '../../vscode-utils';
+import type { CodingRule } from '../../types';
 
 interface CodingRulesProps {
     rules: CodingRule[];
