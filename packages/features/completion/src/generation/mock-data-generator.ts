@@ -100,10 +100,16 @@ export class MockDataGenerator {
         return Math.random() > 0.5;
     }
 
+    /**
+     * Generate RFC 4122 compliant UUID v4
+     * @returns UUID v4 string
+     */
     private generateUUID(): string {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
             const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            // For 'x': use random hex digit (0-f)
+            // For 'y': set variant bits to 10xx (8, 9, a, or b)
+            const v = c === 'x' ? r : ((r & 0x3) | 0x8);
             return v.toString(16);
         });
     }

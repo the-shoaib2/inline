@@ -174,6 +174,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     // Streaming support for real-time token display
     private currentStreamingTokens: string = '';
     private streamingCallback: ((tokens: string) => void) | null = null;
+    private currentStreamingPosition: vscode.Position | null = null;
+    private currentStreamingDocument: vscode.TextDocument | null = null;
+    private isStreaming: boolean = false;
 
     // Fast Cache Manager for L1/L2 caching
     private fastCacheManager: any; 
@@ -231,6 +234,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         }
 
         this.loadCacheFromDisk();
+        this.setupFeedbackLoop();
     }
 
     private loadCacheFromDisk(): void {
@@ -332,10 +336,19 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             enhancedCompletion = this.smartCompletionEnhancer.enhanceSync(document, position, enhancedCompletion);
         }
 
-        const item = new vscode.InlineCompletionItem(
-            enhancedCompletion,
-            new vscode.Range(position, position)
+        // Calculate proper range for multi-line completions
+        const lines = enhancedCompletion.split('\n');
+        const endLine = position.line + lines.length - 1;
+        const endCharacter = lines.length === 1 
+            ? position.character + enhancedCompletion.length 
+            : lines[lines.length - 1].length;
+
+        const range = new vscode.Range(
+            position,
+            new vscode.Position(endLine, endCharacter)
         );
+
+        const item = new vscode.InlineCompletionItem(enhancedCompletion, range);
 
         // Attach acceptance command if we have an ID
         if (suggestionId) {
@@ -706,13 +719,103 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private generateCacheKey(document: vscode.TextDocument, position: vscode.Position): string {
         const line = document.lineAt(position.line);
         const prefix = line.text.substring(0, position.character);
-        return `${document.uri.fsPath}:${position.line}:${prefix}`;
+        
+        // Include document version to invalidate on edits
+        const version = document.version;
+        
+        // Include content hash of surrounding context (3 lines before/after)
+        const contextStart = Math.max(0, position.line - 3);
+        const contextEnd = Math.min(document.lineCount - 1, position.line + 3);
+        const contextLines = [];
+        for (let i = contextStart; i <= contextEnd; i++) {
+            contextLines.push(document.lineAt(i).text);
+        }
+        const contextHash = this.simpleHash(contextLines.join('\n'));
+        
+        return `${document.uri.fsPath}:${version}:${position.line}:${contextHash}:${prefix}`;
+    }
+
+    private simpleHash(str: string): string {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash.toString(36);
     }
 
     private isCacheValid(cache: CompletionCache): boolean {
         const maxAge = 5 * 60 * 1000;
         return Date.now() - cache.timestamp < maxAge;
     }
+
+    /**
+     * Setup feedback loop to adjust parameters based on acceptance rate
+     */
+    private setupFeedbackLoop(): void {
+        // Listen for acceptance events
+        const tracker = (this as any).aiContextTracker;
+        if (tracker && typeof tracker.on === 'function') {
+            tracker.on('suggestionAccepted', (suggestionId: string) => {
+                this.statistics.acceptedSuggestions++;
+                this.adjustParametersBasedOnAcceptance();
+            });
+            
+            tracker.on('suggestionRejected', (suggestionId: string) => {
+                this.statistics.rejectedSuggestions++;
+                this.adjustParametersBasedOnAcceptance();
+            });
+        }
+    }
+
+    /**
+     * Adjust model parameters based on acceptance rate
+     */
+    private adjustParametersBasedOnAcceptance(): void {
+        const total = this.statistics.acceptedSuggestions + this.statistics.rejectedSuggestions;
+        if (total < 10) return; // Need enough data
+        
+        const acceptanceRate = this.statistics.acceptedSuggestions / total;
+        
+        // Low acceptance rate: increase temperature for more creative suggestions
+        if (acceptanceRate < 0.3) {
+            const config = vscode.workspace.getConfiguration('inline');
+            const currentTemp = config.get<number>('temperature', 0.2);
+            if (currentTemp < 0.5) {
+                config.update('temperature', currentTemp + 0.05, vscode.ConfigurationTarget.Global);
+                console.log(`[INLINE] 📊 Low acceptance rate (${(acceptanceRate * 100).toFixed(1)}%), increasing temperature to ${currentTemp + 0.05}`);
+            }
+        }
+        
+        // High acceptance rate: can be more aggressive with suggestions
+        if (acceptanceRate > 0.7) {
+            const config = vscode.workspace.getConfiguration('inline');
+            const currentMaxTokens = config.get<number>('maxTokens', 128);
+            if (currentMaxTokens < 256) {
+                config.update('maxTokens', Math.min(256, currentMaxTokens + 32), vscode.ConfigurationTarget.Global);
+                console.log(`[INLINE] 📊 High acceptance rate (${(acceptanceRate * 100).toFixed(1)}%), increasing max tokens`);
+            }
+        }
+    }
+
+    /**
+     * Update streaming completion in real-time
+     */
+    private updateStreamingCompletion(newTokens: string): void {
+        this.currentStreamingTokens += newTokens;
+        
+        if (this.streamingCallback) {
+            this.streamingCallback(this.currentStreamingTokens);
+        }
+        
+        // Trigger VS Code to refresh inline completion
+        // This will cause provideInlineCompletionItems to be called again
+        if (this.isStreaming && this.currentStreamingDocument && this.currentStreamingPosition) {
+            vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
+        }
+    }
+
 
     private async cacheCompletion(key: string, completion: string, context: CodeContext, isPredictive: boolean = false): Promise<void> {
         const cacheEntry = {
@@ -968,14 +1071,25 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // OPTIMIZED: Streaming token generation for faster perceived latency
             const streamingEnabled = config.get<boolean>('streaming.enabled', true);
             const showPartial = config.get<boolean>('streaming.showPartial', true);
+            const realTimeDisplay = config.get<boolean>('streaming.realTimeDisplay', true);
             const maxLines = config.get<number>('maxCompletionLines', 5);
 
             let tokenCount = 0;
 
-            // Streaming callback to update status bar with real-time token count
+            // Reset streaming state
+            this.currentStreamingTokens = '';
+            this.currentStreamingPosition = position;
+            this.currentStreamingDocument = document;
+            this.isStreaming = streamingEnabled && showPartial && realTimeDisplay;
+
+            // Streaming callback to update UI in real-time
             const onToken = streamingEnabled && showPartial ? (token: string, total: number) => {
                 tokenCount = total;
-                // this.statusBarManager.setLoading(true, `Generating... (${total} tokens)`);
+                
+                // Update streaming display if real-time display is enabled
+                if (realTimeDisplay) {
+                    this.updateStreamingCompletion(token);
+                }
             } : undefined;
 
             // Generate completion with streaming support
@@ -1011,7 +1125,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
 
     /**
-     * Calculate dynamic debounce based on context
+     * Calculate dynamic debounce based on context and typing speed
      */
     private calculateDynamicDebounce(
         document: vscode.TextDocument,
@@ -1020,33 +1134,41 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     ): number {
         const line = document.lineAt(position.line);
         const text = line.text.substring(0, position.character);
+        const now = Date.now();
 
-        // --- SMART TRIGGERS (Instant Response) ---
+        // Update typing speed history
+        this.smartFilter.updateTypingSpeed(now);
 
-        // 1. Syntactic Triggers: . (dot), ( (paren), { (brace), [ (bracket), = (assignment), : (type/colon), , (comma), <space>
-        // "Every line cursor detect" implies we should run almost always.
-        // Spaces are crucial for next-word prediction.
-        if (/[\.\(\{\[\=\:\,\s]$/.test(text)) {
+        // Check if user is typing too fast - if so, use longer debounce
+        const adaptiveEnabled = config.get<boolean>('debounce.adaptive', true);
+        if (adaptiveEnabled && this.smartFilter.isTypingTooFast(now)) {
+            return 150; // Longer debounce during fast typing to prevent spam
+        }
+
+        // --- SMART TRIGGERS (Instant Response when typing is calm) ---
+
+        // 1. Syntactic Triggers: . (dot), ( (paren), { (brace), [ (bracket), = (assignment), : (type/colon), , (comma)
+        if (/[\.\\(\\{\\[\\=\\:\\,]$/.test(text)) {
             return 0; // Instant
         }
 
-        // 2. New line (empty prefix)
+        // 2. Space gets slight delay to avoid mid-word triggers
+        if (/\s$/.test(text)) {
+            return 25;
+        }
+
+        // 3. New line (empty prefix)
         if (text.trim().length === 0) {
             return 0; // Instant start of line
         }
 
-        // 3. Error context (still useful)
+        // 4. Error context
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         const hasError = diagnostics.some(d => d.range.start.line === position.line);
         if (hasError) return 0;
 
-        // --- Standard Logic ---
-
-        // If typing a word, wait slightly to let them finish the word?
-        // Actually, for "inline", we want to predict the REST of the word too.
-        // So aggressive 10ms or 0ms is better than 25ms.
-
-        return config.get<number>('debounce.min', 10); // Reduced default from 25 to 10
+        // --- Default: Short delay ---
+        return config.get<number>('debounce.min', 50);
     }
 
     /**
@@ -1067,6 +1189,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
 
     const line = document.lineAt(position.line);
+    
+    // SAFEGUARD: Validate character position is within line bounds
+    if (position.character > line.text.length) {
+        return config.get<number>('maxTokens', 128);
+    }
+    
         const textAfter = line.text.substring(position.character);
         const lineText = line.text.trim();
 

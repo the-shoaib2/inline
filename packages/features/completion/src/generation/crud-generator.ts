@@ -27,6 +27,7 @@ export class CRUDGenerator {
         return `// CRUD Operations for ${entityName}
 
 interface ${entityName} {
+    id: number;
 ${fields.map(f => `    ${f.name}: ${f.type};`).join('\n')}
 }
 
@@ -123,11 +124,26 @@ class ${entityName}Service:
     }
 
     private pythonType(tsType: string): string {
+        // Handle arrays (e.g., string[] -> List[str])
+        if (tsType.endsWith('[]')) {
+            const baseType = tsType.slice(0, -2);
+            return `List[${this.pythonType(baseType)}]`;
+        }
+        
+        // Handle optional types (e.g., string? -> Optional[str])
+        if (tsType.endsWith('?')) {
+            const baseType = tsType.slice(0, -1);
+            return `Optional[${this.pythonType(baseType)}]`;
+        }
+        
         const typeMap: Record<string, string> = {
             'string': 'str',
             'number': 'int',
             'boolean': 'bool',
-            'any': 'Any'
+            'any': 'Any',
+            'Date': 'datetime',
+            'object': 'Dict[str, Any]',
+            'void': 'None'
         };
         return typeMap[tsType] || tsType;
     }

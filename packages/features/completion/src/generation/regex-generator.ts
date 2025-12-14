@@ -43,7 +43,7 @@ export class RegexGenerator {
         if (lowerDesc.includes('starts with')) {
             const word = this.extractWord(description, 'starts with');
             return {
-                pattern: `^${word}`,
+                pattern: `^${this.escapeRegex(word)}`,
                 explanation: `Matches strings starting with "${word}"`
             };
         }
@@ -51,7 +51,7 @@ export class RegexGenerator {
         if (lowerDesc.includes('ends with')) {
             const word = this.extractWord(description, 'ends with');
             return {
-                pattern: `${word}$`,
+                pattern: `${this.escapeRegex(word)}$`,
                 explanation: `Matches strings ending with "${word}"`
             };
         }
@@ -59,7 +59,7 @@ export class RegexGenerator {
         if (lowerDesc.includes('contains')) {
             const word = this.extractWord(description, 'contains');
             return {
-                pattern: word,
+                pattern: this.escapeRegex(word),
                 explanation: `Matches strings containing "${word}"`
             };
         }
@@ -100,5 +100,14 @@ export class RegexGenerator {
         } catch {
             return false;
         }
+    }
+
+    /**
+     * Escape regex special characters to create literal matches
+     * @param str String to escape
+     * @returns Escaped string safe for use in regex patterns
+     */
+    private escapeRegex(str: string): string {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 }

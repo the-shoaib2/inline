@@ -27,7 +27,7 @@ export class SQLGenerator {
     generateInsert(tableName: string, data: Record<string, any>): string {
         const columns = Object.keys(data).join(', ');
         const values = Object.values(data).map(v => 
-            typeof v === 'string' ? `'${v}'` : v
+            typeof v === 'string' ? `'${this.escapeSqlString(v)}'` : v
         ).join(', ');
 
         return `INSERT INTO ${tableName} (${columns})\nVALUES (${values});`;
@@ -35,10 +35,19 @@ export class SQLGenerator {
 
     generateUpdate(tableName: string, data: Record<string, any>, where: string): string {
         const sets = Object.entries(data).map(([key, val]) => 
-            `${key} = ${typeof val === 'string' ? `'${val}'` : val}`
+            `${key} = ${typeof val === 'string' ? `'${this.escapeSqlString(val)}'` : val}`
         ).join(', ');
 
         return `UPDATE ${tableName}\nSET ${sets}\nWHERE ${where};`;
+    }
+
+    /**
+     * Escape single quotes in SQL strings to prevent SQL injection
+     * @param str String to escape
+     * @returns Escaped string safe for SQL queries
+     */
+    private escapeSqlString(str: string): string {
+        return str.replace(/'/g, "''");
     }
 
     generateDelete(tableName: string, where: string): string {

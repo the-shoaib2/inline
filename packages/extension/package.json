@@ -96,6 +96,87 @@
           "default": true,
           "description": "Show partial completions while streaming"
         },
+        "inline.streaming.realTimeDisplay": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show completions as they stream in real-time (like Copilot)"
+        },
+        "inline.debounce.adaptive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically adjust debounce based on typing speed"
+        },
+        "inline.debounce.min": {
+          "type": "number",
+          "default": 50,
+          "minimum": 0,
+          "maximum": 500,
+          "description": "Minimum debounce delay in milliseconds"
+        },
+        "inline.cache.invalidateOnEdit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Invalidate cache when document is edited"
+        },
+        "inline.ghostText.opacity": {
+          "type": "number",
+          "default": 0.4,
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "description": "Opacity of ghost text completions (0.1 = very faint, 1.0 = solid)"
+        },
+        "inline.ghostText.fontStyle": {
+          "type": "string",
+          "default": "italic",
+          "enum": [
+            "italic",
+            "normal"
+          ],
+          "description": "Font style for ghost text"
+        },
+        "inline.partialAcceptance.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable line-by-line and word-by-word acceptance (Tab = next line, Ctrl+→ = next word)"
+        },
+        "inline.crossFileContext.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include imported symbols and definitions in context"
+        },
+        "inline.crossFileContext.maxFiles": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of related files to include in context"
+        },
+        "inline.cacheWarming.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable cache warming on document open for faster completions"
+        },
+        "inline.cacheWarming.maxPositions": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum positions to warm per pattern"
+        },
+        "inline.streaming.batchSize": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of tokens to batch before UI update (lower = more responsive, higher = more efficient)"
+        },
+        "inline.streaming.flushInterval": {
+          "type": "number",
+          "default": 50,
+          "minimum": 10,
+          "maximum": 200,
+          "description": "Milliseconds to wait before flushing token batch"
+        },
         "inline.codingRules": {
           "type": "array",
           "default": [],
@@ -131,6 +212,9 @@
     "check-types": "tsc -b",
     "lint": "eslint src --ext ts --config ../../.config/lint/.eslintrc.yml",
     "test": "NODE_PATH=./node_modules node ./dist/test/runTest.js",
+    "test:e2e": "NODE_PATH=./node_modules node ./dist/test/suites/e2e/runTest.js",
+    "test:e2e:watch": "NODE_PATH=./node_modules nodemon --watch src --watch test --exec 'pnpm test:e2e'",
+    "test:coverage": "NODE_PATH=./node_modules nyc pnpm test:e2e",
     "test:benchmark": "IsBenchmark=true NODE_PATH=./node_modules node ./dist/test/runTest.js benchmark-llm.test.js",
     "build:native:analyzer": "pnpm --filter @inline/analyzer build",
     "build:native:accelerator": "pnpm --filter @inline/accelerator build",

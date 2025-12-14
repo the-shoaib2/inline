@@ -133,7 +133,7 @@ export class SmartFilter {
      *
      * @param now - Current timestamp in milliseconds
      */
-    private updateTypingSpeed(now: number) {
+    public updateTypingSpeed(now: number) {
         this.keyPressHistory.push(now);
         if (this.keyPressHistory.length > this.HISTORY_SIZE) {
             this.keyPressHistory.shift();
@@ -145,9 +145,9 @@ export class SmartFilter {
      * Prevents interruptions during focused coding sessions.
      *
      * @param now - Current timestamp in milliseconds
-     * @returns true if typing speed exceeds threshold (8 chars/sec)
+     * @returns true if typing speed exceeds threshold (12 chars/sec)
      */
-    private isTypingTooFast(now: number): boolean {
+    public isTypingTooFast(now: number): boolean {
         if (this.keyPressHistory.length < 5) return false;
 
         const oldest = this.keyPressHistory[0];
