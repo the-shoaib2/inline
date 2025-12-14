@@ -1,0 +1,22 @@
+{
+    "name": "@inline/navigation",
+    "version": "0.1.0",
+    "private": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "rm -rf dist tsconfig.tsbuildinfo",
+        "check-types": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@inline/language": "workspace:*",
+        "@inline/shared": "workspace:*",
+        "@inline/events": "workspace:*",
+        "web-tree-sitter": "^0.25.10"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.106.1",
+        "typescript": "^5.9.3"
+    }
+}

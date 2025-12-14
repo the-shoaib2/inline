@@ -74,6 +74,15 @@ export async function activate(context: vscode.ExtensionContext) {
             logger?.warn('Tree-sitter initialization failed, falling back to regex');
         }
 
+        // Initialize navigation features (Go to Definition, Find References, Rename Symbol)
+        const { initializeNavigationFeatures } = await import('@inline/extension/features/navigation-init');
+        try {
+            await initializeNavigationFeatures(context, treeSitterService);
+            logger.info('Navigation features initialized');
+        } catch (error) {
+            logger?.warn('Navigation features initialization failed', error as Error);
+        }
+
         // Initialize core services
         logger = new Logger('Inline');
         logger.info('Activating Inline extension...');

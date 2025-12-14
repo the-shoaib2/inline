@@ -2,7 +2,7 @@
   "name": "inline",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@10.25.0",
   "scripts": {
     "build": "turbo run build ",
     "build:native": "turbo run build:native",

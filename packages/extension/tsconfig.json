@@ -44,6 +44,9 @@
         },
         {
             "path": "../features/events"
+        },
+        {
+            "path": "../features/navigation"
         }
     ]
 }

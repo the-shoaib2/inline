@@ -73,6 +73,12 @@
             "@inline/events/*": [
                 "packages/features/events/src/*"
             ],
+            "@inline/navigation": [
+                "packages/features/navigation/src"
+            ],
+            "@inline/navigation/*": [
+                "packages/features/navigation/src/*"
+            ],
             "@inline/analyzer": [
                 "packages/analyzer"
             ],

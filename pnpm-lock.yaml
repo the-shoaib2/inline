@@ -69,6 +69,9 @@ importers:
       '@inline/language':
         specifier: workspace:*
         version: link:../features/language
+      '@inline/navigation':
+        specifier: workspace:*
+        version: link:../features/navigation
       '@inline/shared':
         specifier: workspace:*
         version: link:../shared
@@ -91,6 +94,9 @@ importers:
         specifier: ^0.25.10
         version: 0.25.10
     devDependencies:
+      '@inline/webview':
+        specifier: workspace:*
+        version: link:../webview
       '@types/chai':
         specifier: ^4.3.11
         version: 4.3.20
@@ -279,6 +285,28 @@ importers:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
+      '@types/vscode':
+        specifier: ^1.106.1
+        version: 1.106.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/features/navigation:
+    dependencies:
+      '@inline/events':
+        specifier: workspace:*
+        version: link:../events
+      '@inline/language':
+        specifier: workspace:*
+        version: link:../language
+      '@inline/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      web-tree-sitter:
+        specifier: ^0.25.10
+        version: 0.25.10
+    devDependencies:
       '@types/vscode':
         specifier: ^1.106.1
         version: 1.106.1

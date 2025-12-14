@@ -1,0 +1,28 @@
+{
+    "extends": "../../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "composite": true,
+        "lib": [
+            "ES2020",
+            "DOM"
+        ],
+        "target": "ES2020",
+        "module": "commonjs"
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "references": [
+        {
+            "path": "../../shared"
+        },
+        {
+            "path": "../language"
+        },
+        {
+            "path": "../events"
+        }
+    ]
+}
