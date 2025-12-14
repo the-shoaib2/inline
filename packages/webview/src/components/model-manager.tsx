@@ -12,7 +12,18 @@ export const ModelManager: React.FC = () => {
     const [downloadProgressMap, setDownloadProgressMap] = useState<Record<string, DownloadProgress>>({});
     const [settings, setSettings] = useState<SettingsType>({});
     const [rules, setRules] = useState<CodingRule[]>([]);
-    const [stats] = useState({ completionsGenerated: 0, acceptanceRate: 0, averageLatency: 0, cacheHitRate: 0, modelUptime: 0 });
+
+    // Real-time statistics from backend (updates every 2 seconds)
+    const [stats, setStats] = useState({
+        completionsGenerated: 0,
+        acceptedSuggestions: 0,
+        rejectedSuggestions: 0,
+        acceptanceRate: 0,
+        averageLatency: 0,
+        cacheHitRate: 0,
+        currentModel: 'None',
+        sessionUptime: 0
+    });
 
     // Initialize active tab from persisted state
     const [activeTab, setActiveTab] = useState<'model' | 'settings' | 'rules' | 'stats'>(() => {
@@ -42,6 +53,12 @@ export const ModelManager: React.FC = () => {
                     setCurrentModelId(data.currentModel);
                     setSettings(data.settings || {});
                     setRules(data.rules || []);
+
+                    // Update statistics if provided
+                    if (data.statistics) {
+                        setStats(data.statistics);
+                    }
+
                     if (data.logoUri) {
                         setLogoUri(data.logoUri);
                     }

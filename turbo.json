@@ -57,7 +57,9 @@
                 "build"
             ],
             "outputs": [
-                "coverage/**"
+                "coverage/**",
+                ".nyc_output/**",
+                "test-results/**"
             ],
             "cache": true
         },

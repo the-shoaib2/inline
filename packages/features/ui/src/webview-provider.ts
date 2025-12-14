@@ -42,9 +42,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         });
 
         // Setup periodic statistics refresh (every 2 seconds when visible)
+        // With error handling to prevent crashes
         this._statisticsInterval = setInterval(() => {
-            if (this._view && this._view.visible) {
-                this.sendData();
+            try {
+                if (this._view && this._view.visible) {
+                    this.sendData();
+                }
+            } catch (error) {
+                console.error('[WebviewProvider] Statistics refresh failed:', error);
+                // Don't crash the extension, just log the error
             }
         }, 2000);
     }

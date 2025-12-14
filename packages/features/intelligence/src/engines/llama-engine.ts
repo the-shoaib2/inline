@@ -613,8 +613,8 @@ export class LlamaInference {
             let cleanedCompletion = this.fimManager.clean(completion);
 
             // PASS 5: Additional cleanup for edge cases
-            cleanedCompletion = cleanedCompletion.replace(/obj\\['middle'\\]/g, ''); // Specific fix for user report
-            cleanedCompletion = cleanedCompletion.replace(/\\\\+\u003c/g, '\u003c'); // Remove escaped backslashes before \u003c
+            // Note: Removed obj['middle'] patch - handled by FIMManager.clean() above
+            cleanedCompletion = cleanedCompletion.replace(/\\+</g, '<'); // Remove escaped backslashes before <
 
             // PASS 6: Remove any remaining angle bracket artifacts
             cleanedCompletion = cleanedCompletion.replace(/\u003c[|]+/g, ''); // Orphaned \u003c|

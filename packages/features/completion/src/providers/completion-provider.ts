@@ -755,12 +755,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         // Matches <TAG...> where TAG starts with uppercase
         cleaned = cleaned.replace(/<[A-Z][^>]*>/g, '');
 
-        // Phase 11: Combined - Use shared optimized regex from Inference engine
-        // This acts as a secondary safety net if the model output them unexpectedly
-        // cleaned = cleaned.replace(LlamaInference.FIM_TOKEN_REGEX, '');
+        // Phase 11: Combined - Use comprehensive FIM token cleanup regex
+        // Handles multiple FIM formats: <|fim_*|>, {|fim_*|}, <PRE>, [PREFIX], etc.
+        const fimTokenRegex = /(<\|fim_(prefix|suffix|middle|begin|hole|end)\|>|{\|fim_(prefix|suffix|middle|begin|hole|end)\|}|<(PRE|SUF|MID|END|EOT)>|\[(PREFIX|SUFFIX|MIDDLE)\]|obj\['middle'\])/gi;
+        cleaned = cleaned.replace(fimTokenRegex, '');
 
-        // Also clean specifics
-        cleaned = cleaned.replace(/obj\['middle'\]/g, ''); // Specific fix for user report
+        // Note: Removed hardcoded obj['middle'] patch - now handled by regex above
 
         // 3. Remove leading newlines if excessive
         cleaned = cleaned.replace(/^\n{2,}/, '\n');
@@ -981,12 +981,15 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             // Generate completion with streaming support
             const maxTokens = this.calculateDynamicMaxTokens(document, position, config);
 
+            // Validate temperature to prevent invalid values (0.0 to 2.0)
+            const temperature = Math.max(0.0, Math.min(2.0, config.get<number>('temperature', 0.1)));
+
             const completion = await inferenceEngine.generateCompletion(
                 prompt,
                 {
                     maxTokens: maxTokens,
                     stop: ['<|endoftext|>', '<EOT>', '\n\n\n', '<file_separator>'], // Expanded stop list
-                    temperature: config.get<number>('temperature', 0.1),
+                    temperature: temperature,
                     repeatPenalty: 1.1, // Slight penalty to prevent <B> <A> loops
                     maxLines: maxLines // Stop generation early if we exceed this
                 },

@@ -485,8 +485,8 @@ function registerCommands(context: vscode.ExtensionContext, _modelManagerImpleme
                     vscode.window.showInformationMessage('No completions available');
                 }
             } catch (error) {
-                vscode.window.showErrorMessage(`Completion failed: ${error}`);
-                logger.error('Manual trigger failed', error);
+                logger.error('Manual trigger failed', error as Error);
+                vscode.window.showErrorMessage(`Completion trigger failed: ${error}`);
             }
         }),
 

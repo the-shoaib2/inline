@@ -21,4 +21,11 @@ if [ $is_prime -eq 1 ]; then
 else
     echo "$num is not a prime number."
 fi
+``#
+``#
+``#
+``#
+``#
+``#
+    
 

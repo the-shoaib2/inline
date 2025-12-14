@@ -34,6 +34,17 @@ export interface CodingRule {
     enabled: boolean;
 }
 
+export interface Statistics {
+    completionsGenerated: number;
+    acceptedSuggestions: number;
+    rejectedSuggestions: number;
+    acceptanceRate: number;
+    cacheHitRate: number;
+    averageLatency: number;
+    currentModel: string;
+    sessionUptime: number;
+}
+
 export interface AppData {
     models: Model[];
     settings: Settings;
@@ -41,6 +52,7 @@ export interface AppData {
     currentModel: string | null;
     isOffline: boolean;
     logoUri?: string;
+    statistics?: Statistics;
 }
 
 export interface DownloadProgress {
