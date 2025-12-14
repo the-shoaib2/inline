@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
+import { TreeSitterService } from './tree-sitter-service';
 
 /**
  * Syntax Validator
- * Validates syntax errors in code
+ * Validates syntax errors in code for all supported languages
  */
 export class SyntaxValidator {
     
@@ -11,11 +12,33 @@ export class SyntaxValidator {
         const text = document.getText();
         const languageId = document.languageId;
 
-        if (languageId === 'typescript' || languageId === 'javascript') {
-            diagnostics.push(...this.validateJavaScriptSyntax(text, document));
-        } else if (languageId === 'python') {
-            diagnostics.push(...this.validatePythonSyntax(text, document));
+        // Use generic syntax validation for all supported languages
+        const treeSitter = TreeSitterService.getInstance();
+        if (treeSitter.isSupported(languageId)) {
+            diagnostics.push(...this.validateGenericSyntax(text, document, languageId));
         }
+
+        return diagnostics;
+    }
+
+    private validateGenericSyntax(text: string, document: vscode.TextDocument, languageId: string): vscode.Diagnostic[] {
+        const diagnostics: vscode.Diagnostic[] = [];
+        const lines = text.split('\n');
+
+        lines.forEach((line, index) => {
+            // Check for unclosed brackets (works for most C-style languages)
+            const openBrackets = (line.match(/[{[(]/g) || []).length;
+            const closeBrackets = (line.match(/[}\])]/g) || []).length;
+            
+            if (openBrackets > closeBrackets && !line.trim().endsWith(',')) {
+                const range = new vscode.Range(index, 0, index, line.length);
+                diagnostics.push(new vscode.Diagnostic(
+                    range,
+                    'Unclosed bracket detected',
+                    vscode.DiagnosticSeverity.Error
+                ));
+            }
+        });
 
         return diagnostics;
     }

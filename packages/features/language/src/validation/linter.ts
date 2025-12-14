@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { TreeSitterService } from '../parsers/tree-sitter-service';
 
 /**
  * Linter
@@ -41,11 +42,15 @@ export class Linter {
     private checkNamingConventions(text: string, document: vscode.TextDocument, languageId: string): vscode.Diagnostic[] {
         const diagnostics: vscode.Diagnostic[] = [];
         const lines = text.split('\n');
+        const treeSitter = TreeSitterService.getInstance();
+        
+        if (!treeSitter.isSupported(languageId)) return diagnostics;
 
         lines.forEach((line, index) => {
-            // Check for camelCase in JavaScript/TypeScript
-            if (languageId === 'typescript' || languageId === 'javascript') {
-                const varMatch = line.match(/(?:const|let|var)\s+([A-Z]\w+)\s*=/);
+            // Check for camelCase in C-style languages (JS, TS, Java, C#, C, C++, Rust, Go, etc.)
+            const cStyleLanguages = ['typescript', 'javascript', 'java', 'csharp', 'c', 'cpp', 'rust', 'go', 'swift', 'kotlin', 'scala', 'dart'];
+            if (cStyleLanguages.includes(languageId)) {
+                const varMatch = line.match(/(?:const|let|var|auto|val)\s+([A-Z]\w+)\s*=/);
                 if (varMatch) {
                     const range = new vscode.Range(index, 0, index, line.length);
                     diagnostics.push(new vscode.Diagnostic(
@@ -67,8 +72,9 @@ export class Linter {
                 }
             }
 
-            // Check for snake_case in Python
-            if (languageId === 'python') {
+            // Check for snake_case in Scripting languages (Python, Ruby, Lua, etc.)
+            const scriptingLanguages = ['python', 'ruby', 'php', 'lua', 'bash', 'shell'];
+            if (scriptingLanguages.includes(languageId)) {
                 const varMatch = line.match(/(\w+[A-Z]\w+)\s*=/);
                 if (varMatch && !line.includes('class ')) {
                     const range = new vscode.Range(index, 0, index, line.length);
@@ -122,20 +128,28 @@ export class Linter {
     private checkBestPractices(text: string, document: vscode.TextDocument, languageId: string): vscode.Diagnostic[] {
         const diagnostics: vscode.Diagnostic[] = [];
         const lines = text.split('\n');
+        const treeSitter = TreeSitterService.getInstance();
+        
+        if (!treeSitter.isSupported(languageId)) return diagnostics;
 
         lines.forEach((line, index) => {
-            // Check for console.log in production code
-            if (line.includes('console.log') && !line.trim().startsWith('//')) {
-                const range = new vscode.Range(index, 0, index, line.length);
-                diagnostics.push(new vscode.Diagnostic(
-                    range,
-                    'Unexpected console.log statement',
-                    vscode.DiagnosticSeverity.Information
-                ));
+            // Check for console.log/print statements in production code
+            const webLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
+            const scriptingLanguages = ['python', 'ruby', 'php', 'lua'];
+            
+            if (webLanguages.includes(languageId) || scriptingLanguages.includes(languageId)) {
+                if ((line.includes('console.log') || line.includes('print(')) && !line.trim().startsWith('//') && !line.trim().startsWith('#')) {
+                    const range = new vscode.Range(index, 0, index, line.length);
+                    diagnostics.push(new vscode.Diagnostic(
+                        range,
+                        'Unexpected debug statement in production code',
+                        vscode.DiagnosticSeverity.Information
+                    ));
+                }
             }
 
-            // Check for == instead of ===
-            if (languageId === 'javascript' || languageId === 'typescript') {
+            // Check for == instead of === (JavaScript/TypeScript)
+            if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(languageId)) {
                 if (/[^=!]==[^=]/.test(line)) {
                     const range = new vscode.Range(index, 0, index, line.length);
                     diagnostics.push(new vscode.Diagnostic(
@@ -146,8 +160,8 @@ export class Linter {
                 }
             }
 
-            // Check for var instead of let/const
-            if ((languageId === 'javascript' || languageId === 'typescript') && /\bvar\s+/.test(line)) {
+            // Check for var instead of let/const (JavaScript/TypeScript)
+            if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(languageId) && /\bvar\s+/.test(line)) {
                 const range = new vscode.Range(index, 0, index, line.length);
                 diagnostics.push(new vscode.Diagnostic(
                     range,

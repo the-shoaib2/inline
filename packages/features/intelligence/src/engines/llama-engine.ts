@@ -22,6 +22,7 @@ export interface InferenceOptions {
     streaming?: boolean;
     repeatPenalty?: number;
     maxLines?: number;
+    language?: string;  // Programming language for language-specific processing
 }
 
 /**
@@ -259,6 +260,10 @@ export class LlamaInference {
 
     /**
      * Generate completion with optional streaming support
+     * @param prompt The prompt to generate completion for
+     * @param options Inference options including language
+     * @param onToken Optional callback for streaming tokens
+     * @param cancellationToken Optional cancellation token
      */
     async generateCompletion(
         prompt: string,
@@ -269,6 +274,9 @@ export class LlamaInference {
         if (!this.isLoaded || !this.model || !this.context) {
             throw new Error('Model not loaded. Please load a model first.');
         }
+
+        // Get language from options, default to 'javascript' if not provided
+        const language = options.language || 'javascript';
 
         // Simple mutex to prevent concurrent sequence usage
         while (this._generating) {
@@ -397,7 +405,8 @@ export class LlamaInference {
 
                         // 2. FINGERPRINT-BASED DUPLICATE DETECTION
                         if (lastCompleteLine.length > 5) {
-                            const fingerprint = this.duplicationDetector.generateFingerprint(lastCompleteLine);
+                            // Use language from options for accurate fingerprinting
+                            const fingerprint = this.duplicationDetector.generateFingerprint(lastCompleteLine, language);
                             lineFingerprints.set(currentLineNumber, fingerprint.md5);
 
                             // Check for exact duplicates in recent window
@@ -441,7 +450,8 @@ export class LlamaInference {
 
                             // Check for distributed patterns every 4 lines
                             if (recentLines.length >= 6 && recentLines.length % 4 === 0) {
-                                const distributedPatterns = this.duplicationDetector.detectDistributedRepetition(recentLines);
+                                // Use language from options for accurate pattern detection
+                                const distributedPatterns = this.duplicationDetector.detectDistributedRepetition(recentLines, language);
 
                                 if (distributedPatterns.length > 0) {
                                     const pattern = distributedPatterns[0];

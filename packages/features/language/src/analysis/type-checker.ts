@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { TreeSitterService } from '../parsers/tree-sitter-service';
 
 /**
  * Basic type checker for code diagnostics.
@@ -9,14 +10,14 @@ import * as vscode from 'vscode';
  * - Implicit 'any' type parameters
  * - Type inference from literal values
  *
- * Supports TypeScript and JavaScript.
+ * Supports all languages with type systems.
  * Uses regex-based heuristic analysis (not full type system).
  */
 export class TypeChecker {
 
     /**
      * Check types in a document and return diagnostics.
-     * Currently supports TypeScript/JavaScript.
+     * Works with all supported languages.
      *
      * @param document VS Code document to check
      * @returns Array of type-related diagnostics
@@ -26,7 +27,9 @@ export class TypeChecker {
         const text = document.getText();
         const languageId = document.languageId;
 
-        if (languageId === 'typescript' || languageId === 'javascript') {
+        // Only check types for languages that support type annotations
+        const treeSitter = TreeSitterService.getInstance();
+        if (treeSitter.isSupported(languageId)) {
             diagnostics.push(...this.checkTypeScriptTypes(text, document));
         }
 

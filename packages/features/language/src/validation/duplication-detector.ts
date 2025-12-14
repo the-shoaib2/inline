@@ -115,8 +115,10 @@ export class DuplicationDetector {
 
     /**
      * Generate code fingerprint for fast duplicate detection
+     * @param code Code to fingerprint
+     * @param language Programming language (required for accurate tokenization)
      */
-    public generateFingerprint(code: string, language: string = 'javascript'): CodeFingerprint {
+    public generateFingerprint(code: string, language: string): CodeFingerprint {
         // Check cache first
         const cached = this.fingerprintCache.get(code);
         if (cached) {
@@ -207,8 +209,10 @@ export class DuplicationDetector {
 
     /**
      * Detect distributed repetition patterns (A-B-A-B, A-B-C-A-B-C, etc.)
+     * @param lines Lines of code to analyze
+     * @param language Programming language (required for accurate fingerprinting)
      */
-    public detectDistributedRepetition(lines: string[], language: string = 'javascript'): RepetitionPattern[] {
+    public detectDistributedRepetition(lines: string[], language: string): RepetitionPattern[] {
         const patterns: RepetitionPattern[] = [];
         const windowSize = 10; // Check last 10 lines for patterns
 
