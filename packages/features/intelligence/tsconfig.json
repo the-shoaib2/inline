@@ -1,37 +1,40 @@
 {
-    "extends": "../../../tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "dist",
-        "rootDir": "src",
-        "composite": true
-    },
-    "include": [
-        "src"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "out",
-        "test"
-    ],
-    "references": [
-        {
-            "path": "../../accelerator"
-        },
-        {
-            "path": "../../analyzer"
-        },
-        {
-            "path": "../../core"
-        },
-        {
-            "path": "../../shared"
-        },
-        {
-            "path": "../language"
-        },
-        {
-            "path": "../events"
-        }
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "types": [
+      "node"
     ]
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out",
+    "test"
+  ],
+  "references": [
+    {
+      "path": "../../accelerator"
+    },
+    {
+      "path": "../../analyzer"
+    },
+    {
+      "path": "../../core"
+    },
+    {
+      "path": "../../shared"
+    },
+    {
+      "path": "../language"
+    },
+    {
+      "path": "../events"
+    }
+  ]
 }

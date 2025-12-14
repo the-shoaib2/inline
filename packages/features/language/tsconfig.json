@@ -1,28 +1,31 @@
 {
-    "extends": "../../../tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "dist",
-        "rootDir": "src",
-        "composite": true
-    },
-    "include": [
-        "src"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "out",
-        "test"
-    ],
-    "references": [
-        {
-            "path": "../../core"
-        },
-        {
-            "path": "../../shared"
-        },
-        {
-            "path": "../events"
-        }
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "types": [
+      "node"
     ]
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out",
+    "test"
+  ],
+  "references": [
+    {
+      "path": "../../core"
+    },
+    {
+      "path": "../../shared"
+    },
+    {
+      "path": "../events"
+    }
+  ]
 }

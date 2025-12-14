@@ -1,17 +1,20 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "dist",
-        "rootDir": ".",
-        "composite": true
-    },
-    "include": [
-        "index.ts"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "out",
-        "test"
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "composite": true,
+    "types": [
+      "node"
     ]
+  },
+  "include": [
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out",
+    "test"
+  ]
 }

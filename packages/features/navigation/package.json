@@ -10,12 +10,13 @@
         "check-types": "tsc --noEmit"
     },
     "dependencies": {
+        "@inline/events": "workspace:*",
         "@inline/language": "workspace:*",
         "@inline/shared": "workspace:*",
-        "@inline/events": "workspace:*",
         "web-tree-sitter": "^0.25.10"
     },
     "devDependencies": {
+        "@types/node": "^25.0.2",
         "@types/vscode": "^1.106.1",
         "typescript": "^5.9.3"
     }

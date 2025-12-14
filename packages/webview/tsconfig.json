@@ -11,7 +11,8 @@
             "ES2020"
         ],
         "allowImportingTsExtensions": true,
-        "noEmit": true
+        "noEmit": true,
+        "types": []
     },
     "include": [
         "src"
