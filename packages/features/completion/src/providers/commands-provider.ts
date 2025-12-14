@@ -241,8 +241,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                     await vscode.workspace.applyEdit(edit);
                 }
             });
-        } catch (error: any) {
-             vscode.window.showErrorMessage(`Failed to ${type} code: ${error.message}`);
+        } catch (error) {
+             vscode.window.showErrorMessage(`Failed to ${type} code: ${error instanceof Error ? error.message : String(error)}`);
              this.logger.error(`Smart action ${type} failed: ${error}`);
         }
     }
@@ -275,8 +275,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                 const doc = await vscode.workspace.openTextDocument({ content: result, language: 'markdown' });
                 await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Failed to explain code: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to explain code: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -324,8 +324,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                     `Generated ${result.testCount} tests using ${result.framework}`
                 );
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Test generation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Test generation failed: ${error instanceof Error ? error.message : String(error)}`);
             this.logger.error(`Test generation error: ${error}`);
         }
     }
@@ -361,8 +361,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
 
                 vscode.window.showInformationMessage('Test file generated successfully');
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Test file generation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Test file generation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -405,8 +405,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                     `Documentation generated (${result.style})`
                 );
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Documentation generation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Documentation generation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -432,8 +432,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                     `Generated documentation for ${docs.length} functions/classes`
                 );
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`File documentation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`File documentation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -477,8 +477,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                 });
                 await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Error explanation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error explanation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -519,8 +519,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                     vscode.window.showInformationMessage(message);
                 }
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Security scan failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Security scan failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -546,8 +546,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
 
                 vscode.window.showInformationMessage('PR description generated');
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`PR generation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`PR generation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -576,8 +576,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
                     }
                 });
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Commit message generation failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Commit message generation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -650,8 +650,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
         //         await vscode.env.clipboard.writeText((selected as any).command);
         //         vscode.window.showInformationMessage('Command copied to clipboard');
         //     }
-        // } catch (error: any) {
-        //     vscode.window.showErrorMessage(`Command suggestion failed: ${error.message}`);
+        // } catch (error) {
+        //     vscode.window.showErrorMessage(`Command suggestion failed: ${error instanceof Error ? error.message : String(error)}`);
         // }
     }
 
@@ -710,8 +710,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
 
                 vscode.window.showInformationMessage(result.description);
             });
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Refactoring failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Refactoring failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -756,8 +756,8 @@ ${context.imports.length > 0 ? '- Imports: ' + context.imports.slice(0, 5).map(i
             if (selected) {
                 await this.handleRefactorCode();
             }
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Refactoring suggestions failed: ${error.message}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Refactoring suggestions failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

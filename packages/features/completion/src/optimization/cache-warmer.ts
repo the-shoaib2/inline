@@ -1,26 +1,81 @@
 /**
- * Cache Warmer for Predictive Prefetching
- * Warms cache on document open to achieve <20ms cache hits
+ * Cache Warmer for Predictive Prefetching.
+ * 
+ * Warms cache on document open to achieve <20ms cache hits by pre-fetching
+ * completions for likely cursor positions based on common code patterns.
+ * 
+ * @example
+ * ```typescript
+ * const warmer = new CacheWarmer(async (doc, pos) => {
+ *   await provider.prefetch(doc, pos);
+ * });
+ * 
+ * await warmer.warmCache(document, {
+ *   patterns: ['function ', 'class '],
+ *   maxPositions: 5,
+ *   enabled: true
+ * });
+ * ```
  */
 
 import * as vscode from 'vscode';
+import { Logger } from '@inline/shared';
 
+/**
+ * Strategy configuration for cache warming.
+ * 
+ * Defines which code patterns to search for and how many positions
+ * to warm per pattern.
+ */
 export interface CacheWarmingStrategy {
+    /** Code patterns to search for (e.g., 'function ', 'class ', 'const ') */
     patterns: string[];
+    
+    /** Maximum number of positions to warm per pattern (default: 5) */
     maxPositions: number;
+    
+    /** Whether cache warming is enabled (default: true) */
     enabled: boolean;
 }
 
 export class CacheWarmer {
     private warmingInProgress = new Set<string>();
     private warmedDocuments = new WeakSet<vscode.TextDocument>();
-
-    constructor(
-        private prefetchCallback: (doc: vscode.TextDocument, pos: vscode.Position) => Promise<void>
-    ) {}
+    private logger: Logger;
 
     /**
-     * Warm cache for a document
+     * Creates a new CacheWarmer instance.
+     * 
+     * @param prefetchCallback - Async function to call for prefetching completions
+     *                           at a given document position
+     */
+    constructor(
+        private prefetchCallback: (doc: vscode.TextDocument, pos: vscode.Position) => Promise<void>
+    ) {
+        this.logger = new Logger('CacheWarmer');
+    }
+
+    /**
+     * Warm cache for a document by prefetching completions at likely positions.
+     * 
+     * Searches for common code patterns and prefetches completions in batches
+     * to avoid overwhelming the system. Skips warming if:
+     * - Strategy is disabled
+     * - Document was already warmed
+     * - Warming is already in progress for this document
+     * 
+     * @param document - The text document to warm cache for
+     * @param strategy - Optional warming strategy (uses default if not provided)
+     * @returns Promise that resolves when warming is complete
+     * 
+     * @example
+     * ```typescript
+     * await warmer.warmCache(document, {
+     *   patterns: ['function ', 'class ', 'const '],
+     *   maxPositions: 10,
+     *   enabled: true
+     * });
+     * ```
      */
     public async warmCache(
         document: vscode.TextDocument,
@@ -40,7 +95,10 @@ export class CacheWarmer {
             for (let i = 0; i < positions.length; i += batchSize) {
                 const batch = positions.slice(i, i + batchSize);
                 await Promise.all(
-                    batch.map(pos => this.prefetchCallback(document, pos).catch(() => {}))
+                    batch.map(pos => this.prefetchCallback(document, pos).catch((error) => {
+                        // Log prefetch failures for debugging, but don't fail the entire warming process
+                        this.logger.warn(`Failed to prefetch at position ${pos.line}:${pos.character}`, error as Error);
+                    }))
                 );
             }
 
@@ -51,7 +109,15 @@ export class CacheWarmer {
     }
 
     /**
-     * Find positions to warm based on common patterns
+     * Find positions to warm based on common code patterns.
+     * 
+     * Searches the document for specified patterns and returns positions
+     * immediately after each pattern occurrence, up to maxPositions per pattern.
+     * 
+     * @param document - The document to search
+     * @param strategy - Strategy defining patterns and limits
+     * @returns Array of positions to warm
+     * @private
      */
     private findWarmingPositions(
         document: vscode.TextDocument,
@@ -80,7 +146,13 @@ export class CacheWarmer {
     }
 
     /**
-     * Get default warming strategy
+     * Get default warming strategy from VS Code configuration.
+     * 
+     * Reads configuration values from 'inline.cacheWarming' settings.
+     * Falls back to sensible defaults if configuration is not set.
+     * 
+     * @returns Default cache warming strategy
+     * @private
      */
     private getDefaultStrategy(): CacheWarmingStrategy {
         const config = vscode.workspace.getConfiguration('inline');
@@ -109,7 +181,15 @@ export class CacheWarmer {
     }
 
     /**
-     * Clear warmed documents cache
+     * Clear all warmed documents from cache.
+     * 
+     * Forces re-warming on next access. Useful when document content
+     * has changed significantly or when resetting the extension state.
+     * 
+     * @example
+     * ```typescript
+     * warmer.clear(); // Clear all warmed documents
+     * ```
      */
     public clear(): void {
         this.warmedDocuments = new WeakSet();

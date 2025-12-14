@@ -1,0 +1,22 @@
+{
+    "inline.enableRealTimeInference": true,
+    "inline.streaming.enabled": true,
+    "inline.streaming.realTimeDisplay": true,
+    "inline.debounce.min": 50,
+    "inline.debounce.adaptive": true,
+    "inline.cacheWarming.enabled": true,
+    "inline.cacheWarming.maxPositions": 5,
+    "inline.streaming.batchSize": 5,
+    "inline.streaming.flushInterval": 50,
+    "inline.cache.invalidateOnEdit": true,
+    "inline.cache.maxSize": 1000,
+    "inline.partialAcceptance.enabled": true,
+    "inline.crossFileContext.enabled": true,
+    "inline.crossFileContext.maxFiles": 5,
+    "inline.ghostText.fontStyle": "italic",
+    "inline.temperature": 0.2,
+    "inline.maxTokens": 128,
+    "inline.contextWindow": 2048,
+    "inline.modelWarmup": true,
+    "inline.autoOffline": false
+}

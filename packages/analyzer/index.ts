@@ -116,7 +116,10 @@ switch (platform) {
         nativeBinding = require('@inline/native-rust-darwin-universal')
       }
       break
-    } catch {}
+    } catch (e) {
+      // Universal binary not available, try architecture-specific
+      loadError = e
+    }
     switch (arch) {
       case 'x64':
         localFileExisted = existsSync(join(__dirname, 'inline-native-rust.darwin-x64.node'))

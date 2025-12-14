@@ -89,7 +89,7 @@ class CompletionQueue {
     private pending: {
         id: number;
         resolve: (value: vscode.InlineCompletionItem[]) => void;
-        reject: (reason?: any) => void;
+        reject: (reason?: Error) => void;
         token: vscode.CancellationToken;
         document: vscode.TextDocument;
         position: vscode.Position;
@@ -179,7 +179,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private isStreaming: boolean = false;
 
     // Fast Cache Manager for L1/L2 caching
-    private fastCacheManager: any; 
+    private fastCacheManager: { get(key: string): any; set(key: string, value: any): void } | null = null; 
 
     // Statistics tracking for webview integration
     private statistics = {
@@ -248,6 +248,23 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         context: vscode.InlineCompletionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.InlineCompletionItem[]> {
+        // Input validation
+        if (!document) {
+            return [];
+        }
+        
+        if (document.isClosed) {
+            return [];
+        }
+        
+        if (!position || position.line < 0 || position.character < 0) {
+            return [];
+        }
+        
+        if (position.line >= document.lineCount) {
+            return [];
+        }
+        
         // FAST PATH: Check in-memory caches immediately (bypass debounce/queue for hits)
         const cacheKey = this.generateCacheKey(document, position);
         // Only check fast in-memory layers
@@ -1320,7 +1337,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     /**
      * Set the AI context tracker for event tracking
      */
-    public setAIContextTracker(tracker: any): void {
+    public setAIContextTracker(tracker: { emitSuggestionGenerated?(completion: string, confidence: number, latency: number, tokenCount: number): string; on?(event: string, callback: (id: string) => void): void } | null): void {
         // Store tracker reference for future integration
         // This will be used to emit AI events during completion generation
         (this as any).aiContextTracker = tracker;

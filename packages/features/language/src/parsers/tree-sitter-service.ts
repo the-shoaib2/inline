@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Parser, Language } from 'web-tree-sitter';
+import { Parser, Language, Query } from 'web-tree-sitter';
 import { Logger } from '@inline/shared/platform/system/logger';
 import { NativeLoader } from '@inline/shared/platform/native/native-loader';
 import { RESOURCE_PATHS, getResourcePath } from '@inline/shared/platform/system/path-constants';
@@ -42,7 +42,7 @@ export interface TreeSitterConfig {
     queryPath?: string;
 }
 
-console.log('[DEBUG] TreeSitterService file loaded');
+// TreeSitterService file loaded - initialization will be logged by constructor
 
 /**
  * Service for managing Tree-sitter parsers and AST parsing.
@@ -66,8 +66,8 @@ export class TreeSitterService {
     private wasmDir: string = '';
 
     private constructor() {
-        console.log('[DEBUG] TreeSitterService constructor called');
         this.logger = new Logger('TreeSitterService');
+        this.logger.debug('TreeSitterService constructor called');
     }
 
     /**
@@ -84,7 +84,7 @@ export class TreeSitterService {
      * Initialize Tree-sitter service
      */
     public async initialize(context: vscode.ExtensionContext): Promise<void> {
-        console.log('[DEBUG] TreeSitterService initialize called');
+        this.logger.debug('TreeSitterService initialize called');
         if (this.initialized) {
             return;
         }
@@ -150,16 +150,16 @@ export class TreeSitterService {
      * Get or create parser for a language
      */
     public async getParser(languageId: string): Promise<Parser | null> {
-        console.log(`[DEBUG] getParser called for ${languageId}`);
+        this.logger.debug(`getParser called for ${languageId}`);
         if (!this.initialized) {
             this.logger.warn('Tree-sitter not initialized');
-            console.log('[DEBUG] Tree-sitter not initialized');
+            this.logger.debug('Tree-sitter not initialized');
             return null;
         }
 
         // Check cache
         if (this.parsers.has(languageId)) {
-            console.log(`[DEBUG] Returning cached parser for ${languageId}`);
+            this.logger.debug(`Returning cached parser for ${languageId}`);
             return this.parsers.get(languageId)!;
         }
 
@@ -167,7 +167,7 @@ export class TreeSitterService {
             // Load language grammar
             const language = await this.loadLanguage(languageId);
             if (!language) {
-                console.log(`[DEBUG] Failed to load language for ${languageId}`);
+                this.logger.debug(`Failed to load language for ${languageId}`);
                 return null;
             }
 
@@ -178,7 +178,7 @@ export class TreeSitterService {
             // Cache parser
             this.parsers.set(languageId, parser);
             this.logger.info(`Created parser for ${languageId}`);
-            console.log(`[DEBUG] Created parser for ${languageId}`);
+            this.logger.debug(`Created parser for ${languageId}`);
 
             return parser;
         } catch (error) {
@@ -401,7 +401,8 @@ export class TreeSitterService {
                 return [];
             }
             
-            const query = language.query(queryString);
+            // Use the new Query constructor API instead of deprecated language.query()
+            const query = new Query(language, queryString);
             if (!query) {
                  // Parser has language.
                  // But multiple parsers?
@@ -414,13 +415,13 @@ export class TreeSitterService {
             // console.log(`[DEBUG] rootNode: ${tree.rootNode.toString().substring(0, 200)}...`);
 
             const matches = query.matches(tree.rootNode);
-            console.log(`[DEBUG] matches: ${matches.length} for ${languageId}`);
+            this.logger.debug(`matches: ${matches.length} for ${languageId}`);
 
             if (matches.length > 0) {
                  const names = matches.flatMap((m: any) => m.captures.map((c: any) => c.name));
-                 console.log(`[DEBUG] Capture names: ${names.join(', ')}`);
+                 this.logger.debug(`Capture names: ${names.join(', ')}`);
             } else {
-                 console.log(`[DEBUG] No matches for ${languageId}. Query: ${queryString.substring(0, 50)}...`);
+                 this.logger.debug(`No matches for ${languageId}. Query: ${queryString.substring(0, 50)}...`);
             }
 
             return matches.map((match: any) => ({
@@ -456,7 +457,7 @@ export class TreeSitterService {
      */
     private loadQueries(languageId: string): LanguageQueries {
         if (!this.context) {
-            console.error('[DEBUG] TreeSitterService context is null in loadQueries');
+            this.logger.error('TreeSitterService context is null in loadQueries');
             return {};
         }
 
@@ -466,7 +467,7 @@ export class TreeSitterService {
             path.join('resources', 'tree-sitter-queries', languageId)
         );
         
-        console.log(`[DEBUG] Loading queries for ${languageId} from ${queryPath}`);
+        this.logger.debug(`Loading queries for ${languageId} from ${queryPath}`);
 
         // Try to load each query file
         const queryTypes = ['imports', 'functions', 'classes', 'decorators', 'generics', 'patternMatching'];
@@ -478,9 +479,9 @@ export class TreeSitterService {
                 
                 if (fs.existsSync(filePath)) {
                     queries[queryType as keyof LanguageQueries] = fs.readFileSync(filePath, 'utf8');
-                    console.log(`[DEBUG] Loaded query: ${queryType}`);
+                    this.logger.debug(`Loaded query: ${queryType}`);
                 } else {
-                    console.log(`[DEBUG] Query file not found: ${filePath}`);
+                    this.logger.debug(`Query file not found: ${filePath}`);
                 }
             } catch (error) {
                 // Query file doesn't exist, skip
