@@ -123,14 +123,30 @@ Response:`;
 
         for (const line of lines) {
             const trimmed = line.trim();
-            
-            if (trimmed.match(/^(EXPLANATION|Explanation):/i)) {
+
+            // Explanation section
+            const explanationMatch = trimmed.match(/^(EXPLANATION|Explanation):\s*(.*)/i);
+            if (explanationMatch) {
                 currentSection = 'explanation';
+                if (explanationMatch[2]) {
+                    explanation += explanationMatch[2] + ' ';
+                }
                 continue;
-            } else if (trimmed.match(/^(FIXES?|Suggested Fixes?):/i)) {
+            }
+
+            // Fixes section
+            const fixesMatch = trimmed.match(/^(FIXES?|Suggested Fixes?):\s*(.*)/i);
+            if (fixesMatch) {
                 currentSection = 'fixes';
+                if (fixesMatch[2]) {
+                    const fix = fixesMatch[2].trim();
+                    if (fix) suggestedFixes.push(fix);
+                }
                 continue;
-            } else if (trimmed.match(/^(EXAMPLE|Example):/i)) {
+            }
+
+            // Example section
+            if (trimmed.match(/^(EXAMPLE|Example):/i)) {
                 currentSection = 'example';
                 continue;
             }
@@ -142,7 +158,7 @@ Response:`;
                 const fixMatch = trimmed.match(/^[\d\-\*\.]+\s*(.+)$/);
                 if (fixMatch) {
                     suggestedFixes.push(fixMatch[1]);
-                } else if (trimmed.length > 10) {
+                } else if (trimmed.length > 5) { // Reduced threshold slightly
                     suggestedFixes.push(trimmed);
                 }
             }

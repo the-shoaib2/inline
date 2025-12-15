@@ -21,10 +21,10 @@
         "baseUrl": ".",
         "paths": {
             "@inline/core": [
-                "../../core/src"
+                "../../../core/src"
             ],
             "@inline/shared": [
-                "../../shared/src"
+                "../../../shared/src"
             ]
         }
     },
@@ -37,10 +37,10 @@
     ],
     "references": [
         {
-            "path": "../../core"
+            "path": "../../../core"
         },
         {
-            "path": "../../shared"
+            "path": "../../../shared"
         }
     ]
 }

@@ -16,6 +16,8 @@ import { Logger, IGPUDetector, GPUInfo } from '@inline/shared';
 export class GPUDetector implements IGPUDetector {
     private logger: Logger;
     private cachedInfo: GPUInfo | null = null;
+    private detectionAttempts: number = 0;
+    private maxRetries: number = 3;
 
     constructor() {
         this.logger = new Logger('GPUDetector');
@@ -24,6 +26,7 @@ export class GPUDetector implements IGPUDetector {
     /**
      * Detect available GPU and calculate optimal layer offloading.
      * Results are cached for subsequent calls.
+     * Includes retry logic and fallback strategies.
      *
      * @returns GPU capability information
      */
@@ -33,29 +36,50 @@ export class GPUDetector implements IGPUDetector {
         }
 
         this.logger.info('Detecting GPU configuration...');
+        this.detectionAttempts++;
 
         const platform = os.platform();
         let gpuInfo: GPUInfo;
 
-        if (platform === 'darwin') {
-            // macOS - Metal acceleration available on modern hardware
-            gpuInfo = await this.detectMetal();
-        } else if (platform === 'linux' || platform === 'win32') {
-            // Linux/Windows - NVIDIA CUDA support
-            gpuInfo = await this.detectCUDA();
-        } else {
-            // Unsupported platform - fallback to CPU
-            gpuInfo = {
-                available: false,
-                type: 'none',
-                optimalLayers: 0
-            };
+        try {
+            if (platform === 'darwin') {
+                // macOS - Metal acceleration available on modern hardware
+                gpuInfo = await this.detectMetal();
+            } else if (platform === 'linux' || platform === 'win32') {
+                // Linux/Windows - NVIDIA CUDA support
+                gpuInfo = await this.detectCUDA();
+            } else {
+                // Unsupported platform - fallback to CPU
+                this.logger.warn(`Unsupported platform: ${platform}, falling back to CPU`);
+                gpuInfo = this.getCPUFallback();
+            }
+
+            // Validate detection result
+            if (!this.isValidGPUInfo(gpuInfo)) {
+                this.logger.warn('Invalid GPU info detected, using fallback');
+                gpuInfo = this.getCPUFallback();
+            }
+
+            this.cachedInfo = gpuInfo;
+            this.logger.info(`GPU Detection: ${JSON.stringify(gpuInfo)}`);
+
+            return gpuInfo;
+        } catch (error) {
+            this.logger.error('GPU detection failed:', error as Error);
+            
+            // Retry logic
+            if (this.detectionAttempts < this.maxRetries) {
+                this.logger.info(`Retrying GPU detection (attempt ${this.detectionAttempts + 1}/${this.maxRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return this.detectGPU();
+            }
+
+            // Final fallback to CPU
+            this.logger.warn('Max retries reached, falling back to CPU');
+            const fallback = this.getCPUFallback();
+            this.cachedInfo = fallback;
+            return fallback;
         }
-
-        this.cachedInfo = gpuInfo;
-        this.logger.info(`GPU Detection: ${JSON.stringify(gpuInfo)}`);
-
-        return gpuInfo;
     }
 
     /**
@@ -170,9 +194,51 @@ export class GPUDetector implements IGPUDetector {
     }
 
     /**
+     * Get CPU fallback configuration
+     */
+    private getCPUFallback(): GPUInfo {
+        return {
+            available: false,
+            type: 'none',
+            optimalLayers: 0
+        };
+    }
+
+    /**
+     * Validate GPU info
+     */
+    private isValidGPUInfo(info: GPUInfo): boolean {
+        return (
+            info !== null &&
+            typeof info.available === 'boolean' &&
+            typeof info.type === 'string' &&
+            typeof info.optimalLayers === 'number' &&
+            info.optimalLayers >= 0
+        );
+    }
+
+    /**
+     * Get GPU metrics for monitoring
+     */
+    public getMetrics(): {
+        detectionAttempts: number;
+        cached: boolean;
+        gpuType: string;
+        layersOffloaded: number;
+    } {
+        return {
+            detectionAttempts: this.detectionAttempts,
+            cached: this.cachedInfo !== null,
+            gpuType: this.cachedInfo?.type || 'unknown',
+            layersOffloaded: this.cachedInfo?.optimalLayers || 0
+        };
+    }
+
+    /**
      * Clear cached GPU info (for testing)
      */
     public clearCache(): void {
         this.cachedInfo = null;
+        this.detectionAttempts = 0;
     }
 }

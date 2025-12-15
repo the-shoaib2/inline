@@ -7,7 +7,13 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json --watch",
-        "clean": "rm -rf dist"
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "test:unit": "vitest run __tests__/unit",
+        "test:integration": "vitest run __tests__/integration",
+        "test:e2e": "vitest run __tests__/e2e"
     },
     "dependencies": {
         "@inline/accelerator": "workspace:*",
