@@ -1,22 +1,42 @@
 import * as vscode from 'vscode';
-import { TreeSitterService } from '../parsers/tree-sitter-service';
+import { LinterRegistry } from './linter-registry';
+import { TypeScriptLinterStrategy } from './strategies/typescript-linter-strategy';
+import { PythonLinterStrategy } from './strategies/python-linter-strategy';
 
 /**
  * Linter
- * Checks code style and best practices
+ * Checks code style and best practices using Strategy Pattern
  */
 export class Linter {
-    
+    private registry: LinterRegistry;
+
+    constructor() {
+        this.registry = LinterRegistry.getInstance();
+        this.registerDefaultStrategies();
+    }
+
+    private registerDefaultStrategies() {
+        // Register default strategies if not already registered
+        // Ideally these should be registered at package activation, but for safety:
+        this.registry.register(new TypeScriptLinterStrategy());
+        this.registry.register(new PythonLinterStrategy());
+    }
+
     async lint(document: vscode.TextDocument): Promise<vscode.Diagnostic[]> {
         const diagnostics: vscode.Diagnostic[] = [];
         const text = document.getText();
         const languageId = document.languageId;
+        const strategy = this.registry.getStrategy(languageId);
 
-        // Common linting rules
+        // Common linting rules (language agnostic)
         diagnostics.push(...this.checkLineLength(text, document));
-        diagnostics.push(...this.checkNamingConventions(text, document, languageId));
         diagnostics.push(...this.checkComplexity(text, document));
-        diagnostics.push(...this.checkBestPractices(text, document, languageId));
+
+        // Language specific rules via Strategy
+        if (strategy) {
+            diagnostics.push(...strategy.checkNamingConventions(text, document));
+            diagnostics.push(...strategy.checkBestPractices(text, document));
+        }
 
         return diagnostics;
     }
@@ -33,57 +53,6 @@ export class Linter {
                     `Line exceeds maximum length of ${maxLength} characters`,
                     vscode.DiagnosticSeverity.Warning
                 ));
-            }
-        });
-
-        return diagnostics;
-    }
-
-    private checkNamingConventions(text: string, document: vscode.TextDocument, languageId: string): vscode.Diagnostic[] {
-        const diagnostics: vscode.Diagnostic[] = [];
-        const lines = text.split('\n');
-        const treeSitter = TreeSitterService.getInstance();
-        
-        if (!treeSitter.isSupported(languageId)) return diagnostics;
-
-        lines.forEach((line, index) => {
-            // Check for camelCase in C-style languages (JS, TS, Java, C#, C, C++, Rust, Go, etc.)
-            const cStyleLanguages = ['typescript', 'javascript', 'java', 'csharp', 'c', 'cpp', 'rust', 'go', 'swift', 'kotlin', 'scala', 'dart'];
-            if (cStyleLanguages.includes(languageId)) {
-                const varMatch = line.match(/(?:const|let|var|auto|val)\s+([A-Z]\w+)\s*=/);
-                if (varMatch) {
-                    const range = new vscode.Range(index, 0, index, line.length);
-                    diagnostics.push(new vscode.Diagnostic(
-                        range,
-                        `Variable '${varMatch[1]}' should use camelCase`,
-                        vscode.DiagnosticSeverity.Warning
-                    ));
-                }
-
-                // Check for PascalCase in class names
-                const classMatch = line.match(/class\s+([a-z]\w+)/);
-                if (classMatch) {
-                    const range = new vscode.Range(index, 0, index, line.length);
-                    diagnostics.push(new vscode.Diagnostic(
-                        range,
-                        `Class '${classMatch[1]}' should use PascalCase`,
-                        vscode.DiagnosticSeverity.Warning
-                    ));
-                }
-            }
-
-            // Check for snake_case in Scripting languages (Python, Ruby, Lua, etc.)
-            const scriptingLanguages = ['python', 'ruby', 'php', 'lua', 'bash', 'shell'];
-            if (scriptingLanguages.includes(languageId)) {
-                const varMatch = line.match(/(\w+[A-Z]\w+)\s*=/);
-                if (varMatch && !line.includes('class ')) {
-                    const range = new vscode.Range(index, 0, index, line.length);
-                    diagnostics.push(new vscode.Diagnostic(
-                        range,
-                        `Variable '${varMatch[1]}' should use snake_case`,
-                        vscode.DiagnosticSeverity.Warning
-                    ));
-                }
             }
         });
 
@@ -124,53 +93,5 @@ export class Linter {
 
         return diagnostics;
     }
-
-    private checkBestPractices(text: string, document: vscode.TextDocument, languageId: string): vscode.Diagnostic[] {
-        const diagnostics: vscode.Diagnostic[] = [];
-        const lines = text.split('\n');
-        const treeSitter = TreeSitterService.getInstance();
-        
-        if (!treeSitter.isSupported(languageId)) return diagnostics;
-
-        lines.forEach((line, index) => {
-            // Check for console.log/print statements in production code
-            const webLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
-            const scriptingLanguages = ['python', 'ruby', 'php', 'lua'];
-            
-            if (webLanguages.includes(languageId) || scriptingLanguages.includes(languageId)) {
-                if ((line.includes('console.log') || line.includes('print(')) && !line.trim().startsWith('//') && !line.trim().startsWith('#')) {
-                    const range = new vscode.Range(index, 0, index, line.length);
-                    diagnostics.push(new vscode.Diagnostic(
-                        range,
-                        'Unexpected debug statement in production code',
-                        vscode.DiagnosticSeverity.Information
-                    ));
-                }
-            }
-
-            // Check for == instead of === (JavaScript/TypeScript)
-            if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(languageId)) {
-                if (/[^=!]==[^=]/.test(line)) {
-                    const range = new vscode.Range(index, 0, index, line.length);
-                    diagnostics.push(new vscode.Diagnostic(
-                        range,
-                        'Use === instead of ==',
-                        vscode.DiagnosticSeverity.Warning
-                    ));
-                }
-            }
-
-            // Check for var instead of let/const (JavaScript/TypeScript)
-            if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(languageId) && /\bvar\s+/.test(line)) {
-                const range = new vscode.Range(index, 0, index, line.length);
-                diagnostics.push(new vscode.Diagnostic(
-                    range,
-                    'Use let or const instead of var',
-                    vscode.DiagnosticSeverity.Warning
-                ));
-            }
-        });
-
-        return diagnostics;
-    }
 }
+

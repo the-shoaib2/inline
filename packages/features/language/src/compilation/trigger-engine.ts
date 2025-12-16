@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { CompilationManager, CompilationState } from '@inline/language/compilation/compilation-manager';
-import { BuildStateTracker } from '@inline/language/compilation/build-state-tracker';
-import { Logger } from '@inline/shared/platform/system/logger';
+import { CompilationManager, CompilationState } from './compilation-manager';
+import { BuildStateTracker } from './build-state-tracker';
+import { Logger } from '@inline/shared';
 import { EventBus } from '@inline/events';
 import { VCSEventType, SyntaxSemanticEventType } from '@inline/events';
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Logger } from '@inline/shared/platform/system/logger';
+import { Logger } from '@inline/shared';
 
 export enum CompilationState {
     IDLE = 'idle',

@@ -73,8 +73,8 @@ export class InlineReferenceProvider implements vscode.ReferenceProvider {
                 return references;
             }
 
-            // Find all identifier nodes matching the symbol name
-            const identifiers = this.findIdentifierNodes(tree.rootNode, symbolName);
+            // Find all identifier nodes matching the symbol name (delegated)
+            const identifiers = this.symbolExtractor.findIdentifierNodes(tree.rootNode, symbolName, document.languageId);
 
             for (const node of identifiers) {
                 const range = new vscode.Range(
@@ -88,22 +88,5 @@ export class InlineReferenceProvider implements vscode.ReferenceProvider {
         }
 
         return references;
-    }
-
-    /**
-     * Find all identifier nodes with a specific name
-     */
-    private findIdentifierNodes(node: any, name: string): any[] {
-        const identifiers: any[] = [];
-
-        if (node.type === 'identifier' && node.text === name) {
-            identifiers.push(node);
-        }
-
-        for (const child of node.children) {
-            identifiers.push(...this.findIdentifierNodes(child, name));
-        }
-
-        return identifiers;
     }
 }

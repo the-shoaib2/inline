@@ -13,9 +13,9 @@
  */
 
 import * as vscode from 'vscode';
-import { LanguageConfigService } from '@inline/language/analysis/language-config-service';
-import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
-import { NativeLoader } from '@inline/shared/platform/native/native-loader';
+import { LanguageConfigService } from './language-config-service';
+import { TreeSitterService } from '../parsers/tree-sitter-service';
+import { NativeLoader } from '@inline/shared';
 
 import {
     ImportInfo, FunctionInfo, ClassInfo, InterfaceInfo, TypeInfo, VariableInfo,

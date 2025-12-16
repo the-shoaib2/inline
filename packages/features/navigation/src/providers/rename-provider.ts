@@ -28,8 +28,8 @@ export class InlineRenameProvider implements vscode.RenameProvider {
 
         const word = document.getText(wordRange);
 
-        // Check if this is a valid identifier
-        if (!this.isValidIdentifier(word)) {
+        // Check if this is a valid identifier (delegated)
+        if (!this.symbolExtractor.isValidIdentifier(word, document.languageId)) {
             throw new Error(`"${word}" is not a valid identifier`);
         }
 
@@ -54,8 +54,8 @@ export class InlineRenameProvider implements vscode.RenameProvider {
         newName: string,
         token: vscode.CancellationToken
     ): Promise<vscode.WorkspaceEdit | undefined> {
-        // Validate new name
-        if (!this.isValidIdentifier(newName)) {
+        // Validate new name (delegated)
+        if (!this.symbolExtractor.isValidIdentifier(newName, document.languageId)) {
             vscode.window.showErrorMessage(`"${newName}" is not a valid identifier`);
             return undefined;
         }
@@ -119,8 +119,8 @@ export class InlineRenameProvider implements vscode.RenameProvider {
                 return references;
             }
 
-            // Find all identifier nodes
-            const identifiers = this.findIdentifierNodes(tree.rootNode, symbolName);
+            // Find all identifier nodes (delegated)
+            const identifiers = this.symbolExtractor.findIdentifierNodes(tree.rootNode, symbolName, document.languageId);
 
             for (const node of identifiers) {
                 const range = new vscode.Range(
@@ -134,30 +134,5 @@ export class InlineRenameProvider implements vscode.RenameProvider {
         }
 
         return references;
-    }
-
-    /**
-     * Find all identifier nodes with a specific name
-     */
-    private findIdentifierNodes(node: any, name: string): any[] {
-        const identifiers: any[] = [];
-
-        if (node.type === 'identifier' && node.text === name) {
-            identifiers.push(node);
-        }
-
-        for (const child of node.children) {
-            identifiers.push(...this.findIdentifierNodes(child, name));
-        }
-
-        return identifiers;
-    }
-
-    /**
-     * Check if a string is a valid identifier
-     */
-    private isValidIdentifier(name: string): boolean {
-        // Basic identifier validation (alphanumeric + underscore, not starting with digit)
-        return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name);
     }
 }

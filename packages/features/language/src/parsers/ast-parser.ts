@@ -1,46 +1,49 @@
 import { Parser } from 'web-tree-sitter';
 
-import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
-import { NativeLoader } from '@inline/shared/platform/native/native-loader';
-import { ASTNode, NormalizedAST, CodeBlock, IASTParser } from '@inline/shared/types/ast-parser.interface';
+import { TreeSitterService } from './tree-sitter-service';
+import { NativeLoader } from '@inline/shared';
+import { ASTNode, NormalizedAST, CodeBlock, IASTParser } from '@inline/shared';
+import { ParserRegistry } from './parser-registry';
+import { TypeScriptParserStrategy } from './strategies/typescript-parser-strategy';
+import { PythonParserStrategy } from './strategies/python-parser-strategy';
+import { JavaParserStrategy } from './strategies/java-parser-strategy';
+import { CppParserStrategy } from './strategies/cpp-parser-strategy';
+import { GoParserStrategy } from './strategies/go-parser-strategy';
+import { RustParserStrategy } from './strategies/rust-parser-strategy';
 
 /**
  * Language-agnostic AST parser for structural code analysis.
  * 
- * Now supports Tree-sitter for accurate parsing with regex fallback.
+ * Now supports Tree-sitter for accurate parsing with regex fallback using Strategy Pattern.
  */
 export class ASTParser implements IASTParser {
-    private languageParsers: Map<string, (code: string) => ASTNode | null>;
+    private registry: ParserRegistry;
     private treeSitterService: TreeSitterService;
 
     constructor() {
-        this.languageParsers = new Map();
+        this.registry = ParserRegistry.getInstance();
         this.treeSitterService = TreeSitterService.getInstance();
-        this.initializeParsers();
+        this.registerDefaultStrategies();
+    }
+
+    private registerDefaultStrategies() {
+        // Register default strategies
+        this.registry.register(new TypeScriptParserStrategy());
+        this.registry.register(new PythonParserStrategy());
+        this.registry.register(new JavaParserStrategy());
+        this.registry.register(new CppParserStrategy());
+        this.registry.register(new GoParserStrategy());
+        this.registry.register(new RustParserStrategy());
     }
 
     /**
      * Parse code to AST.
      * 
-     * Tries Tree-sitter first for accurate parsing, falls back to regex.
+     * Tries Tree-sitter first for accurate parsing, falls back to Strategy Pattern.
      */
     public async parse(code: string, language: string): Promise<ASTNode | null> {
-        // Try Native first (Fastest)
-        const native = NativeLoader.getInstance();
-        /*
-        if (native.isAvailable()) {
-            try {
-                // native.parseAst returns the object directly (via JSON.parse)
-                const ast = await native.parseAst(code, language);
-                if (ast) {
-                    return ast as ASTNode;
-                }
-            } catch (error) {
-                console.warn(`Native parsing failed for ${language}, falling back to next method:`, error);
-            }
-        }
-        */
-
+        // Try Native first (Fastest) - Skipped as per original comment
+        
         // Try Tree-sitter (WASM)
         if (this.treeSitterService.isSupported(language)) {
             try {
@@ -53,14 +56,14 @@ export class ASTParser implements IASTParser {
             }
         }
 
-        // Fall back to regex-based parsing
-        const parser = this.languageParsers.get(language.toLowerCase());
-        if (!parser) {
+        // Fall back to Strategy Pattern
+        const strategy = this.registry.getStrategy(language);
+        if (!strategy) {
             return this.parseGeneric(code);
         }
 
         try {
-            return parser(code);
+            return strategy.parse(code);
         } catch (error) {
             console.warn(`AST parsing failed for ${language}, using generic parser:`, error);
             return this.parseGeneric(code);
@@ -94,43 +97,49 @@ export class ASTParser implements IASTParser {
         const blocks: CodeBlock[] = [];
         const lines = code.split('\n');
 
-        // Language-specific patterns
+        // Note: Ideally this should also be delegated to strategies, but for now we use the 
+        // internal pattern helper to ensure backward compatibility and functionality.
+        // Future improvement: Move getBlockPatterns to ParserStrategy interface.
         const patterns = this.getBlockPatterns(language);
 
         // Extract functions
-        for (const pattern of patterns.functions) {
-            const matches = code.matchAll(pattern.regex);
-            for (const match of matches) {
-                if (match.index !== undefined) {
-                    const startLine = code.substring(0, match.index).split('\n').length - 1;
-                    const endLine = this.findBlockEnd(lines, startLine, language);
-                    
-                    blocks.push({
-                        type: 'function',
-                        name: match[1] || 'anonymous',
-                        content: lines.slice(startLine, endLine + 1).join('\n'),
-                        startLine,
-                        endLine
-                    });
+        if (patterns.functions) {
+            for (const pattern of patterns.functions) {
+                const matches = code.matchAll(pattern.regex);
+                for (const match of matches) {
+                    if (match.index !== undefined) {
+                        const startLine = code.substring(0, match.index).split('\n').length - 1;
+                        const endLine = this.findBlockEnd(lines, startLine, language);
+                        
+                        blocks.push({
+                            type: 'function',
+                            name: match[1] || 'anonymous',
+                            content: lines.slice(startLine, endLine + 1).join('\n'),
+                            startLine,
+                            endLine
+                        });
+                    }
                 }
             }
         }
 
         // Extract classes
-        for (const pattern of patterns.classes) {
-            const matches = code.matchAll(pattern.regex);
-            for (const match of matches) {
-                if (match.index !== undefined) {
-                    const startLine = code.substring(0, match.index).split('\n').length - 1;
-                    const endLine = this.findBlockEnd(lines, startLine, language);
-                    
-                    blocks.push({
-                        type: 'class',
-                        name: match[1] || 'anonymous',
-                        content: lines.slice(startLine, endLine + 1).join('\n'),
-                        startLine,
-                        endLine
-                    });
+        if (patterns.classes) {
+            for (const pattern of patterns.classes) {
+                const matches = code.matchAll(pattern.regex);
+                for (const match of matches) {
+                    if (match.index !== undefined) {
+                        const startLine = code.substring(0, match.index).split('\n').length - 1;
+                        const endLine = this.findBlockEnd(lines, startLine, language);
+                        
+                        blocks.push({
+                            type: 'class',
+                            name: match[1] || 'anonymous',
+                            content: lines.slice(startLine, endLine + 1).join('\n'),
+                            startLine,
+                            endLine
+                        });
+                    }
                 }
             }
         }
@@ -138,241 +147,18 @@ export class ASTParser implements IASTParser {
         return blocks;
     }
 
+
     /**
      * Calculate tree edit distance between two ASTs
      */
     public treeEditDistance(ast1: ASTNode, ast2: ASTNode): number {
         // Simplified tree edit distance using dynamic programming
-        // This is a basic implementation - can be enhanced with Zhang-Shasha algorithm
         
         const struct1 = this.astToStructure(ast1);
         const struct2 = this.astToStructure(ast2);
 
         // Use Levenshtein distance on structural representation
         return this.levenshteinDistance(struct1, struct2);
-    }
-
-    /**
-     * Initialize language-specific parsers
-     */
-    private initializeParsers(): void {
-        // JavaScript/TypeScript parser
-        this.languageParsers.set('javascript', (code) => this.parseJavaScript(code));
-        this.languageParsers.set('typescript', (code) => this.parseJavaScript(code));
-        
-        // Python parser
-        this.languageParsers.set('python', (code) => this.parsePython(code));
-        
-        // Java parser
-        this.languageParsers.set('java', (code) => this.parseJava(code));
-        
-        // C/C++ parser
-        this.languageParsers.set('c', (code) => this.parseCpp(code));
-        this.languageParsers.set('cpp', (code) => this.parseCpp(code));
-        
-        // Go parser
-        this.languageParsers.set('go', (code) => this.parseGo(code));
-        
-        // Rust parser
-        this.languageParsers.set('rust', (code) => this.parseRust(code));
-    }
-
-    /**
-     * Parse JavaScript/TypeScript (regex-based, simplified)
-     */
-    private parseJavaScript(code: string): ASTNode {
-        const root: ASTNode = {
-            type: 'Program',
-            children: []
-        };
-
-        // Extract functions
-        const functionRegex = /(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>)/g;
-        let match;
-        while ((match = functionRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'FunctionDeclaration',
-                value: match[1] || match[2],
-                children: []
-            });
-        }
-
-        // Extract classes
-        const classRegex = /class\s+(\w+)/g;
-        while ((match = classRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'ClassDeclaration',
-                value: match[1],
-                children: []
-            });
-        }
-
-        return root;
-    }
-
-    /**
-     * Parse Python (regex-based, simplified)
-     */
-    private parsePython(code: string): ASTNode {
-        const root: ASTNode = {
-            type: 'Module',
-            children: []
-        };
-
-        // Extract functions
-        const functionRegex = /def\s+(\w+)\s*\(/g;
-        let match;
-        while ((match = functionRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'FunctionDef',
-                value: match[1],
-                children: []
-            });
-        }
-
-        // Extract classes
-        const classRegex = /class\s+(\w+)/g;
-        while ((match = classRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'ClassDef',
-                value: match[1],
-                children: []
-            });
-        }
-
-        return root;
-    }
-
-    /**
-     * Parse Java (regex-based, simplified)
-     */
-    private parseJava(code: string): ASTNode {
-        const root: ASTNode = {
-            type: 'CompilationUnit',
-            children: []
-        };
-
-        // Extract classes
-        const classRegex = /(?:public\s+)?class\s+(\w+)/g;
-        let match;
-        while ((match = classRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'ClassDeclaration',
-                value: match[1],
-                children: []
-            });
-        }
-
-        // Extract methods
-        const methodRegex = /(?:public|private|protected)?\s+(?:static\s+)?(?:\w+)\s+(\w+)\s*\(/g;
-        while ((match = methodRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'MethodDeclaration',
-                value: match[1],
-                children: []
-            });
-        }
-
-        return root;
-    }
-
-    /**
-     * Parse C/C++ (regex-based, simplified)
-     */
-    private parseCpp(code: string): ASTNode {
-        const root: ASTNode = {
-            type: 'TranslationUnit',
-            children: []
-        };
-
-        // Extract functions
-        const functionRegex = /(?:\w+\s+)+(\w+)\s*\([^)]*\)\s*{/g;
-        let match;
-        while ((match = functionRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'FunctionDeclaration',
-                value: match[1],
-                children: []
-            });
-        }
-
-        // Extract classes/structs
-        const classRegex = /(?:class|struct)\s+(\w+)/g;
-        while ((match = classRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'ClassDeclaration',
-                value: match[1],
-                children: []
-            });
-        }
-
-        return root;
-    }
-
-    /**
-     * Parse Go (regex-based, simplified)
-     */
-    private parseGo(code: string): ASTNode {
-        const root: ASTNode = {
-            type: 'File',
-            children: []
-        };
-
-        // Extract functions
-        const functionRegex = /func\s+(?:\([^)]*\)\s+)?(\w+)\s*\(/g;
-        let match;
-        while ((match = functionRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'FuncDecl',
-                value: match[1],
-                children: []
-            });
-        }
-
-        // Extract types
-        const typeRegex = /type\s+(\w+)\s+(?:struct|interface)/g;
-        while ((match = typeRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'TypeDecl',
-                value: match[1],
-                children: []
-            });
-        }
-
-        return root;
-    }
-
-    /**
-     * Parse Rust (regex-based, simplified)
-     */
-    private parseRust(code: string): ASTNode {
-        const root: ASTNode = {
-            type: 'Crate',
-            children: []
-        };
-
-        // Extract functions
-        const functionRegex = /fn\s+(\w+)\s*\(/g;
-        let match;
-        while ((match = functionRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'FnDecl',
-                value: match[1],
-                children: []
-            });
-        }
-
-        // Extract structs/enums
-        const structRegex = /(?:struct|enum)\s+(\w+)/g;
-        while ((match = structRegex.exec(code)) !== null) {
-            root.children!.push({
-                type: 'StructDecl',
-                value: match[1],
-                children: []
-            });
-        }
-
-        return root;
     }
 
     /**
@@ -458,51 +244,20 @@ export class ASTParser implements IASTParser {
         return 1 + maxChildDepth;
     }
 
-    /**
-     * Get block patterns for language
-     */
-    private getBlockPatterns(language: string): {
-        functions: Array<{ regex: RegExp }>;
-        classes: Array<{ regex: RegExp }>;
-    } {
-        const patterns: Record<string, any> = {
-            javascript: {
-                functions: [
-                    { regex: /function\s+(\w+)\s*\([^)]*\)\s*{/g },
-                    { regex: /const\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g },
-                    { regex: /(\w+)\s*:\s*(?:async\s*)?function\s*\([^)]*\)\s*{/g }
-                ],
-                classes: [
-                    { regex: /class\s+(\w+)/g }
-                ]
-            },
-            python: {
-                functions: [
-                    { regex: /def\s+(\w+)\s*\(/g }
-                ],
-                classes: [
-                    { regex: /class\s+(\w+)/g }
-                ]
-            },
-            java: {
-                functions: [
-                    { regex: /(?:public|private|protected)?\s+(?:static\s+)?(?:\w+)\s+(\w+)\s*\(/g }
-                ],
-                classes: [
-                    { regex: /(?:public\s+)?class\s+(\w+)/g }
-                ]
-            }
-        };
-
-        return patterns[language.toLowerCase()] || patterns.javascript;
-    }
-
-    /**
-     * Find the end of a code block
-     */
+    // NOTE: extractBlocks implementation below is restored and simplified to avoid breaking changes 
+    // while we wait for full strategy support for block extraction (which requires more complex parsing).
+    // For now, let's bring back the minimal regex logic needed for extract blocks 
+    // or arguably we can deprecate this method if it's not used. 
+    // Assuming it is used. I'll re-implement a robust version in a separate utility or here.
+    
+    // ... Actually, I see I removed the implementation of extractBlocks in my snippet above 
+    // but the IASTParser interface requires it.
+    // I will implementation extractBlocks using a helper method that mimics the old behavior 
+    // but is cleaner.
+    
     private findBlockEnd(lines: string[], startLine: number, language: string): number {
         // Simple brace matching for C-style languages
-        if (['javascript', 'typescript', 'java', 'c', 'cpp', 'go', 'rust'].includes(language.toLowerCase())) {
+        if (['javascript', 'typescript', 'java', 'c', 'cpp', 'go', 'rust', 'csharp', 'php'].includes(language.toLowerCase())) {
             let braceCount = 0;
             let foundStart = false;
 
@@ -532,14 +287,45 @@ export class ASTParser implements IASTParser {
                 if (line.trim().length === 0) continue;
                 
                 const indent = line.search(/\S/);
-                if (indent <= startIndent) {
+                if (indent >= 0 && indent <= startIndent) {
                     return i - 1;
                 }
             }
         }
 
-        // Fallback: return a reasonable default
         return Math.min(startLine + 20, lines.length - 1);
+    }
+    
+    private getBlockPatterns(language: string): any {
+         const patterns: any = {
+            javascript: {
+                functions: [
+                    { regex: /function\s+(\w+)\s*\([^)]*\)\s*{/g },
+                    { regex: /const\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g },
+                    { regex: /(\w+)\s*:\s*(?:async\s*)?function\s*\([^)]*\)\s*{/g }
+                ],
+                classes: [
+                    { regex: /class\s+(\w+)/g }
+                ]
+            },
+            python: {
+                functions: [
+                    { regex: /def\s+(\w+)\s*\(/g }
+                ],
+                classes: [
+                    { regex: /class\s+(\w+)/g }
+                ]
+            },
+            java: {
+                functions: [
+                    { regex: /(?:public|private|protected)?\s+(?:static\s+)?(?:\w+)\s+(\w+)\s*\(/g }
+                ],
+                classes: [
+                    { regex: /(?:public\s+)?class\s+(\w+)/g }
+                ]
+            }
+        };
+        return patterns[language.toLowerCase()] || patterns.javascript;
     }
 
     /**
@@ -570,3 +356,4 @@ export class ASTParser implements IASTParser {
         return dp[m][n];
     }
 }
+

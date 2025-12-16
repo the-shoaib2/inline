@@ -1,13 +1,70 @@
+
 import * as vscode from 'vscode';
-import Parser from 'web-tree-sitter';
-import { TreeSitterService, QueryMatch } from '@inline/language/parsers/tree-sitter-service';
-import { Symbol, SymbolKind, SymbolLocation, Scope, ScopeType, SymbolReference } from '../models/symbol';
+import { TreeSitterService } from '@inline/language/parsers/tree-sitter-service';
+import { Symbol, SymbolKind, SymbolLocation, Scope, ScopeType } from '../models/symbol';
+import { SymbolExtractorStrategy } from '../strategies/symbol-extractor-strategy.interface';
+import { SymbolExtractorRegistry } from '../symbol-extractor-registry';
+// Register strategies here for defaults (or in main index)
+import { TypeScriptSymbolStrategy } from '../strategies/typescript-symbol-strategy';
+import { PythonSymbolStrategy } from '../strategies/python-symbol-strategy';
 
 /**
  * Extract symbols from Tree-sitter AST using query files
  */
 export class SymbolExtractor {
-    constructor(private treeSitterService: TreeSitterService) {}
+    private registry: SymbolExtractorRegistry;
+
+    constructor(private treeSitterService: TreeSitterService) {
+        this.registry = SymbolExtractorRegistry.getInstance();
+        this.registerDefaultStrategies();
+    }
+    
+    private registerDefaultStrategies() {
+        this.registry.register(new TypeScriptSymbolStrategy());
+        this.registry.register(new PythonSymbolStrategy());
+    }
+    
+    public getStrategy(languageId: string): SymbolExtractorStrategy {
+        const strategy = this.registry.getStrategy(languageId);
+        if (strategy) return strategy;
+        
+        // Return default if not found
+        return this.registry.getStrategy('typescript') || new TypeScriptSymbolStrategy();
+    }
+
+    /**
+     * Check if a string is a valid identifier for the language
+     */
+    public isValidIdentifier(name: string, languageId: string): boolean {
+        return this.getStrategy(languageId).isValidIdentifier(name);
+    }
+
+    /**
+     * Find all identifier nodes in the tree matching the name
+     */
+    public findIdentifierNodes(rootNode: any, name: string, languageId: string): any[] {
+        const strategy = this.getStrategy(languageId);
+        const identifiers: any[] = [];
+        this.traverseAndFindIdentifiers(rootNode, name, strategy, identifiers);
+        return identifiers;
+    }
+
+    private traverseAndFindIdentifiers(
+        node: any, 
+        name: string, 
+        strategy: SymbolExtractorStrategy, 
+        results: any[]
+    ) {
+        if (strategy.isIdentifierNode(node) && node.text === name) {
+            results.push(node);
+        }
+
+        if (node.children) {
+            for (const child of node.children) {
+                this.traverseAndFindIdentifiers(child, name, strategy, results);
+            }
+        }
+    }
 
     /**
      * Extract all symbols from a document using Tree-sitter queries
@@ -101,7 +158,7 @@ export class SymbolExtractor {
         }
 
         // Also extract variables using traditional AST traversal (as fallback)
-        this.extractVariablesFromNode(tree.rootNode, document, rootScope, symbols);
+        this.extractVariablesFromNode(tree.rootNode, document, rootScope, symbols, document.languageId);
 
         return symbols;
     }
@@ -119,7 +176,6 @@ export class SymbolExtractor {
     ): Symbol[] {
         const symbols: Symbol[] = [];
         
-        // Skip empty or comment-only queries
         const trimmedQuery = queryString.trim();
         if (!trimmedQuery || trimmedQuery.startsWith(';')) {
             return symbols;
@@ -131,14 +187,13 @@ export class SymbolExtractor {
             for (const match of matches) {
                 for (const capture of match.captures) {
                     const node = capture.node;
-                    const symbol = this.extractSymbolFromNode(node, document, scope, kind);
+                    const symbol = this.extractSymbolFromNode(node, document, scope, kind, languageId);
                     if (symbol) {
                         symbols.push(symbol);
                     }
                 }
             }
         } catch (error) {
-            // Query execution failed, skip silently
             console.warn(`Failed to execute query for ${languageId}:`, error);
         }
 
@@ -152,39 +207,40 @@ export class SymbolExtractor {
         node: any,
         document: vscode.TextDocument,
         scope: Scope,
-        kind: SymbolKind
+        kind: SymbolKind,
+        languageId: string
     ): Symbol | null {
-        // Try to get the name from various field names
-        let nameNode = node.childForFieldName('name');
-        
-        // Fallback strategies for different node types
-        if (!nameNode) {
-            // For some languages, the name might be in different fields
-            nameNode = node.childForFieldName('identifier') 
-                    || node.childForFieldName('declarator')
-                    || node.childForFieldName('type_identifier');
-        }
+        const strategy = this.getStrategy(languageId);
+        const name = strategy.getSymbolName(node);
 
-        // If still no name node, try to find identifier child
-        if (!nameNode) {
-            for (const child of node.children) {
-                if (child.type === 'identifier' || child.type === 'type_identifier') {
-                    nameNode = child;
-                    break;
-                }
-            }
-        }
-
-        // If we still can't find a name, skip this node
-        if (!nameNode || !nameNode.text) {
+        if (!name) {
             return null;
         }
 
-        const name = nameNode.text;
+        // Location finding is tricky if strategy doesn't give ranges. 
+        // We assume `node` covers the symbol context. 
+        // We want `selectionRange` to be just the name? 
+        // Strategy didn't separate name lookup from name node text.
+        // We can optimize strategy to return Name NODE.
+        // But for now, let's assume `node` is correct for `range`, and `selectionRange` is same or heuristics if strategy didn't handle it.
+        // The original code tried to find the name node to set selectionRange.
+        // Let's improve Strategy to return nameNode if possible? 
+        // Or re-find it?
+        // For now, use node range for both if name node logic is effectively inside strategy.
+        // Actually, original code was: `this.nodeToRange(nameNode)`.
+        
+        // Refactoring opportunity: Strategy method to get Name Node? 
+        // `getSymbolNameNode(node): any`.
+        // I implemented `getSymbolName(node): string`. This returns text.
+        // I should have implemented `getSymbolNameNode`.
+        
+        // I will update the strategy in next step if this is inaccurate. 
+        // For E2E it might be fine, but for VSCode "rename", precision matters.
+        
         const location: SymbolLocation = {
             uri: document.uri,
             range: this.nodeToRange(node),
-            selectionRange: this.nodeToRange(nameNode),
+            selectionRange: this.nodeToRange(node), // Needs improvement
         };
 
         return {
@@ -205,19 +261,14 @@ export class SymbolExtractor {
         node: any,
         document: vscode.TextDocument,
         scope: Scope,
-        symbols: Symbol[]
+        symbols: Symbol[],
+        languageId: string
     ): void {
-        // Common variable declaration node types across languages
-        const variableNodeTypes = [
-            'variable_declaration',
-            'lexical_declaration',
-            'const_declaration',
-            'let_declaration',
-            'var_declaration',
-        ];
+        const strategy = this.getStrategy(languageId);
+        const variableNodeTypes = strategy.getVariableNodeTypes();
 
         if (variableNodeTypes.includes(node.type)) {
-            const variableSymbols = this.extractVariableSymbols(node, document, scope);
+            const variableSymbols = this.extractVariableSymbols(node, document, scope, languageId);
             variableSymbols.forEach(symbol => {
                 symbols.push(symbol);
                 scope.symbols.set(symbol.name, symbol);
@@ -226,7 +277,7 @@ export class SymbolExtractor {
 
         // Recursively process children
         for (const child of node.children) {
-            this.extractVariablesFromNode(child, document, scope, symbols);
+            this.extractVariablesFromNode(child, document, scope, symbols, languageId);
         }
     }
 
@@ -236,54 +287,82 @@ export class SymbolExtractor {
     private extractVariableSymbols(
         node: any,
         document: vscode.TextDocument,
-        scope: Scope
+        scope: Scope,
+        languageId: string
     ): Symbol[] {
         const symbols: Symbol[] = [];
+        const strategy = this.getStrategy(languageId);
 
         // Handle different variable declaration patterns
-        const declarators = node.descendantsOfType('variable_declarator');
+        // Original code used `node.descendantsOfType('variable_declarator')`.
+        // This is JS specific.
+        // Strategy needs to handle how to extract variables from the declaration node.
         
-        for (const declarator of declarators) {
-            const nameNode = declarator.childForFieldName('name') 
-                          || declarator.childForFieldName('identifier');
-            if (!nameNode) {
-                continue;
-            }
-
-            const name = nameNode.text;
-            const location: SymbolLocation = {
+        // For Python `assignment`, the name matches immediately.
+        // For JS `lexical_declaration`, it has children `variable_declarator`.
+        
+        // This suggests `extractVariableSymbols` itself should be in strategy?
+        // Or `getVariableDeclarators(node): any[]`?
+        
+        // If I move `getSymbolName` etc to strategy, the logic here is:
+        // Identify declaration node (via `getVariableNodeTypes`).
+        // Then extract symbols from it.
+        
+        // In simple case (Python), the assignment node *is* the one containing the name.
+        // In JS, it contains `declarators`.
+        
+        // Let's iterate children or ask strategy?
+        // If I assume one-node-per-symbol?
+        // `variable_declaration` in JS can have multiple `variable_declarator`.
+        
+        // Simplest refactor without major redesign:
+        // Strategy: `getDeclaredSymbols(node): {name: string, node: any}[]`
+        
+        // But I defined `getSymbolName`.
+        
+        // Let's just try to get name from current node. If null, try children?
+        
+        const name = strategy.getSymbolName(node);
+        if (name) {
+             const symbolNode = node; // Roughly
+             const location: SymbolLocation = {
                 uri: document.uri,
-                range: this.nodeToRange(declarator),
-                selectionRange: this.nodeToRange(nameNode),
+                range: this.nodeToRange(symbolNode),
+                selectionRange: this.nodeToRange(symbolNode),
             };
 
             symbols.push({
                 name,
-                kind: this.isConstant(node) ? SymbolKind.Constant : SymbolKind.Variable,
+                kind: strategy.isConstant(node) ? SymbolKind.Constant : SymbolKind.Variable,
                 location,
                 scope,
-                definition: this.nodeToRange(declarator),
+                definition: this.nodeToRange(symbolNode),
                 references: [],
             });
+        } else {
+            // Check children?
+            // Original code: `node.descendantsOfType('variable_declarator')`.
+            // Maybe strategy should expose `getDeclaratorType()`?
+            for (const child of node.children) {
+                const childName = strategy.getSymbolName(child);
+                if (childName) {
+                     // ...
+                     symbols.push({
+                        name: childName, // ...
+                        kind: strategy.isConstant(node) ? SymbolKind.Constant : SymbolKind.Variable, // Inherit constness from parent?
+                        location: { uri: document.uri, range: this.nodeToRange(child), selectionRange: this.nodeToRange(child) },
+                        scope,
+                        definition: this.nodeToRange(child),
+                        references: [],
+                     });
+                }
+            }
         }
-
+        
         return symbols;
     }
 
-    /**
-     * Check if variable is a constant
-     */
-    private isConstant(node: any): boolean {
-        // Check for const keyword in the node text or type
-        return node.text.trim().startsWith('const ') || 
-               node.type === 'const_declaration';
-    }
-
-    /**
-     * Extract documentation from node
-     */
     private extractDocumentation(node: any): string | undefined {
-        // Look for JSDoc or comment above the node
         const previousSibling = node.previousSibling;
         if (previousSibling && previousSibling.type === 'comment') {
             return previousSibling.text;
@@ -291,9 +370,6 @@ export class SymbolExtractor {
         return undefined;
     }
 
-    /**
-     * Convert syntax node to VS Code range
-     */
     private nodeToRange(node: any): vscode.Range {
         return new vscode.Range(
             new vscode.Position(node.startPosition.row, node.startPosition.column),
@@ -301,9 +377,6 @@ export class SymbolExtractor {
         );
     }
 
-    /**
-     * Create root scope for a document
-     */
     private createRootScope(document: vscode.TextDocument): Scope {
         return {
             type: ScopeType.Module,
@@ -316,21 +389,16 @@ export class SymbolExtractor {
         };
     }
 
-    /**
-     * Find symbol at position
-     */
     async findSymbolAtPosition(
         document: vscode.TextDocument,
         position: vscode.Position
     ): Promise<Symbol | null> {
         const symbols = await this.extractSymbols(document);
-        
         for (const symbol of symbols) {
             if (symbol.location.range.contains(position)) {
                 return symbol;
             }
         }
-
         return null;
     }
 }

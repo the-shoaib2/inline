@@ -1,3 +1,4 @@
+
 /**
  * Cross-File Context Analyzer
  * Resolves imports and includes definitions from related files in context.
@@ -5,6 +6,9 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { ContextAnalysisStrategy, ExtractedImport } from '../strategies/context-analysis-strategy.interface';
+import { TypeScriptAnalysisStrategy } from '../strategies/typescript-analysis-strategy';
+import { PythonAnalysisStrategy } from '../strategies/python-analysis-strategy';
 
 export interface ImportInfo {
     importPath: string;
@@ -23,6 +27,21 @@ export class CrossFileContextAnalyzer {
     private recentEdits: Map<string, number> = new Map(); // filepath -> timestamp
     private readonly MAX_RECENT_FILES = 5;
     private readonly MAX_CONTEXT_SIZE = 2000; // characters
+    
+    private strategies: ContextAnalysisStrategy[];
+    private defaultStrategy: ContextAnalysisStrategy;
+
+    constructor() {
+        this.defaultStrategy = new TypeScriptAnalysisStrategy();
+        this.strategies = [
+            this.defaultStrategy,
+            new PythonAnalysisStrategy()
+        ];
+    }
+    
+    private getStrategy(languageId: string): ContextAnalysisStrategy {
+        return this.strategies.find(s => s.supports(languageId)) || this.defaultStrategy;
+    }
 
     /**
      * Analyze cross-file context for the current position
@@ -46,49 +65,15 @@ export class CrossFileContextAnalyzer {
      * Extract import statements from document
      */
     private async extractImports(document: vscode.TextDocument): Promise<ImportInfo[]> {
-        const imports: ImportInfo[] = [];
-        const text = document.getText();
-        const languageId = document.languageId;
-
-        // TypeScript/JavaScript imports
-        if (languageId === 'typescript' || languageId === 'javascript' || languageId === 'typescriptreact' || languageId === 'javascriptreact') {
-            // import { foo, bar } from './module'
-            const importRegex = /import\s+(?:{([^}]+)}|(\w+))\s+from\s+['"]([^'"]+)['"]/g;
-            let match;
-
-            while ((match = importRegex.exec(text)) !== null) {
-                const symbols = match[1] 
-                    ? match[1].split(',').map(s => s.trim())
-                    : [match[2]];
-                const importPath = match[3];
-
-                imports.push({
-                    importPath,
-                    symbols,
-                    isRelative: importPath.startsWith('.'),
-                    resolvedPath: this.resolveImportPath(document, importPath)
-                });
-            }
-        }
-
-        // Python imports
-        if (languageId === 'python') {
-            // from module import foo, bar
-            const fromImportRegex = /from\s+([\w.]+)\s+import\s+([^#\n]+)/g;
-            let match;
-
-            while ((match = fromImportRegex.exec(text)) !== null) {
-                const importPath = match[1];
-                const symbols = match[2].split(',').map(s => s.trim());
-
-                imports.push({
-                    importPath,
-                    symbols,
-                    isRelative: importPath.startsWith('.'),
-                    resolvedPath: this.resolveImportPath(document, importPath)
-                });
-            }
-        }
+        const strategy = this.getStrategy(document.languageId);
+        const extracted = strategy.extractImports(document.getText());
+        
+        const imports: ImportInfo[] = extracted.map(i => ({
+            importPath: i.path,
+            symbols: i.symbols,
+            isRelative: i.isRelative,
+            resolvedPath: this.resolveImportPath(document, i.path)
+        }));
 
         return imports;
     }
@@ -103,6 +88,7 @@ export class CrossFileContextAnalyzer {
         }
 
         const documentDir = path.dirname(document.uri.fsPath);
+        // Extensions could be part of strategy, but keeping unified list is fine for now
         const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', ''];
         
         for (const ext of extensions) {
@@ -137,13 +123,46 @@ export class CrossFileContextAnalyzer {
                 const uri = vscode.Uri.file(importInfo.resolvedPath);
                 const doc = await vscode.workspace.openTextDocument(uri);
                 const text = doc.getText();
+                const strategy = this.getStrategy(doc.languageId);
 
                 // Extract definitions for imported symbols
+                // We use regex matching on top of Strategy classes/functions?
+                // The strategy returns startLine, maybe endLine.
+                // Or we can just use the definition extraction from strategy?
+                // The strategy interface has extractClasses/Functions.
+                // We can check if any matches the symbol.
+                
+                const classes = strategy.extractClasses(text);
+                const functions = strategy.extractFunctions(text);
+                const interfaces = strategy.extractInterfaces(text);
+                
                 for (const symbol of importInfo.symbols) {
-                    const definition = this.extractDefinition(text, symbol, doc.languageId);
-                    if (definition && (totalSize + definition.length) < this.MAX_CONTEXT_SIZE) {
-                        definitions.set(symbol, definition);
-                        totalSize += definition.length;
+                    // Try to find the symbol in extracted structures
+                    const match = classes.find(c => c.name === symbol) || 
+                                  functions.find(f => f.name === symbol) ||
+                                  interfaces.find(i => i.name === symbol);
+                    
+                    if (match) {
+                        // Extract content roughly
+                        // We need endLine. If not available, take 20 lines?
+                        const startLine = match.startLine;
+                        const endLine = match.endLine || (startLine + 20);
+                        const lines = text.split('\n').slice(startLine, endLine);
+                        const definition = lines.join('\n');
+                        
+                        // Limit size
+                        if (definition && (totalSize + definition.length) < this.MAX_CONTEXT_SIZE) {
+                            definitions.set(symbol, definition);
+                            totalSize += definition.length;
+                        }
+                    } else {
+                        // Fallback to simpler regex if not found in structure (e.g. constants, types)
+                        // Or if strategy supports it
+                        const definition = this.extractDefinitionFallback(text, symbol, doc.languageId);
+                         if (definition && (totalSize + definition.length) < this.MAX_CONTEXT_SIZE) {
+                            definitions.set(symbol, definition);
+                            totalSize += definition.length;
+                        }
                     }
                 }
             } catch (error) {
@@ -156,15 +175,14 @@ export class CrossFileContextAnalyzer {
     }
 
     /**
-     * Extract definition of a symbol from text
+     * Extract definition of a symbol from text (fallback)
      */
-    private extractDefinition(text: string, symbol: string, languageId: string): string | null {
-        // TypeScript/JavaScript
-        if (languageId === 'typescript' || languageId === 'javascript') {
-            // Function/class/interface/type definition
+    private extractDefinitionFallback(text: string, symbol: string, languageId: string): string | null {
+         // TypeScript/JavaScript consts/types
+        if (['typescript', 'javascript', 'typescriptreact'].includes(languageId)) {
             const patterns = [
-                new RegExp(`(export\\s+)?(function|class|interface|type|const|let|var)\\s+${symbol}[\\s\\S]{0,500}`, 'm'),
-                new RegExp(`(export\\s+)?const\\s+${symbol}\\s*=\\s*[\\s\\S]{0,500}`, 'm')
+                new RegExp(`(export\\s+)?const\\s+${symbol}\\s*=\\s*[\\s\\S]{0,500}`, 'm'),
+                 new RegExp(`(export\\s+)?type\\s+${symbol}\\s*=\\s*[\\s\\S]{0,500}`, 'm')
             ];
 
             for (const pattern of patterns) {
@@ -174,21 +192,6 @@ export class CrossFileContextAnalyzer {
                 }
             }
         }
-
-        // Python
-        if (languageId === 'python') {
-            const patterns = [
-                new RegExp(`(def|class)\\s+${symbol}[\\s\\S]{0,500}`, 'm')
-            ];
-
-            for (const pattern of patterns) {
-                const match = text.match(pattern);
-                if (match) {
-                    return match[0].substring(0, 300);
-                }
-            }
-        }
-
         return null;
     }
 
@@ -218,17 +221,15 @@ export class CrossFileContextAnalyzer {
             .slice(0, this.MAX_RECENT_FILES)
             .map(([path]) => path);
     }
+    
+    // ... buildEnhancedContext, clear (unchanged)
 
-    /**
-     * Build enhanced context string with cross-file information
-     */
     public buildEnhancedContext(
         baseContext: string,
         crossFileContext: CrossFileContext
     ): string {
         let enhanced = baseContext;
 
-        // Add imported definitions
         if (crossFileContext.relatedDefinitions.size > 0) {
             enhanced += '\n\n// Related definitions from imports:\n';
             for (const [symbol, definition] of crossFileContext.relatedDefinitions) {
@@ -239,9 +240,6 @@ export class CrossFileContextAnalyzer {
         return enhanced;
     }
 
-    /**
-     * Clear tracking data
-     */
     public clear(): void {
         this.recentEdits.clear();
     }

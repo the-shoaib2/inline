@@ -22,3 +22,4 @@ export * from './types/code-analysis';
 
 // Security export
 export * from './security/scanning/vulnerability-scanner';
+export * from './types/ast-parser.interface';

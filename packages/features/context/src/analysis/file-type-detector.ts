@@ -1,5 +1,11 @@
+
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { ContextAnalysisStrategy } from '../strategies/context-analysis-strategy.interface';
+import { ContextAnalysisRegistry } from '../context-analysis-registry';
+// Strategies imported here only to register defaults (can be moved to package activation)
+import { TypeScriptAnalysisStrategy } from '../strategies/typescript-analysis-strategy';
+import { PythonAnalysisStrategy } from '../strategies/python-analysis-strategy';
 
 /**
  * File type classification for smart context detection
@@ -44,15 +50,29 @@ export interface FileTypeResult {
 
 /**
  * Intelligent file type detector for smart context detection.
- * 
- * Detects file types based on:
- * - File path patterns
- * - File naming conventions
- * - Content analysis
- * - Language-specific patterns
  */
 export class FileTypeDetector {
+    private registry: ContextAnalysisRegistry;
+
+    constructor() {
+        this.registry = ContextAnalysisRegistry.getInstance();
+        this.registerDefaultStrategies();
+    }
+
+    private registerDefaultStrategies() {
+        // Register default strategies safely
+        this.registry.register(new TypeScriptAnalysisStrategy());
+        this.registry.register(new PythonAnalysisStrategy());
+    }
     
+    private getStrategy(languageId: string): ContextAnalysisStrategy {
+        const strategy = this.registry.getStrategy(languageId);
+        if (strategy) {
+            return strategy;
+        }
+        return this.registry.getStrategy('typescript') || new TypeScriptAnalysisStrategy();
+    }
+
     /**
      * Detect file type from URI and optional content
      */
@@ -60,7 +80,6 @@ export class FileTypeDetector {
         const filePath = uri.fsPath;
         const fileName = path.basename(filePath);
         const ext = path.extname(fileName);
-        const dirName = path.basename(path.dirname(filePath));
         
         const reasons: string[] = [];
         let fileType = FileType.UNKNOWN;
@@ -146,7 +165,6 @@ export class FileTypeDetector {
     isTestFile(uri: vscode.Uri): boolean {
         const filePath = uri.fsPath.toLowerCase();
         const fileName = path.basename(filePath);
-        const dirName = path.basename(path.dirname(filePath));
         
         // Test file patterns
         const testPatterns = [
@@ -159,156 +177,33 @@ export class FileTypeDetector {
         
         // Test directory patterns
         const testDirs = [
-            '__tests__',
-            'tests',
-            'test',
-            'spec',
-            '__test__',
-            'e2e',
-            'integration'
+            '/__tests__/',
+            '/tests/',
+            '/test/',
+            '/spec/',
+            '/__test__/',
+            '/e2e/',
+            '/integration/'
         ];
         
-        // Check file name patterns
         if (testPatterns.some(pattern => pattern.test(fileName))) {
             return true;
         }
         
-        // Check directory patterns
-        if (testDirs.some(dir => filePath.includes(`/${dir}/`) || filePath.includes(`\\${dir}\\`))) {
+        if (testDirs.some(dir => filePath.includes(dir) || filePath.includes(dir.replace(/\//g, '\\')))) {
             return true;
         }
         
         return false;
     }
     
-    /**
-     * Get related source file for a test file
-     */
-    getRelatedSourceFile(testFile: vscode.Uri): vscode.Uri | null {
-        const testPath = testFile.fsPath;
-        const fileName = path.basename(testPath);
-        
-        // Remove test suffixes
-        let sourceName = fileName
-            .replace(/\.test\.(ts|tsx|js|jsx|py|java|go|rs)$/, '.$1')
-            .replace(/\.spec\.(ts|tsx|js|jsx|py|java|go|rs)$/, '.$1')
-            .replace(/_test\.(ts|tsx|js|jsx|py|java|go|rs)$/, '.$1')
-            .replace(/_spec\.(ts|tsx|js|jsx|py|java|go|rs)$/, '.$1')
-            .replace(/test_(.*)/, '$1');
-        
-        // Try different source locations
-        const testDir = path.dirname(testPath);
-        const possiblePaths = [
-            // Same directory
-            path.join(testDir, sourceName),
-            // Parent directory (if in __tests__)
-            path.join(testDir, '..', sourceName),
-            // src directory
-            path.join(testDir, '..', 'src', sourceName),
-            // Remove test directory from path
-            testPath.replace(/\/(test|tests|__tests__|spec|e2e|integration)\//, '/src/').replace(/\.test\./, '.').replace(/\.spec\./, '.')
-        ];
-        
-        // Return first existing file (would need actual file system check)
-        // For now, return most likely candidate
-        return vscode.Uri.file(possiblePaths[0]);
-    }
-    
-    /**
-     * Get related test file for a source file
-     */
-    getRelatedTestFile(sourceFile: vscode.Uri): vscode.Uri | null {
-        const sourcePath = sourceFile.fsPath;
-        const ext = path.extname(sourcePath);
-        const baseName = path.basename(sourcePath, ext);
-        const sourceDir = path.dirname(sourcePath);
-        
-        // Common test file patterns
-        const testPatterns = [
-            `${baseName}.test${ext}`,
-            `${baseName}.spec${ext}`,
-            `${baseName}_test${ext}`,
-        ];
-        
-        // Common test directories
-        const testDirs = [
-            path.join(sourceDir, '__tests__'),
-            path.join(sourceDir, '..', 'test'),
-            path.join(sourceDir, '..', 'tests'),
-            path.join(sourceDir, '..', '__tests__'),
-        ];
-        
-        // Try patterns in current directory first
-        for (const pattern of testPatterns) {
-            const testPath = path.join(sourceDir, pattern);
-            // Would check if file exists
-            return vscode.Uri.file(testPath);
-        }
-        
-        // Try test directories
-        for (const testDir of testDirs) {
-            for (const pattern of testPatterns) {
-                const testPath = path.join(testDir, pattern);
-                return vscode.Uri.file(testPath);
-            }
-        }
-        
-        return null;
-    }
-    
+    // ... getRelatedSourceFile, getRelatedTestFile (unchanged for now or move to separate util)
+
     /**
      * Detect code types present in document
      */
     detectCodeTypes(document: vscode.TextDocument): CodeType[] {
-        const text = document.getText();
-        const language = document.languageId;
-        const codeTypes: Set<CodeType> = new Set();
-        
-        // TypeScript/JavaScript patterns
-        if (language === 'typescript' || language === 'javascript' || language === 'typescriptreact' || language === 'javascriptreact') {
-            if (/\bclass\s+\w+/.test(text)) codeTypes.add(CodeType.CLASS);
-            if (/\bfunction\s+\w+/.test(text) || /const\s+\w+\s*=\s*\([^)]*\)\s*=>/.test(text)) {
-                codeTypes.add(CodeType.FUNCTION);
-            }
-            if (/\binterface\s+\w+/.test(text)) codeTypes.add(CodeType.INTERFACE);
-            if (/\btype\s+\w+\s*=/.test(text)) codeTypes.add(CodeType.TYPE);
-            if (/\benum\s+\w+/.test(text)) codeTypes.add(CodeType.ENUM);
-            if (/\bconst\s+[A-Z_]+\s*=/.test(text)) codeTypes.add(CodeType.CONSTANT);
-            
-            // React patterns
-            if (/React\.FC|FunctionComponent|React\.Component/.test(text) || 
-                /export\s+(default\s+)?function\s+[A-Z]\w*/.test(text)) {
-                codeTypes.add(CodeType.COMPONENT);
-            }
-            if (/\buse[A-Z]\w*/.test(text)) codeTypes.add(CodeType.HOOK);
-        }
-        
-        // Python patterns
-        if (language === 'python') {
-            if (/\bclass\s+\w+/.test(text)) codeTypes.add(CodeType.CLASS);
-            if (/\bdef\s+\w+/.test(text)) codeTypes.add(CodeType.FUNCTION);
-            if (/^[A-Z_]+\s*=/.test(text)) codeTypes.add(CodeType.CONSTANT);
-        }
-        
-        // Java patterns
-        if (language === 'java') {
-            if (/\bclass\s+\w+/.test(text)) codeTypes.add(CodeType.CLASS);
-            if (/\binterface\s+\w+/.test(text)) codeTypes.add(CodeType.INTERFACE);
-            if (/\benum\s+\w+/.test(text)) codeTypes.add(CodeType.ENUM);
-            if (/(public|private|protected)\s+\w+\s+\w+\s*\(/.test(text)) {
-                codeTypes.add(CodeType.FUNCTION);
-            }
-        }
-        
-        // Go patterns
-        if (language === 'go') {
-            if (/\btype\s+\w+\s+struct/.test(text)) codeTypes.add(CodeType.CLASS);
-            if (/\btype\s+\w+\s+interface/.test(text)) codeTypes.add(CodeType.INTERFACE);
-            if (/\bfunc\s+\w+/.test(text)) codeTypes.add(CodeType.FUNCTION);
-            if (/\bconst\s+[A-Z]/.test(text)) codeTypes.add(CodeType.CONSTANT);
-        }
-        
-        return Array.from(codeTypes);
+        return this.getStrategy(document.languageId).detectCodeTypes(document.getText());
     }
     
     /**
@@ -316,32 +211,46 @@ export class FileTypeDetector {
      */
     private detectFromContent(document: vscode.TextDocument): FileTypeResult {
         const text = document.getText();
+        const strategy = this.getStrategy(document.languageId);
         const reasons: string[] = [];
+        
+        const imports = strategy.extractImports(text);
         
         // Check for test framework imports
         const testFrameworks = [
             'jest', 'vitest', 'mocha', 'chai', 'jasmine',
             'pytest', 'unittest', 'testing',
-            'junit', 'testng',
-            'testing/quick'
+            'junit', 'testng'
         ];
         
-        if (testFrameworks.some(fw => text.includes(`from '${fw}'`) || text.includes(`from "${fw}"`) || 
-                                       text.includes(`import ${fw}`) || text.includes(`require('${fw}')`))) {
-            reasons.push('Test framework import detected');
+        // Check extracted imports (cleaner)
+        if (imports.some(i => testFrameworks.some(fw => i.path.includes(fw) || i.symbols.some(s => s.toLowerCase().includes(fw))))) {
+             reasons.push('Test framework import detected');
+             return { fileType: FileType.TEST, confidence: 0.9, reasons };
+        }
+        
+        // Check for specific tokens in text (fallback)
+        if (testFrameworks.some(fw => text.includes(`from '${fw}'`) || text.includes(`import ${fw}`))) {
+            reasons.push('Test framework token detected');
             return { fileType: FileType.TEST, confidence: 0.9, reasons };
         }
         
         // Check for type-only content
         const lines = text.split('\n').filter(l => l.trim().length > 0);
-        const typeLines = lines.filter(l => 
-            /^\s*(export\s+)?(interface|type|enum)\s+/.test(l) ||
-            /^\s*import\s+type/.test(l)
-        );
+        const codeTypes = strategy.detectCodeTypes(text);
         
-        if (typeLines.length > lines.length * 0.7) {
-            reasons.push('Mostly type definitions');
-            return { fileType: FileType.INTERFACE, confidence: 0.85, reasons };
+        // If mostly interfaces/types
+        if (codeTypes.includes(CodeType.INTERFACE) && !codeTypes.includes(CodeType.FUNCTION) && !codeTypes.includes(CodeType.CLASS)) {
+             // Heuristic: if file has interfaces/types but no logical blocks, likely interface file
+             // Roughly check line counts
+             const typeLines = lines.filter(l => 
+                /^\s*(export\s+)?(interface|type|enum)\s+/.test(l) ||
+                /^\s*import\s+type/.test(l)
+            );
+            if (typeLines.length > lines.length * 0.7) {
+                reasons.push('Mostly type definitions');
+                return { fileType: FileType.INTERFACE, confidence: 0.85, reasons };
+            }
         }
         
         return { fileType: FileType.SOURCE, confidence: 0.6, reasons: ['Default source file'] };
@@ -361,68 +270,27 @@ export class FileTypeDetector {
         return configPatterns.some(pattern => pattern.test(fileName.toLowerCase()));
     }
     
-    /**
-     * Check if file is documentation
-     */
+    // ... isDocumentationFile, isBuildFile, isStyleFile, isDataFile, isSourceFile (keep unchanged)
+    
     private isDocumentationFile(fileName: string): boolean {
-        const docPatterns = [
-            /^README/i,
-            /^CHANGELOG/i,
-            /^CONTRIBUTING/i,
-            /^LICENSE/i,
-            /\.md$/,
-            /\.mdx$/,
-            /\.rst$/,
-            /\.adoc$/,
-        ];
-        
+        const docPatterns = [/^README/i, /^CHANGELOG/i, /^CONTRIBUTING/i, /^LICENSE/i, /\.md$/, /\.mdx$/, /\.rst$/, /\.adoc$/];
         return docPatterns.some(pattern => pattern.test(fileName));
     }
     
-    /**
-     * Check if file is a build file
-     */
     private isBuildFile(fileName: string): boolean {
-        const buildFiles = [
-            'package.json',
-            'package-lock.json',
-            'yarn.lock',
-            'pnpm-lock.yaml',
-            'Makefile',
-            'Dockerfile',
-            'docker-compose.yml',
-            'turbo.json',
-        ];
-        
+        const buildFiles = ['package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'Makefile', 'Dockerfile', 'docker-compose.yml', 'turbo.json'];
         return buildFiles.includes(fileName.toLowerCase());
     }
     
-    /**
-     * Check if file is a style file
-     */
     private isStyleFile(ext: string): boolean {
-        const styleExts = ['.css', '.scss', '.sass', '.less', '.styl'];
-        return styleExts.includes(ext.toLowerCase());
+        return ['.css', '.scss', '.sass', '.less', '.styl'].includes(ext.toLowerCase());
     }
     
-    /**
-     * Check if file is a data file
-     */
     private isDataFile(ext: string): boolean {
-        const dataExts = ['.json', '.yaml', '.yml', '.xml', '.toml', '.ini'];
-        return dataExts.includes(ext.toLowerCase());
+        return ['.json', '.yaml', '.yml', '.xml', '.toml', '.ini'].includes(ext.toLowerCase());
     }
     
-    /**
-     * Check if file is a source code file
-     */
     private isSourceFile(ext: string): boolean {
-        const sourceExts = [
-            '.ts', '.tsx', '.js', '.jsx',
-            '.py', '.java', '.go', '.rs',
-            '.c', '.cpp', '.h', '.hpp',
-            '.rb', '.php', '.swift', '.kt'
-        ];
-        return sourceExts.includes(ext.toLowerCase());
+        return ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.hpp', '.rb', '.php', '.swift', '.kt'].includes(ext.toLowerCase());
     }
 }

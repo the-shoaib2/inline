@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Logger } from '@inline/shared/platform/system/logger';
+import { Logger } from '@inline/shared';
 
 export class DependencyChecker implements vscode.Disposable {
     private logger: Logger;

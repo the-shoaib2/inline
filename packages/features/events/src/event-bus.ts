@@ -14,6 +14,11 @@ import { Logger } from '@inline/shared';
  */
 export class EventBus {
     private subscriptions: Map<string, EventSubscription> = new Map();
+    // Index subscriptions by event type for faster lookup: Type -> Set<SubscriptionId>
+    private subscriptionsByType: Map<string, Set<string>> = new Map();
+    // Subscriptions that match any type (wildcard or predicate-only)
+    private globalSubscriptions: Set<string> = new Set();
+
     private eventBuffer: AnyEvent[] = [];
     private readonly maxBufferSize: number;
     private readonly logger: Logger;
@@ -44,6 +49,8 @@ export class EventBus {
         };
 
         this.subscriptions.set(id, subscription);
+        this.indexSubscription(subscription);
+
         this.logger.debug(`Subscription ${id} created with priority ${priority}`);
         
         return id;
@@ -53,11 +60,47 @@ export class EventBus {
      * Unsubscribe from events
      */
     public unsubscribe(subscriptionId: string): boolean {
-        const result = this.subscriptions.delete(subscriptionId);
-        if (result) {
+        const subscription = this.subscriptions.get(subscriptionId);
+        if (subscription) {
+            this.unindexSubscription(subscription);
+            this.subscriptions.delete(subscriptionId);
             this.logger.debug(`Subscription ${subscriptionId} removed`);
+            return true;
         }
-        return result;
+        return false;
+    }
+
+    private indexSubscription(sub: EventSubscription): void {
+        const types = sub.filter.types;
+        if (types && types.length > 0) {
+            // Index by specific types
+            for (const type of types) {
+                if (!this.subscriptionsByType.has(type)) {
+                    this.subscriptionsByType.set(type, new Set());
+                }
+                this.subscriptionsByType.get(type)!.add(sub.id);
+            }
+        } else {
+            // No type filter means it listens to everything (unless source filter only? assumed global)
+            this.globalSubscriptions.add(sub.id);
+        }
+    }
+
+    private unindexSubscription(sub: EventSubscription): void {
+        const types = sub.filter.types;
+        if (types && types.length > 0) {
+            for (const type of types) {
+                const set = this.subscriptionsByType.get(type);
+                if (set) {
+                    set.delete(sub.id);
+                    if (set.size === 0) {
+                        this.subscriptionsByType.delete(type);
+                    }
+                }
+            }
+        } else {
+            this.globalSubscriptions.delete(sub.id);
+        }
     }
 
     /**
@@ -134,9 +177,25 @@ export class EventBus {
      */
     private getMatchingSubscriptions(event: AnyEvent): EventSubscription[] {
         const matching: EventSubscription[] = [];
+        const candidateIds = new Set<string>();
 
-        for (const subscription of this.subscriptions.values()) {
-            if (this.matchesFilter(event, subscription.filter)) {
+        // 1. Add global subscriptions
+        for (const id of this.globalSubscriptions) {
+            candidateIds.add(id);
+        }
+
+        // 2. Add type-specific subscriptions
+        const typeSubs = this.subscriptionsByType.get(event.type);
+        if (typeSubs) {
+            for (const id of typeSubs) {
+                candidateIds.add(id);
+            }
+        }
+
+        // 3. Filter candidates
+        for (const id of candidateIds) {
+            const subscription = this.subscriptions.get(id);
+            if (subscription && this.matchesFilter(event, subscription.filter)) {
                 matching.push(subscription);
             }
         }

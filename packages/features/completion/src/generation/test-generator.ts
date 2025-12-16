@@ -1,8 +1,11 @@
+
 import * as vscode from 'vscode';
 import { LlamaInference } from '@inline/intelligence';
 import { Logger } from '@inline/shared';
+import { CompletionStrategyRegistry, StrategyType } from '../services/strategy-registry';
+import { TestStrategy, TestFramework } from './strategies/test/test-strategy.interface';
 
-export type TestFramework = 'jest' | 'mocha' | 'vitest' | 'pytest' | 'junit' | 'go-test' | 'rust-test' | 'auto';
+export { TestFramework };
 
 export interface TestGenerationOptions {
     framework?: TestFramework;
@@ -28,46 +31,25 @@ export class TestGenerator {
         this.logger = new Logger('TestGenerator');
     }
 
+    private getStrategy(languageId: string): TestStrategy {
+        const registry = CompletionStrategyRegistry.getInstance();
+        const strategy = registry.getStrategy<TestStrategy>(StrategyType.TEST, languageId);
+        if (strategy) return strategy;
+
+        // Fallback or explicit default
+        // We can register a 'default' fallback or just assume TS if nothing else matches?
+        // Or we can query for 'typescript' explicitly as default
+        return registry.getStrategy<TestStrategy>(StrategyType.TEST, 'typescript')!;
+    }
+
+    // registerStrategy removed as it should be done via registry global function
+    // public registerStrategy(strategy: TestStrategy): void { ... }
+
     /**
      * Detect the appropriate test framework based on file context
      */
-    private detectFramework(document: vscode.TextDocument): TestFramework {
-        const languageId = document.languageId;
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-        
-        if (!workspaceFolder) {
-            return this.getDefaultFramework(languageId);
-        }
-
-        // Check package.json for JavaScript/TypeScript
-        if (languageId === 'typescript' || languageId === 'javascript') {
-            const packageJsonPath = vscode.Uri.joinPath(workspaceFolder.uri, 'package.json');
-            try {
-                const packageJson = require(packageJsonPath.fsPath);
-                const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-                
-                if (deps['vitest']) return 'vitest';
-                if (deps['jest']) return 'jest';
-                if (deps['mocha']) return 'mocha';
-            } catch {
-                // Fall through to default
-            }
-        }
-
-        return this.getDefaultFramework(languageId);
-    }
-
-    private getDefaultFramework(languageId: string): TestFramework {
-        const frameworkMap: Record<string, TestFramework> = {
-            'typescript': 'jest',
-            'javascript': 'jest',
-            'python': 'pytest',
-            'java': 'junit',
-            'go': 'go-test',
-            'rust': 'rust-test'
-        };
-
-        return frameworkMap[languageId] || 'jest';
+    private async detectFramework(document: vscode.TextDocument): Promise<TestFramework> {
+        return this.getStrategy(document.languageId).detectFramework(document);
     }
 
     /**
@@ -80,7 +62,7 @@ export class TestGenerator {
     ): Promise<GeneratedTest> {
         const code = document.getText(range);
         const framework = options.framework === 'auto' || !options.framework
-            ? this.detectFramework(document)
+            ? await this.detectFramework(document)
             : options.framework;
 
         this.logger.info(`Generating ${framework} tests for code`);
@@ -96,7 +78,7 @@ export class TestGenerator {
 
             const cleaned = this.cleanTestCode(testCode);
             const imports = this.extractImports(cleaned, framework);
-            const testCount = this.countTests(cleaned, framework);
+            const testCount = this.getStrategy(document.languageId).countTests(cleaned, framework);
 
             return {
                 code: cleaned,
@@ -119,7 +101,7 @@ export class TestGenerator {
         language: string,
         options: TestGenerationOptions
     ): string {
-        const frameworkInstructions = this.getFrameworkInstructions(framework);
+        const frameworkInstructions = this.getStrategy(language).getFrameworkInstructions(framework);
         const edgeCaseInstruction = options.includeEdgeCases
             ? 'Include edge cases like null values, empty inputs, and boundary conditions.'
             : '';
@@ -145,21 +127,6 @@ Generate complete, runnable tests with:
 5. Assertions for expected behavior
 
 Tests:`;
-    }
-
-    private getFrameworkInstructions(framework: TestFramework): string {
-        const instructions: Record<TestFramework, string> = {
-            'jest': 'Use Jest syntax with describe() and test() blocks. Use expect() for assertions.',
-            'mocha': 'Use Mocha syntax with describe() and it() blocks. Use chai expect() for assertions.',
-            'vitest': 'Use Vitest syntax with describe() and test() blocks. Use expect() for assertions.',
-            'pytest': 'Use pytest syntax with test_ functions. Use assert statements.',
-            'junit': 'Use JUnit 5 syntax with @Test annotations. Use assertEquals() and other assertions.',
-            'go-test': 'Use Go testing package with Test functions. Use t.Error() and t.Fatal().',
-            'rust-test': 'Use Rust #[test] attribute. Use assert_eq!() and assert!() macros.',
-            'auto': ''
-        };
-
-        return instructions[framework] || '';
     }
 
     /**
@@ -196,31 +163,11 @@ Tests:`;
     }
 
     /**
-     * Count number of tests in generated code
-     */
-    private countTests(code: string, framework: TestFramework): number {
-        const patterns: Record<TestFramework, RegExp> = {
-            'jest': /\b(test|it)\s*\(/g,
-            'mocha': /\bit\s*\(/g,
-            'vitest': /\b(test|it)\s*\(/g,
-            'pytest': /^def\s+test_/gm,
-            'junit': /@Test/g,
-            'go-test': /^func\s+Test/gm,
-            'rust-test': /#\[test\]/g,
-            'auto': /\b(test|it)\s*\(/g
-        };
-
-        const pattern = patterns[framework] || patterns['auto'];
-        const matches = code.match(pattern);
-        return matches ? matches.length : 0;
-    }
-
-    /**
      * Generate test file for entire source file
      */
     public async generateTestFile(document: vscode.TextDocument, options: TestGenerationOptions = {}): Promise<string> {
         const framework = options.framework === 'auto' || !options.framework
-            ? this.detectFramework(document)
+            ? await this.detectFramework(document)
             : options.framework;
 
         const sourceCode = document.getText();
@@ -258,7 +205,7 @@ Generate a complete test file with all necessary imports and setup:`;
         testDescription: string,
         framework?: TestFramework
     ): Promise<string> {
-        const detectedFramework = framework || this.detectFramework(document);
+        const detectedFramework = framework || await this.detectFramework(document);
         
         const prompt = `Add a ${detectedFramework} test case for the function "${functionName}".
 Test description: ${testDescription}

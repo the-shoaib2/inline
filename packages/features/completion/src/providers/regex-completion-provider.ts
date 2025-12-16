@@ -1,4 +1,8 @@
+
 import * as vscode from 'vscode';
+import { RegexContextStrategy } from './strategies/regex/regex-strategy.interface';
+import { ScriptRegexStrategy } from './strategies/regex/script-regex-strategy';
+import { PythonRegexStrategy } from './strategies/regex/python-regex-strategy';
 
 interface RegexPattern {
     name: string;
@@ -9,9 +13,11 @@ interface RegexPattern {
 
 /**
  * Regex Completion Provider
- * Provides common regex pattern completions
+ * Provides common regex pattern completions using pluggable strategies
  */
 export class RegexCompletionProvider implements vscode.CompletionItemProvider {
+    private strategies: RegexContextStrategy[];
+    
     private patterns: RegexPattern[] = [
         { name: 'email', pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', description: 'Email address', example: 'user@example.com' },
         { name: 'url', pattern: '^https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)$', description: 'URL', example: 'https://example.com' },
@@ -34,6 +40,33 @@ export class RegexCompletionProvider implements vscode.CompletionItemProvider {
         { name: 'html-tag', pattern: '<([a-z]+)([^<]+)*(?:>(.*)<\\/\\1>|\\s+\\/>)', description: 'HTML tag', example: '<div>content</div>' },
         { name: 'markdown-link', pattern: '\\[([^\\]]+)\\]\\(([^\\)]+)\\)', description: 'Markdown link', example: '[text](url)' }
     ];
+
+    constructor() {
+        this.strategies = [
+            new ScriptRegexStrategy(),
+            new PythonRegexStrategy()
+        ];
+    }
+
+    public registerStrategy(strategy: RegexContextStrategy): void {
+        this.strategies.push(strategy);
+    }
+    
+    // Exposed for testing
+    public getPatterns(): RegexPattern[] {
+        return this.patterns;
+    }
+
+    // Exposed for testing
+    public isInRegexContext(text: string, languageId: string): boolean {
+        const strategy = this.strategies.find(s => s.supports(languageId));
+        if (strategy) {
+            return strategy.isInRegexContext(text);
+        }
+        
+        // Generic fallback for strings
+        return /['"][^'"]*$/.test(text);
+    }
 
     async provideCompletionItems(
         document: vscode.TextDocument,
@@ -67,21 +100,5 @@ export class RegexCompletionProvider implements vscode.CompletionItemProvider {
         }
 
         return items;
-    }
-
-    private isInRegexContext(text: string, languageId: string): boolean {
-        // Check for regex literal context
-        if (languageId === 'javascript' || languageId === 'typescript') {
-            // /regex/ or new RegExp('regex')
-            return /\/[^\/]*$/.test(text) || /RegExp\(['"][^'"]*$/.test(text);
-        }
-        
-        if (languageId === 'python') {
-            // re.compile(r'regex') or re.match(r'regex')
-            return /re\.\w+\([r]?['"][^'"]*$/.test(text);
-        }
-
-        // Generic string context that might be regex
-        return /['"][^'"]*$/.test(text);
     }
 }

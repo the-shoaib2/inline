@@ -22,3 +22,8 @@ export * from './providers/signature-help-provider';
 export * from './providers/workspace-symbol-provider';
 export * from './providers/import-resolver';
 export * from './types';
+export { registerAllStrategies } from './strategy-registration';
+
+// Register strategies on module load
+import { registerAllStrategies } from './strategy-registration';
+registerAllStrategies();
