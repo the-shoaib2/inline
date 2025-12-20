@@ -86,7 +86,7 @@ function calculateSum(a, b) {
             ];
 
 
-            const patterns = detector.detectDistributedRepetition(lines);
+            const patterns = detector.detectDistributedRepetition(lines, 'javascript');
             expect(patterns.length).to.be.greaterThan(0);
             if (patterns.length > 0) {
                 expect(patterns[0].occurrences).to.be.at.least(3);
@@ -103,7 +103,7 @@ function calculateSum(a, b) {
                 'console.log("F");'
             ];
 
-            const patterns = detector.detectDistributedRepetition(lines);
+            const patterns = detector.detectDistributedRepetition(lines, 'javascript');
             expect(patterns.length).to.equal(0);
         });
     });
@@ -111,8 +111,8 @@ function calculateSum(a, b) {
     describe('Fingerprint Generation', () => {
         it('should generate consistent fingerprints', () => {
             const code = 'function test() { return 42; }';
-            const fp1 = detector.generateFingerprint(code);
-            const fp2 = detector.generateFingerprint(code);
+            const fp1 = detector.generateFingerprint(code, 'javascript');
+            const fp2 = detector.generateFingerprint(code, 'javascript');
 
             expect(fp1.md5).to.equal(fp2.md5);
             expect(fp1.simhash).to.equal(fp2.simhash);
@@ -122,8 +122,8 @@ function calculateSum(a, b) {
             const code1 = 'function test() { return 42; }';
             const code2 = 'function test() { return 43; }';
             
-            const fp1 = detector.generateFingerprint(code1);
-            const fp2 = detector.generateFingerprint(code2);
+            const fp1 = detector.generateFingerprint(code1, 'javascript');
+            const fp2 = detector.generateFingerprint(code2, 'javascript');
 
             expect(fp1.md5).to.not.equal(fp2.md5);
         });

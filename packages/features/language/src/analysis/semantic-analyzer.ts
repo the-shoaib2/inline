@@ -712,19 +712,30 @@ export class SemanticAnalyzer {
         }
 
         try {
-            // console.debug(`[SemanticAnalyzer] Extracting decorators for: ${document.uri.toString()} (${document.languageId})`);
+            console.log(`[SemanticAnalyzer] Extracting decorators for: ${document.uri.toString()} (${document.languageId})`);
+            console.log(`[SemanticAnalyzer] Document has ${document.lineCount} lines, ${document.getText().length} characters`);
             const code = document.getText();
             const tree = await this.treeSitterService.parseWasm(code, language);
             
             if (!tree) {
+                console.log(`[SemanticAnalyzer] Failed to parse tree for ${language}`);
                 return decorators;
             }
 
+            console.log(`[SemanticAnalyzer] Tree parsed successfully, root node type: ${tree.rootNode.type}`);
+
             // Get decorator query for this language
             const queries = this.treeSitterService.getLanguageQueries(language);
+            console.log(`[SemanticAnalyzer] Queries available:`, Object.keys(queries));
             if (!queries.decorators) {
+                console.log(`[SemanticAnalyzer] No decorator query available for ${language}`);
                 return decorators;
             }
+            
+            console.log(`[SemanticAnalyzer] Decorator query: ${queries.decorators}`);
+            console.log(`[SemanticAnalyzer] First 500 chars of code: ${code.substring(0, 500)}`);
+            console.log(`[SemanticAnalyzer] Tree structure (first 500 chars): ${tree.rootNode.toString().substring(0, 500)}`);
+            
 
             // Execute query
             const matches = this.treeSitterService.query(tree, queries.decorators, language);

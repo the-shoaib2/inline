@@ -25,7 +25,7 @@ export async function runIntegrationTests() {
 async function testCRUDWithAPI() {
     console.log('Testing CRUD + API Integration...');
     
-    const crudGen = new CRUDGenerator({} as any);
+    const crudGen = new CRUDGenerator();
     const apiGen = new APIGenerator();
     
     const entity = 'Product';
@@ -36,7 +36,7 @@ async function testCRUDWithAPI() {
     ];
     
     // Generate CRUD operations
-    const crud = await crudGen.generateCRUD(entity, fields, 'typescript');
+    const crud = crudGen.generateCRUD('typescript', entity, fields);
     assert(crud.includes('ProductService'), 'CRUD should include service class');
     assert(crud.includes('create'), 'CRUD should include create method');
     
@@ -58,10 +58,10 @@ async function testDTOWithValidation() {
     const validator = new SyntaxValidator();
     
     // Generate DTO
-    const dto = dtoGen.generateDTO('User', [
+    const dto = dtoGen.generateDTO('typescript', 'User', [
         { name: 'email', type: 'string' },
         { name: 'age', type: 'number' }
-    ], 'typescript');
+    ]);
     
     assert(dto.includes('UserDTO'), 'Should generate DTO');
     assert(dto.includes('email: string'), 'Should include email field');
@@ -105,14 +105,14 @@ async function testMockDataWithDTO() {
 async function testGeneratedCodeValidation() {
     console.log('Testing Generated Code Validation...');
     
-    const crudGen = new CRUDGenerator({} as any);
+    const crudGen = new CRUDGenerator();
     const validator = new SyntaxValidator();
     
     // Generate CRUD code
-    const code = await crudGen.generateCRUD('Order', [
+    const code = crudGen.generateCRUD('typescript', 'Order', [
         { name: 'id', type: 'number' },
         { name: 'total', type: 'number' }
-    ], 'typescript');
+    ]);
     
     // Validate generated code
     const mockDoc: any = {
@@ -134,12 +134,12 @@ async function testComplexityAnalysisWorkflow() {
     console.log('Testing Complexity Analysis Workflow...');
     
     const analyzer = new ComplexityAnalyzer();
-    const crudGen = new CRUDGenerator({} as any);
+    const crudGen = new CRUDGenerator();
     
     // Generate CRUD code
-    const code = await crudGen.generateCRUD('Item', [
+    const code = crudGen.generateCRUD('typescript', 'Item', [
         { name: 'id', type: 'number' }
-    ], 'typescript');
+    ]);
     
     // Analyze complexity
     const analysis = analyzer.analyzeComplexity(code, 'typescript');

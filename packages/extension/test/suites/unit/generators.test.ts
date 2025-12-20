@@ -28,13 +28,13 @@ export async function runGeneratorTests() {
 
 async function testCRUDGenerator() {
     console.log('Testing CRUDGenerator...');
-    const generator = new CRUDGenerator({} as any);
+    const generator = new CRUDGenerator();
 
     // Test TypeScript CRUD
-    const tsResult = await generator.generateCRUD('User', [
+    const tsResult = generator.generateCRUD('typescript', 'User', [
         { name: 'id', type: 'number' },
         { name: 'name', type: 'string' }
-    ], 'typescript');
+    ]);
 
     assert(tsResult.includes('interface User'), 'Should include User interface');
     assert(tsResult.includes('create'), 'Should include create method');
@@ -45,10 +45,10 @@ async function testCRUDGenerator() {
     console.log('  ✓ TypeScript CRUD generation');
 
     // Test Python CRUD
-    const pyResult = await generator.generateCRUD('Product', [
+    const pyResult = generator.generateCRUD('python', 'Product', [
         { name: 'id', type: 'number' },
         { name: 'price', type: 'number' }
-    ], 'python');
+    ]);
 
     assert(pyResult.includes('class Product'), 'Should include Product class');
     assert(pyResult.includes('def create'), 'Should include create method');
@@ -167,10 +167,10 @@ function testDTOGenerator() {
     const generator = new DTOGenerator();
 
     // Test TypeScript DTO
-    const tsDTO = generator.generateDTO('User', [
+    const tsDTO = generator.generateDTO('typescript', 'User', [
         { name: 'id', type: 'number' },
         { name: 'name', type: 'string', optional: true }
-    ], 'typescript');
+    ]);
 
     assert(tsDTO.includes('interface UserDTO'), 'Should include interface');
     assert(tsDTO.includes('name?: string'), 'Should include optional field');
@@ -179,9 +179,9 @@ function testDTOGenerator() {
     console.log('  ✓ TypeScript DTO generation');
 
     // Test Python DTO
-    const pyDTO = generator.generateDTO('Product', [
+    const pyDTO = generator.generateDTO('python', 'Product', [
         { name: 'price', type: 'number' }
-    ], 'python');
+    ]);
 
     assert(pyDTO.includes('@dataclass'), 'Should include dataclass decorator');
     assert(pyDTO.includes('to_dict'), 'Should include to_dict method');
