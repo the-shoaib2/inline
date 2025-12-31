@@ -7,7 +7,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json --watch",
-        "clean": "rm -rf dist",
+        "clean": "rimraf dist",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
@@ -22,11 +22,11 @@
         "@inline/shared": "workspace:*",
         "@inline/language": "workspace:*",
         "@inline/events": "workspace:*",
-        "node-llama-cpp": "^3.14.4"
+        "node-llama-cpp": "^3.3.3"
     },
     "devDependencies": {
-        "@types/node": "24.10.1",
-        "@types/vscode": "^1.106.1",
-        "typescript": "^5.9.3"
+        "@types/node": "22.10.5",
+        "@types/vscode": "^1.97.0",
+        "typescript": "^5.7.3"
     }
 }

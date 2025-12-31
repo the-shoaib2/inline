@@ -1,4 +1,4 @@
-import { Parser } from 'web-tree-sitter';
+import Parser from 'web-tree-sitter';
 
 import { TreeSitterService } from './tree-sitter-service';
 import { NativeLoader } from '@inline/shared';
@@ -43,7 +43,7 @@ export class ASTParser implements IASTParser {
      */
     public async parse(code: string, language: string): Promise<ASTNode | null> {
         // Try Native first (Fastest) - Skipped as per original comment
-        
+
         // Try Tree-sitter (WASM)
         if (this.treeSitterService.isSupported(language)) {
             try {
@@ -77,7 +77,7 @@ export class ASTParser implements IASTParser {
         const structure = this.astToStructure(ast);
         const nodeCount = this.countNodes(ast);
         const depth = this.calculateDepth(ast);
-        
+
         // Generate hash of structure
         const crypto = require('crypto');
         const hash = crypto.createHash('md5').update(structure).digest('hex');
@@ -110,7 +110,7 @@ export class ASTParser implements IASTParser {
                     if (match.index !== undefined) {
                         const startLine = code.substring(0, match.index).split('\n').length - 1;
                         const endLine = this.findBlockEnd(lines, startLine, language);
-                        
+
                         blocks.push({
                             type: 'function',
                             name: match[1] || 'anonymous',
@@ -131,7 +131,7 @@ export class ASTParser implements IASTParser {
                     if (match.index !== undefined) {
                         const startLine = code.substring(0, match.index).split('\n').length - 1;
                         const endLine = this.findBlockEnd(lines, startLine, language);
-                        
+
                         blocks.push({
                             type: 'class',
                             name: match[1] || 'anonymous',
@@ -153,7 +153,7 @@ export class ASTParser implements IASTParser {
      */
     public treeEditDistance(ast1: ASTNode, ast2: ASTNode): number {
         // Simplified tree edit distance using dynamic programming
-        
+
         const struct1 = this.astToStructure(ast1);
         const struct2 = this.astToStructure(ast2);
 
@@ -249,12 +249,12 @@ export class ASTParser implements IASTParser {
     // For now, let's bring back the minimal regex logic needed for extract blocks 
     // or arguably we can deprecate this method if it's not used. 
     // Assuming it is used. I'll re-implement a robust version in a separate utility or here.
-    
+
     // ... Actually, I see I removed the implementation of extractBlocks in my snippet above 
     // but the IASTParser interface requires it.
     // I will implementation extractBlocks using a helper method that mimics the old behavior 
     // but is cleaner.
-    
+
     private findBlockEnd(lines: string[], startLine: number, language: string): number {
         // Simple brace matching for C-style languages
         if (['javascript', 'typescript', 'java', 'c', 'cpp', 'go', 'rust', 'csharp', 'php'].includes(language.toLowerCase())) {
@@ -263,7 +263,7 @@ export class ASTParser implements IASTParser {
 
             for (let i = startLine; i < lines.length; i++) {
                 const line = lines[i];
-                
+
                 for (const char of line) {
                     if (char === '{') {
                         braceCount++;
@@ -281,11 +281,11 @@ export class ASTParser implements IASTParser {
         // Python: use indentation
         if (language.toLowerCase() === 'python') {
             const startIndent = lines[startLine].search(/\S/);
-            
+
             for (let i = startLine + 1; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.trim().length === 0) continue;
-                
+
                 const indent = line.search(/\S/);
                 if (indent >= 0 && indent <= startIndent) {
                     return i - 1;
@@ -295,9 +295,9 @@ export class ASTParser implements IASTParser {
 
         return Math.min(startLine + 20, lines.length - 1);
     }
-    
+
     private getBlockPatterns(language: string): any {
-         const patterns: any = {
+        const patterns: any = {
             javascript: {
                 functions: [
                     { regex: /function\s+(\w+)\s*\([^)]*\)\s*{/g },

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Parser, Language, Query } from 'web-tree-sitter';
+import Parser, { Language } from 'web-tree-sitter';
 import { Logger } from '@inline/shared';
 import { NativeLoader } from '@inline/shared';
 import { RESOURCE_PATHS, getResourcePath } from '@inline/shared';
@@ -91,7 +91,7 @@ export class TreeSitterService {
 
         this.context = context;
         this.wasmDir = getResourcePath(context.extensionUri, RESOURCE_PATHS.TREE_SITTER_WASMS);
-        
+
         try {
             // Initialize Tree-sitter WASM
             await Parser.init();
@@ -117,32 +117,32 @@ export class TreeSitterService {
             // Web & JavaScript ecosystem
             'typescript', 'javascript', 'javascriptreact', 'typescriptreact',
             'tsx', 'jsx', 'vue', 'html', 'css', 'json',
-            
+
             // Systems programming
             'c', 'cpp', 'rust', 'go', 'zig', 'swift', 'objectivec',
-            
+
             // JVM languages
             'java', 'kotlin', 'scala',
-            
+
             // .NET
             'csharp',
-            
+
             // Scripting languages
             'python', 'ruby', 'php', 'lua', 'bash', 'shell',
-            
+
             // Functional languages
             'elixir', 'elm', 'ocaml', 'elisp', 'rescript',
-            
+
             // Data & config
             'yaml', 'toml',
-            
+
             // Blockchain
             'solidity',
-            
+
             // Other
             'dart', 'ql', 'systemrdl', 'tlaplus', 'embedded_template'
         ];
-        
+
         return supportedLanguages.includes(languageId.toLowerCase());
     }
 
@@ -206,7 +206,7 @@ export class TreeSitterService {
                 'javascriptreact': 'tree-sitter-javascript',
                 'tsx': 'tree-sitter-tsx',
                 'jsx': 'tree-sitter-javascript',
-                
+
                 // Systems
                 'c': 'tree-sitter-c',
                 'cpp': 'tree-sitter-cpp',
@@ -215,15 +215,15 @@ export class TreeSitterService {
                 'zig': 'tree-sitter-zig',
                 'swift': 'tree-sitter-swift',
                 'objectivec': 'tree-sitter-objc',
-                
+
                 // JVM
                 'java': 'tree-sitter-java',
                 'kotlin': 'tree-sitter-kotlin',
                 'scala': 'tree-sitter-scala',
-                
+
                 // .NET
                 'csharp': 'tree-sitter-c_sharp',
-                
+
                 // Scripting
                 'python': 'tree-sitter-python',
                 'ruby': 'tree-sitter-ruby',
@@ -232,27 +232,27 @@ export class TreeSitterService {
                 'bash': 'tree-sitter-bash',
                 'shell': 'tree-sitter-bash',
                 'sh': 'tree-sitter-bash',
-                
+
                 // Functional
                 'elixir': 'tree-sitter-elixir',
                 'elm': 'tree-sitter-elm',
                 'ocaml': 'tree-sitter-ocaml',
                 'elisp': 'tree-sitter-elisp',
                 'rescript': 'tree-sitter-rescript',
-                
+
                 // Web
                 'vue': 'tree-sitter-vue',
                 'html': 'tree-sitter-html',
                 'css': 'tree-sitter-css',
-                
+
                 // Data
                 'json': 'tree-sitter-json',
                 'yaml': 'tree-sitter-yaml',
                 'toml': 'tree-sitter-toml',
-                
+
                 // Blockchain
                 'solidity': 'tree-sitter-solidity',
-                
+
                 // Other
                 'dart': 'tree-sitter-dart',
                 'ql': 'tree-sitter-ql',
@@ -268,14 +268,14 @@ export class TreeSitterService {
             }
 
             const wasmPath = path.join(this.wasmDir, `${wasmFileName}.wasm`);
-            
+
             // Load the language from WASM file
             if (!require('fs').existsSync(wasmPath)) {
                 console.error('WASM file does not exist:', wasmPath);
             }
             const language = await Language.load(wasmPath);
             this.languages.set(languageId, language);
-            
+
             this.logger.info(`Loaded Tree-sitter grammar for ${languageId}`);
             return language;
         } catch (error) {
@@ -296,7 +296,7 @@ export class TreeSitterService {
             'javascriptreact': 'tree-sitter-javascript.wasm',
             'tsx': 'tree-sitter-tsx.wasm',
             'jsx': 'tree-sitter-javascript.wasm',
-            
+
             // Systems
             'c': 'tree-sitter-c.wasm',
             'cpp': 'tree-sitter-cpp.wasm',
@@ -305,15 +305,15 @@ export class TreeSitterService {
             'zig': 'tree-sitter-zig.wasm',
             'swift': 'tree-sitter-swift.wasm',
             'objectivec': 'tree-sitter-objc.wasm',
-            
+
             // JVM
             'java': 'tree-sitter-java.wasm',
             'kotlin': 'tree-sitter-kotlin.wasm',
             'scala': 'tree-sitter-scala.wasm',
-            
+
             // .NET
             'csharp': 'tree-sitter-c_sharp.wasm',
-            
+
             // Scripting
             'python': 'tree-sitter-python.wasm',
             'ruby': 'tree-sitter-ruby.wasm',
@@ -322,27 +322,27 @@ export class TreeSitterService {
             'bash': 'tree-sitter-bash.wasm',
             'shell': 'tree-sitter-bash.wasm',
             'sh': 'tree-sitter-bash.wasm',
-            
+
             // Functional
             'elixir': 'tree-sitter-elixir.wasm',
             'elm': 'tree-sitter-elm.wasm',
             'ocaml': 'tree-sitter-ocaml.wasm',
             'elisp': 'tree-sitter-elisp.wasm',
             'rescript': 'tree-sitter-rescript.wasm',
-            
+
             // Web
             'vue': 'tree-sitter-vue.wasm',
             'html': 'tree-sitter-html.wasm',
             'css': 'tree-sitter-css.wasm',
-            
+
             // Data
             'json': 'tree-sitter-json.wasm',
             'yaml': 'tree-sitter-yaml.wasm',
             'toml': 'tree-sitter-toml.wasm',
-            
+
             // Blockchain
             'solidity': 'tree-sitter-solidity.wasm',
-            
+
             // Other
             'dart': 'tree-sitter-dart.wasm',
             'ql': 'tree-sitter-ql.wasm',
@@ -363,7 +363,7 @@ export class TreeSitterService {
     public async parse(code: string, languageId: string): Promise<any | null> {
         const native = NativeLoader.getInstance();
 
-        
+
         // Existing WASM implementation
         return this.parseWasm(code, languageId);
     }
@@ -400,17 +400,13 @@ export class TreeSitterService {
                 this.logger.warn(`Language not found for query: ${languageId}`);
                 return [];
             }
-            
-            // Use the new Query constructor API instead of deprecated language.query()
-            const query = new Query(language, queryString);
+
+            // Use language.query() method for web-tree-sitter 0.26.x
+            const query = language.query(queryString);
             if (!query) {
-                 // Parser has language.
-                 // But multiple parsers?
-                 
-                 // If broken, I'll fix in next step.
-                 return [];
+                return [];
             }
-             
+
             // console.log(`[DEBUG] executing query for ${languageId}:`, queryString.substring(0, 50) + "...");
             // console.log(`[DEBUG] rootNode: ${tree.rootNode.toString().substring(0, 200)}...`);
 
@@ -418,10 +414,10 @@ export class TreeSitterService {
             this.logger.debug(`matches: ${matches.length} for ${languageId}`);
 
             if (matches.length > 0) {
-                 const names = matches.flatMap((m: any) => m.captures.map((c: any) => c.name));
-                 this.logger.debug(`Capture names: ${names.join(', ')}`);
+                const names = matches.flatMap((m: any) => m.captures.map((c: any) => c.name));
+                this.logger.debug(`Capture names: ${names.join(', ')}`);
             } else {
-                 this.logger.debug(`No matches for ${languageId}. Query: ${queryString.substring(0, 50)}...`);
+                this.logger.debug(`No matches for ${languageId}. Query: ${queryString.substring(0, 50)}...`);
             }
 
             return matches.map((match: any) => ({
@@ -466,17 +462,17 @@ export class TreeSitterService {
             this.context.extensionUri,
             path.join('resources', 'tree-sitter-queries', languageId)
         );
-        
+
         this.logger.debug(`Loading queries for ${languageId} from ${queryPath}`);
 
         // Try to load each query file
         const queryTypes = ['imports', 'functions', 'classes', 'decorators', 'generics', 'patternMatching'];
-        
+
         for (const queryType of queryTypes) {
             try {
                 const fs = require('fs');
                 const filePath = path.join(queryPath, `${queryType}.scm`);
-                
+
                 if (fs.existsSync(filePath)) {
                     queries[queryType as keyof LanguageQueries] = fs.readFileSync(filePath, 'utf8');
                     this.logger.debug(`Loaded query: ${queryType}`);

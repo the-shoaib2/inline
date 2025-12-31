@@ -7,7 +7,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json --watch",
-        "clean": "rm -rf dist"
+        "clean": "rimraf dist"
     },
     "dependencies": {
         "@inline/core": "workspace:*",
@@ -15,8 +15,8 @@
         "@inline/shared": "workspace:*"
     },
     "devDependencies": {
-        "@types/node": "24.10.1",
-        "@types/vscode": "^1.106.1",
-        "typescript": "^5.9.3"
+        "@types/node": "22.10.5",
+        "@types/vscode": "^1.97.0",
+        "typescript": "^5.7.3"
     }
 }

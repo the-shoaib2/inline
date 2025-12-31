@@ -230,23 +230,23 @@
   },
   "devDependencies": {
     "@inline/webview": "workspace:*",
-    "@types/chai": "^4.3.11",
+    "@types/chai": "^5.2.3",
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
     "@types/module-alias": "^2.0.4",
-    "@types/node": "24.10.1",
-    "@types/vscode": "^1.106.1",
-    "@typescript-eslint/eslint-plugin": "^8.49.0",
-    "@typescript-eslint/parser": "^8.49.0",
-    "@vscode/test-electron": "^2.5.2",
-    "chai": "^4.3.10",
-    "esbuild": "^0.27.1",
-    "eslint": "^9.39.1",
-    "glob": "^13.0.0",
-    "mocha": "^11.7.5",
+    "@types/node": "22.10.5",
+    "@types/vscode": "^1.97.0",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "@vscode/test-electron": "^2.4.1",
+    "chai": "^5.1.2",
+    "esbuild": "^0.24.2",
+    "eslint": "^9.18.0",
+    "glob": "^11.0.0",
+    "mocha": "^11.0.1",
     "module-alias": "^2.2.3",
-    "tsc-alias": "^1.8.16",
-    "typescript": "^5.9.3"
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "@inline/analyzer": "workspace:*",
@@ -262,7 +262,7 @@
     "@inline/navigation": "workspace:*",
     "@types/tar": "^6.1.13",
     "tar": "^7.5.2",
-    "web-tree-sitter": "^0.25.10",
-    "node-llama-cpp": "^3.14.4"
+    "web-tree-sitter": "^0.26.3",
+    "node-llama-cpp": "^3.3.3"
   }
 }
